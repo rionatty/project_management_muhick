@@ -1,0 +1,1022 @@
+{
+ "app": "project_management_muhick",
+ "charts": [
+  {
+   "chart_name": "Certified Work by Month",
+   "label": "Certified Work by Month"
+  },
+  {
+   "chart_name": "Bids by Status",
+   "label": "Bids by Status"
+  }
+ ],
+ "content": "[{\"id\":\"u8jzPde0Ig\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Approvals Pending\",\"col\":4}},{\"id\":\"xLd6GncfBA\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Claims With the Client\",\"col\":4}},{\"id\":\"epfJBd0Kh8\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Certificates to Invoice\",\"col\":4}},{\"id\":\"oOOL8dKLzd\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Open Defects\",\"col\":4}},{\"id\":\"ocJ2isAjIh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Requisitions to Account For\",\"col\":4}},{\"id\":\"KtJ0RlgLKO\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Bids in Progress\",\"col\":4}},{\"id\":\"mxgJTeKdNn\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Certified Work by Month\",\"col\":6}},{\"id\":\"FRIBXuDL7D\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Bids by Status\",\"col\":6}},{\"id\":\"xtpYlSXpfK\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Shortcuts</b></span>\",\"col\":12}},{\"id\":\"tHF4vUCsMe\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Project\",\"col\":3}},{\"id\":\"hGAkWvj7FA\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Project Budget\",\"col\":3}},{\"id\":\"c9QeWJKY40\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Material Request\",\"col\":3}},{\"id\":\"uvSwMFLZDe\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Claim\",\"col\":3}},{\"id\":\"1f8rESQedU\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pending Approvals\",\"col\":3}},{\"id\":\"StPKR0CsTy\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Project Portfolio\",\"col\":3}},{\"id\":\"4Qwb8DwkNh\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"FdnXsiVpzz\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Documents and Reports</b></span>\",\"col\":12}},{\"id\":\"63FfkCzJr4\",\"type\":\"card\",\"data\":{\"card_name\":\"Handover and Planning\",\"col\":4}},{\"id\":\"i0B3JrTAwR\",\"type\":\"card\",\"data\":{\"card_name\":\"Budget and Cost Control\",\"col\":4}},{\"id\":\"4y9ojfljoQ\",\"type\":\"card\",\"data\":{\"card_name\":\"Procurement\",\"col\":4}},{\"id\":\"oaF1Llqsaj\",\"type\":\"card\",\"data\":{\"card_name\":\"Payments and Claims\",\"col\":4}},{\"id\":\"AIxNKu8iS2\",\"type\":\"card\",\"data\":{\"card_name\":\"Bank and Funds\",\"col\":4}},{\"id\":\"G8NPRVdD53\",\"type\":\"card\",\"data\":{\"card_name\":\"Labour and Subcontracts\",\"col\":4}},{\"id\":\"X83RZJzzzz\",\"type\":\"card\",\"data\":{\"card_name\":\"Claims and Completion\",\"col\":4}},{\"id\":\"gEOzdmenCk\",\"type\":\"card\",\"data\":{\"card_name\":\"Site Records\",\"col\":4}},{\"id\":\"hvMdgaKjIg\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales and Bids\",\"col\":4}},{\"id\":\"8xNbe3nNyj\",\"type\":\"card\",\"data\":{\"card_name\":\"Administration\",\"col\":4}},{\"id\":\"Oq9wMxEhh2\",\"type\":\"card\",\"data\":{\"card_name\":\"Project Reports\",\"col\":4}},{\"id\":\"FDEEtfjgVv\",\"type\":\"card\",\"data\":{\"card_name\":\"Procurement and Finance Reports\",\"col\":4}},{\"id\":\"VqE1SkHbn8\",\"type\":\"card\",\"data\":{\"card_name\":\"Controls\",\"col\":4}},{\"id\":\"8HxjSI6bWH\",\"type\":\"card\",\"data\":{\"card_name\":\"Setup\",\"col\":4}}]",
+ "creation": "2026-10-12 10:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "project",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Muhick Projects",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Handover and Planning",
+   "link_count": 6,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Project",
+   "link_count": 0,
+   "link_to": "Project",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Project Handover",
+   "link_count": 0,
+   "link_to": "Project Handover",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bill of Quantities",
+   "link_count": 0,
+   "link_to": "Project BOQ",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Activity Plan",
+   "link_count": 0,
+   "link_to": "Project Activity Plan",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Milestone",
+   "link_count": 0,
+   "link_to": "Project Milestone",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Task",
+   "link_count": 0,
+   "link_to": "Task",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Budget and Cost Control",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Project Budget",
+   "link_count": 0,
+   "link_to": "Project Budget",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Budget Revision / Cost Control Sheet",
+   "link_count": 0,
+   "link_to": "Project Budget Revision",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Material Request",
+   "link_count": 0,
+   "link_to": "Material Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cash Requisition",
+   "link_count": 0,
+   "link_to": "Project Requisition",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Procurement",
+   "link_count": 6,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Supplier Quotation",
+   "link_count": 0,
+   "link_to": "Supplier Quotation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Procurement Requisition",
+   "link_count": 0,
+   "link_to": "Procurement Requisition",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Purchase Order",
+   "link_count": 0,
+   "link_to": "Purchase Order",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Goods Received Note",
+   "link_count": 0,
+   "link_to": "Purchase Receipt",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Consignment Tracking",
+   "link_count": 0,
+   "link_to": "Import Shipment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Specification Change Request",
+   "link_count": 0,
+   "link_to": "Specification Change Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payments and Claims",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payment Plan",
+   "link_count": 0,
+   "link_to": "Payment Plan",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Expense Claim",
+   "link_count": 0,
+   "link_to": "Reimbursement Claim",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payment Request",
+   "link_count": 0,
+   "link_to": "Payment Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payment Entry",
+   "link_count": 0,
+   "link_to": "Payment Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bank and Funds",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bank Facility",
+   "link_count": 0,
+   "link_to": "Bank Facility",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bank Instrument",
+   "link_count": 0,
+   "link_to": "Bank Instrument",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Funds Between Projects",
+   "link_count": 0,
+   "link_to": "Project Fund Transfer",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Labour and Subcontracts",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Labour Schedule",
+   "link_count": 0,
+   "link_to": "Labour Schedule",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Casual Sheet",
+   "link_count": 0,
+   "link_to": "Casual Sheet",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Subcontract RFQ",
+   "link_count": 0,
+   "link_to": "Subcontract RFQ",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Subcontract Agreement",
+   "link_count": 0,
+   "link_to": "Subcontract Agreement",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Receipt Note",
+   "link_count": 0,
+   "link_to": "Service Receipt Note",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Claims and Completion",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Claim / Service Delivery Note",
+   "link_count": 0,
+   "link_to": "Project Claim",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Variation Order",
+   "link_count": 0,
+   "link_to": "Project Variation Order",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Retention Release",
+   "link_count": 0,
+   "link_to": "Retention Release",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Completion Certificate",
+   "link_count": 0,
+   "link_to": "Project Completion Certificate",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Defect",
+   "link_count": 0,
+   "link_to": "Project Defect",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Site Records",
+   "link_count": 6,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Site Report",
+   "link_count": 0,
+   "link_to": "Site Report",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Site Meeting",
+   "link_count": 0,
+   "link_to": "Site Meeting",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Project Document",
+   "link_count": 0,
+   "link_to": "Project Document",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Equipment Allocation",
+   "link_count": 0,
+   "link_to": "Project Equipment Allocation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Equipment Log",
+   "link_count": 0,
+   "link_to": "Equipment Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Warranty",
+   "link_count": 0,
+   "link_to": "Project Warranty",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales and Bids",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bid",
+   "link_count": 0,
+   "link_to": "Bid",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Requisition",
+   "link_count": 0,
+   "link_to": "Sales Requisition",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Bid Register",
+   "link_count": 0,
+   "link_to": "Bid Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Administration",
+   "link_count": 8,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Fuel Requisition",
+   "link_count": 0,
+   "link_to": "Fuel Requisition",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vehicle Service Request",
+   "link_count": 0,
+   "link_to": "Vehicle Service Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vehicle",
+   "link_count": 0,
+   "link_to": "Vehicle",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Stationery Issue",
+   "link_count": 0,
+   "link_to": "Stationery Issue",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Contract",
+   "link_count": 0,
+   "link_to": "Service Contract",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Facility Maintenance",
+   "link_count": 0,
+   "link_to": "Facility Maintenance Schedule",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Fuel Consumption",
+   "link_count": 0,
+   "link_to": "Fuel Consumption",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Vehicle Maintenance",
+   "link_count": 0,
+   "link_to": "Vehicle Maintenance",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Project Reports",
+   "link_count": 9,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Project Portfolio",
+   "link_count": 0,
+   "link_to": "Project Portfolio",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Project Cost Report",
+   "link_count": 0,
+   "link_to": "Project Cost Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Project Material Consumption",
+   "link_count": 0,
+   "link_to": "Project Material Consumption",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Phase Plan",
+   "link_count": 0,
+   "link_to": "Phase Plan",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Proposed vs Certified Valuations",
+   "link_count": 0,
+   "link_to": "Proposed vs Certified Valuations",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Procurement Plan",
+   "link_count": 0,
+   "link_to": "Procurement Plan",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Retention Register",
+   "link_count": 0,
+   "link_to": "Retention Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Subcontractor Performance",
+   "link_count": 0,
+   "link_to": "Subcontractor Performance",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Equipment History",
+   "link_count": 0,
+   "link_to": "Equipment History",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Procurement and Finance Reports",
+   "link_count": 7,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Project Procurement Status",
+   "link_count": 0,
+   "link_to": "Project Procurement Status",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Item Price Trend",
+   "link_count": 0,
+   "link_to": "Item Price Trend",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Freight Forwarder Performance",
+   "link_count": 0,
+   "link_to": "Freight Forwarder Performance",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Resource Envelope",
+   "link_count": 0,
+   "link_to": "Resource Envelope",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Bank Facility Utilisation",
+   "link_count": 0,
+   "link_to": "Bank Facility Utilisation",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Payment Plan Execution",
+   "link_count": 0,
+   "link_to": "Payment Plan Execution",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Withholding Tax Register",
+   "link_count": 0,
+   "link_to": "Withholding Tax Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Controls",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Pending Approvals",
+   "link_count": 0,
+   "link_to": "Pending Approvals",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Three Way Match Exceptions",
+   "link_count": 0,
+   "link_to": "Three Way Match Exceptions",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Role Permission Matrix",
+   "link_count": 0,
+   "link_to": "Role Permission Matrix",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Approval Turnaround Log",
+   "link_count": 0,
+   "link_to": "Approval Turnaround Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Setup",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Muhick Settings",
+   "link_count": 0,
+   "link_to": "Muhick Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cost Code",
+   "link_count": 0,
+   "link_to": "Cost Code",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Labour Trade",
+   "link_count": 0,
+   "link_to": "Labour Trade",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Muhick Projects",
+ "number_cards": [
+  {
+   "label": "Approvals Pending",
+   "number_card_name": "Approvals Pending"
+  },
+  {
+   "label": "Claims With the Client",
+   "number_card_name": "Claims With the Client"
+  },
+  {
+   "label": "Certificates to Invoice",
+   "number_card_name": "Certificates to Invoice"
+  },
+  {
+   "label": "Open Defects",
+   "number_card_name": "Open Defects"
+  },
+  {
+   "label": "Requisitions to Account For",
+   "number_card_name": "Requisitions to Account For"
+  },
+  {
+   "label": "Bids in Progress",
+   "number_card_name": "Bids in Progress"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [],
+ "sequence_id": 30.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Project",
+   "link_to": "Project",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Project Budget",
+   "link_to": "Project Budget",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Material Request",
+   "link_to": "Material Request",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Claim",
+   "link_to": "Project Claim",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "label": "Pending Approvals",
+   "link_to": "Pending Approvals",
+   "type": "Report"
+  },
+  {
+   "color": "Grey",
+   "label": "Project Portfolio",
+   "link_to": "Project Portfolio",
+   "type": "Report"
+  }
+ ],
+ "title": "Muhick Projects",
+ "type": "Workspace"
+}

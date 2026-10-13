@@ -1,0 +1,178 @@
+{
+ "actions": [],
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "cost_code",
+  "budget_section",
+  "original_budget",
+  "approved_variations",
+  "current_budget",
+  "column_break_1",
+  "opening_actual",
+  "opening_paid",
+  "column_break_2",
+  "committed",
+  "actual",
+  "paid",
+  "available",
+  "column_break_3",
+  "etc_is_manual",
+  "estimate_to_complete",
+  "forecast_final_cost",
+  "forecast_variance"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "cost_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Cost Code",
+   "options": "Cost Code",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "budget_section",
+   "fieldtype": "Data",
+   "label": "Section",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "original_budget",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Original Budget",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "fieldname": "approved_variations",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Approved Variations",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "bold": 1,
+   "columns": 1,
+   "fieldname": "current_budget",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Current Budget",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Cost already incurred on this cost code before go-live",
+   "fieldname": "opening_actual",
+   "fieldtype": "Currency",
+   "label": "Spent Before Go-Live"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "opening_paid",
+   "fieldtype": "Currency",
+   "label": "Paid Before Go-Live"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "fieldname": "committed",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Committed",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "fieldname": "actual",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Actual Cost",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "fieldname": "paid",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Paid",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "bold": 1,
+   "columns": 1,
+   "fieldname": "available",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Available Budget",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "etc_is_manual",
+   "fieldtype": "Check",
+   "label": "Estimate to Complete Entered Manually"
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Cost still to be committed on this cost code",
+   "fieldname": "estimate_to_complete",
+   "fieldtype": "Currency",
+   "label": "Estimate to Complete"
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "fieldname": "forecast_final_cost",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Forecast Final Cost",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Current Budget less Forecast Final Cost",
+   "fieldname": "forecast_variance",
+   "fieldtype": "Currency",
+   "label": "Forecast Variance",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Project Budget Cost Code",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,19 @@
+{
+ "app": "project_management_muhick",
+ "creation": "2026-10-12 10:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon_type": "App",
+ "idx": 110,
+ "label": "Project Management Muhick",
+ "link": "/desk/muhick-projects",
+ "link_type": "External",
+ "logo_url": "/assets/project_management_muhick/images/muhick-logo.svg",
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "Project Management Muhick",
+ "owner": "Administrator",
+ "roles": [],
+ "standard": 1
+}

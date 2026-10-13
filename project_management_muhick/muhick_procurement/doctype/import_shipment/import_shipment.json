@@ -1,0 +1,562 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "title",
+  "purchase_order",
+  "supplier",
+  "column_break_1",
+  "project",
+  "company",
+  "required_on_site_by",
+  "column_break_2",
+  "shipment_status",
+  "is_delayed",
+  "delay_reason",
+  "manufacture_section",
+  "manufacturing_start",
+  "lead_time_days",
+  "column_break_3",
+  "expected_ready_date",
+  "actual_ready_date",
+  "letter_of_credit_section",
+  "lc_required",
+  "lc_number",
+  "lc_bank",
+  "column_break_4",
+  "lc_amount",
+  "lc_issue_date",
+  "lc_expiry_date",
+  "pre_shipment_inspection_section",
+  "inspection_agency",
+  "inspection_applied_on",
+  "column_break_5",
+  "inspection_date",
+  "inspection_certificate",
+  "shipping_section",
+  "mode_of_shipment",
+  "freight_forwarder",
+  "vessel",
+  "bill_of_lading",
+  "container_no",
+  "column_break_6",
+  "port_of_loading",
+  "port_of_entry",
+  "planned_departure",
+  "actual_departure",
+  "column_break_7",
+  "planned_arrival",
+  "actual_arrival",
+  "transit_days_planned",
+  "transit_days_actual",
+  "customs_clearance_section",
+  "clearing_agent",
+  "tax_assessment_on",
+  "tax_payment_deadline",
+  "column_break_8",
+  "tax_paid_on",
+  "cleared_on",
+  "via_icd",
+  "tax_worksheet_and_other_charges_section",
+  "charges",
+  "total_charges",
+  "container_return_and_delivery_section",
+  "container_returned_on",
+  "container_interchange",
+  "column_break_9",
+  "delivered_on",
+  "purchase_receipt",
+  "section_break_1",
+  "remarks",
+  "last_alert_on"
+ ],
+ "fields": [
+  {
+   "default": "SHP-.YYYY.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "SHP-.YYYY.-.#####",
+   "print_hide": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Consignment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "purchase_order",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Purchase Order",
+   "options": "Purchase Order",
+   "reqd": 1
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Supplier",
+   "options": "Supplier",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "Project"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "required_on_site_by",
+   "fieldtype": "Date",
+   "label": "Required on Site By"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Awaiting Manufacture",
+   "fieldname": "shipment_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Awaiting Manufacture\nIn Manufacture\nAwaiting Inspection\nInspected\nIn Transit\nAt Port\nClearing\nDelivered\nClosed",
+   "reqd": 1
+  },
+  {
+   "fieldname": "is_delayed",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Behind Schedule",
+   "read_only": 1
+  },
+  {
+   "fieldname": "delay_reason",
+   "fieldtype": "Small Text",
+   "label": "Reason for Delay"
+  },
+  {
+   "fieldname": "manufacture_section",
+   "fieldtype": "Section Break",
+   "label": "Manufacture"
+  },
+  {
+   "description": "Date the supplier confirmed production started",
+   "fieldname": "manufacturing_start",
+   "fieldtype": "Date",
+   "label": "Manufacturing Started"
+  },
+  {
+   "fieldname": "lead_time_days",
+   "fieldtype": "Int",
+   "label": "Manufacturing Lead Time (Days)"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "expected_ready_date",
+   "fieldtype": "Date",
+   "label": "Expected Ready Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actual_ready_date",
+   "fieldtype": "Date",
+   "label": "Actual Ready Date"
+  },
+  {
+   "fieldname": "letter_of_credit_section",
+   "fieldtype": "Section Break",
+   "label": "Letter of Credit"
+  },
+  {
+   "fieldname": "lc_required",
+   "fieldtype": "Check",
+   "label": "Letter of Credit Required"
+  },
+  {
+   "depends_on": "eval:doc.lc_required",
+   "fieldname": "lc_number",
+   "fieldtype": "Data",
+   "label": "LC No."
+  },
+  {
+   "depends_on": "eval:doc.lc_required",
+   "fieldname": "lc_bank",
+   "fieldtype": "Link",
+   "label": "LC Bank",
+   "options": "Bank"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.lc_required",
+   "fieldname": "lc_amount",
+   "fieldtype": "Currency",
+   "label": "LC Amount"
+  },
+  {
+   "depends_on": "eval:doc.lc_required",
+   "fieldname": "lc_issue_date",
+   "fieldtype": "Date",
+   "label": "LC Issued On"
+  },
+  {
+   "depends_on": "eval:doc.lc_required",
+   "fieldname": "lc_expiry_date",
+   "fieldtype": "Date",
+   "label": "LC Expires On"
+  },
+  {
+   "fieldname": "pre_shipment_inspection_section",
+   "fieldtype": "Section Break",
+   "label": "Pre-Shipment Inspection"
+  },
+  {
+   "fieldname": "inspection_agency",
+   "fieldtype": "Data",
+   "label": "Inspection Agency"
+  },
+  {
+   "fieldname": "inspection_applied_on",
+   "fieldtype": "Date",
+   "label": "Inspection Applied On"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "inspection_date",
+   "fieldtype": "Date",
+   "label": "Inspection Date"
+  },
+  {
+   "fieldname": "inspection_certificate",
+   "fieldtype": "Attach",
+   "label": "Inspection Certificate"
+  },
+  {
+   "fieldname": "shipping_section",
+   "fieldtype": "Section Break",
+   "label": "Shipping"
+  },
+  {
+   "fieldname": "mode_of_shipment",
+   "fieldtype": "Select",
+   "label": "Mode of Shipment",
+   "options": "\nSea - Full Container\nSea - Part Container\nAir\nRoad"
+  },
+  {
+   "fieldname": "freight_forwarder",
+   "fieldtype": "Link",
+   "label": "Freight Forwarder",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "vessel",
+   "fieldtype": "Data",
+   "label": "Vessel / Flight"
+  },
+  {
+   "fieldname": "bill_of_lading",
+   "fieldtype": "Data",
+   "label": "Bill of Lading / Airway Bill"
+  },
+  {
+   "fieldname": "container_no",
+   "fieldtype": "Data",
+   "label": "Container No."
+  },
+  {
+   "fieldname": "column_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "port_of_loading",
+   "fieldtype": "Data",
+   "label": "Port of Loading"
+  },
+  {
+   "fieldname": "port_of_entry",
+   "fieldtype": "Data",
+   "label": "Port of Entry"
+  },
+  {
+   "fieldname": "planned_departure",
+   "fieldtype": "Date",
+   "label": "Planned Departure"
+  },
+  {
+   "fieldname": "actual_departure",
+   "fieldtype": "Date",
+   "label": "Actual Departure"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "planned_arrival",
+   "fieldtype": "Date",
+   "label": "Planned Arrival"
+  },
+  {
+   "fieldname": "actual_arrival",
+   "fieldtype": "Date",
+   "label": "Actual Arrival"
+  },
+  {
+   "fieldname": "transit_days_planned",
+   "fieldtype": "Int",
+   "label": "Planned Transit (Days)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "transit_days_actual",
+   "fieldtype": "Int",
+   "label": "Actual Transit (Days)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customs_clearance_section",
+   "fieldtype": "Section Break",
+   "label": "Customs Clearance"
+  },
+  {
+   "fieldname": "clearing_agent",
+   "fieldtype": "Link",
+   "label": "Clearing Agent",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "tax_assessment_on",
+   "fieldtype": "Datetime",
+   "label": "Tax Assessment Raised On"
+  },
+  {
+   "description": "72 hours after the assessment is raised",
+   "fieldname": "tax_payment_deadline",
+   "fieldtype": "Datetime",
+   "label": "Tax Payment Deadline",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_paid_on",
+   "fieldtype": "Date",
+   "label": "Taxes Paid On"
+  },
+  {
+   "fieldname": "cleared_on",
+   "fieldtype": "Date",
+   "label": "Cleared On"
+  },
+  {
+   "fieldname": "via_icd",
+   "fieldtype": "Check",
+   "label": "Cleared Through an Inland Container Depot"
+  },
+  {
+   "fieldname": "tax_worksheet_and_other_charges_section",
+   "fieldtype": "Section Break",
+   "label": "Tax Worksheet and Other Charges"
+  },
+  {
+   "fieldname": "charges",
+   "fieldtype": "Table",
+   "label": "Charges",
+   "options": "Import Shipment Charge"
+  },
+  {
+   "fieldname": "total_charges",
+   "fieldtype": "Currency",
+   "label": "Total Charges",
+   "read_only": 1
+  },
+  {
+   "fieldname": "container_return_and_delivery_section",
+   "fieldtype": "Section Break",
+   "label": "Container Return and Delivery"
+  },
+  {
+   "fieldname": "container_returned_on",
+   "fieldtype": "Date",
+   "label": "Container Returned On"
+  },
+  {
+   "fieldname": "container_interchange",
+   "fieldtype": "Attach",
+   "label": "Container Interchange"
+  },
+  {
+   "fieldname": "column_break_9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "delivered_on",
+   "fieldtype": "Date",
+   "label": "Delivered On"
+  },
+  {
+   "fieldname": "purchase_receipt",
+   "fieldtype": "Link",
+   "label": "Goods Received Note",
+   "options": "Purchase Receipt"
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Progress Notes"
+  },
+  {
+   "fieldname": "last_alert_on",
+   "fieldtype": "Date",
+   "hidden": 1,
+   "label": "Last Alert",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Procurement",
+ "name": "Import Shipment",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Officer",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Chief Operating Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "General Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Storekeeper",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "purchase_order,supplier,container_no",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

@@ -1,0 +1,504 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "supplier",
+  "supplier_name",
+  "title",
+  "column_break_1",
+  "project",
+  "project_name",
+  "company",
+  "cost_code",
+  "column_break_2",
+  "status",
+  "workflow_state",
+  "subcontract_rfq",
+  "contract_section",
+  "agreement_date",
+  "start_date",
+  "end_date",
+  "column_break_3",
+  "contract_amount",
+  "advance_percent",
+  "advance_amount",
+  "column_break_4",
+  "retention_percent",
+  "withholding_tax_applicable",
+  "signed_contract",
+  "scope_and_terms_section",
+  "scope_of_work",
+  "payment_terms",
+  "payment_milestones_section",
+  "milestones",
+  "budget_section",
+  "budget_status",
+  "budget_remarks",
+  "position_section",
+  "certified_to_date",
+  "advance_recovered",
+  "column_break_5",
+  "retention_held",
+  "retention_released",
+  "column_break_6",
+  "balance_to_certify",
+  "performance_section",
+  "rating_quality",
+  "rating_timeliness",
+  "rating_safety",
+  "column_break_7",
+  "overall_rating",
+  "performance_remarks",
+  "completed_on",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "SCA-.YYYY.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "SCA-.YYYY.-.#####",
+   "print_hide": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Subcontractor",
+   "options": "Supplier",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "supplier.supplier_name",
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Subcontractor Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Subcontracted Work",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "project.project_name",
+   "fieldname": "project_name",
+   "fieldtype": "Data",
+   "label": "Project Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "project.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cost_code",
+   "fieldtype": "Link",
+   "label": "Cost Code",
+   "options": "Cost Code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Draft\nPending Approval\nActive\nCompleted\nRejected\nCancelled",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Approval Status",
+   "no_copy": 1,
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "subcontract_rfq",
+   "fieldtype": "Link",
+   "label": "Subcontract RFQ",
+   "options": "Subcontract RFQ"
+  },
+  {
+   "fieldname": "contract_section",
+   "fieldtype": "Section Break",
+   "label": "Contract"
+  },
+  {
+   "default": "Today",
+   "fieldname": "agreement_date",
+   "fieldtype": "Date",
+   "label": "Agreement Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "bold": 1,
+   "fieldname": "contract_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Contract Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "advance_percent",
+   "fieldtype": "Percent",
+   "label": "Advance %"
+  },
+  {
+   "fieldname": "advance_amount",
+   "fieldtype": "Currency",
+   "label": "Advance Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "retention_percent",
+   "fieldtype": "Percent",
+   "label": "Retention %"
+  },
+  {
+   "default": "1",
+   "fieldname": "withholding_tax_applicable",
+   "fieldtype": "Check",
+   "label": "Withholding Tax Applies"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "signed_contract",
+   "fieldtype": "Attach",
+   "label": "Signed Contract"
+  },
+  {
+   "fieldname": "scope_and_terms_section",
+   "fieldtype": "Section Break",
+   "label": "Scope and Terms"
+  },
+  {
+   "fieldname": "scope_of_work",
+   "fieldtype": "Text Editor",
+   "label": "Scope of Work",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payment_terms",
+   "fieldtype": "Small Text",
+   "label": "Payment Terms"
+  },
+  {
+   "fieldname": "payment_milestones_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Milestones"
+  },
+  {
+   "fieldname": "milestones",
+   "fieldtype": "Table",
+   "label": "Payment Milestones",
+   "options": "Subcontract Agreement Milestone"
+  },
+  {
+   "fieldname": "budget_section",
+   "fieldtype": "Section Break",
+   "label": "Budget"
+  },
+  {
+   "fieldname": "budget_status",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Budget Status",
+   "no_copy": 1,
+   "options": "\nWithin Budget\nExceeds Budget\nNot Budgeted\nNot Applicable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "budget_remarks",
+   "fieldtype": "Small Text",
+   "label": "Budget Check",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.docstatus==1",
+   "fieldname": "position_section",
+   "fieldtype": "Section Break",
+   "label": "Position"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "certified_to_date",
+   "fieldtype": "Currency",
+   "label": "Certified to Date",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "advance_recovered",
+   "fieldtype": "Currency",
+   "label": "Advance Recovered",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "retention_held",
+   "fieldtype": "Currency",
+   "label": "Retention Held",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "retention_released",
+   "fieldtype": "Currency",
+   "label": "Retention Released",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "balance_to_certify",
+   "fieldtype": "Currency",
+   "label": "Balance to Certify",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.docstatus==1",
+   "fieldname": "performance_section",
+   "fieldtype": "Section Break",
+   "label": "Performance"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "rating_quality",
+   "fieldtype": "Rating",
+   "label": "Quality of Work",
+   "no_copy": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "rating_timeliness",
+   "fieldtype": "Rating",
+   "label": "Timeliness",
+   "no_copy": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "rating_safety",
+   "fieldtype": "Rating",
+   "label": "Safety and Site Conduct",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "overall_rating",
+   "fieldtype": "Rating",
+   "label": "Overall",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "performance_remarks",
+   "fieldtype": "Small Text",
+   "label": "Performance Remarks",
+   "no_copy": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "completed_on",
+   "fieldtype": "Date",
+   "label": "Completed On",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Subcontract Agreement",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Subcontract Agreement",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Officer",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Chief Operating Officer",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "General Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Officer",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "supplier,project,title",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

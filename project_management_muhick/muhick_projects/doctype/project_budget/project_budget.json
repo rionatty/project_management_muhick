@@ -1,0 +1,394 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "project",
+  "project_name",
+  "company",
+  "column_break_1",
+  "budget_date",
+  "boq",
+  "prepared_by",
+  "workflow_state",
+  "budget_build_up_section",
+  "lines",
+  "budget_position_by_cost_code_section",
+  "cost_codes",
+  "totals_section",
+  "contract_value",
+  "total_original_budget",
+  "total_approved_variations",
+  "total_current_budget",
+  "column_break_2",
+  "total_committed",
+  "total_actual",
+  "total_paid",
+  "total_available",
+  "unbudgeted_committed",
+  "column_break_3",
+  "total_forecast_final_cost",
+  "planned_margin",
+  "forecast_margin",
+  "last_recalculated_on",
+  "section_break_1",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "PB-.YYYY.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "PB-.YYYY.-.#####",
+   "print_hide": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "project.project_name",
+   "fieldname": "project_name",
+   "fieldtype": "Data",
+   "label": "Project Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "project.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "budget_date",
+   "fieldtype": "Date",
+   "label": "Budget Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "boq",
+   "fieldtype": "Link",
+   "label": "Project BOQ",
+   "options": "Project BOQ"
+  },
+  {
+   "fieldname": "prepared_by",
+   "fieldtype": "Link",
+   "label": "Prepared By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Approval Status",
+   "no_copy": 1,
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "budget_build_up_section",
+   "fieldtype": "Section Break",
+   "label": "Budget Build-Up"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "description": "Build the budget here line by line, or use Download / Upload to bring it in from Excel",
+   "fieldname": "lines",
+   "fieldtype": "Table",
+   "label": "Budget Lines",
+   "options": "Project Budget Line",
+   "reqd": 1
+  },
+  {
+   "fieldname": "budget_position_by_cost_code_section",
+   "fieldtype": "Section Break",
+   "label": "Budget Position by Cost Code"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cost_codes",
+   "fieldtype": "Table",
+   "label": "Cost Code Summary",
+   "no_copy": 1,
+   "options": "Project Budget Cost Code"
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "contract_value",
+   "fieldtype": "Currency",
+   "label": "Revised Contract Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_original_budget",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Original Budget",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_approved_variations",
+   "fieldtype": "Currency",
+   "label": "Approved Variations",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "bold": 1,
+   "fieldname": "total_current_budget",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Current Budget",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_committed",
+   "fieldtype": "Currency",
+   "label": "Committed",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_actual",
+   "fieldtype": "Currency",
+   "label": "Actual Cost",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_paid",
+   "fieldtype": "Currency",
+   "label": "Paid",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "bold": 1,
+   "fieldname": "total_available",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Available Budget",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Commitments on a cost code that is not in this budget, or with no cost code",
+   "fieldname": "unbudgeted_committed",
+   "fieldtype": "Currency",
+   "label": "Committed Outside the Budgeted Cost Codes",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_forecast_final_cost",
+   "fieldtype": "Currency",
+   "label": "Forecast Final Cost",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Revised Contract Value less Current Budget",
+   "fieldname": "planned_margin",
+   "fieldtype": "Currency",
+   "label": "Planned Margin",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Revised Contract Value less Forecast Final Cost",
+   "fieldname": "forecast_margin",
+   "fieldtype": "Currency",
+   "label": "Forecast Margin",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "last_recalculated_on",
+   "fieldtype": "Datetime",
+   "label": "Position Last Updated",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Project Budget",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Project Budget",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Chief Operating Officer",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "General Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Engineer",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "project,project_name",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "project_name",
+ "track_changes": 1
+}

@@ -1,0 +1,451 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "project_name",
+  "customer",
+  "company",
+  "column_break_1",
+  "handover_date",
+  "sales_engineer",
+  "project_manager",
+  "project",
+  "workflow_state",
+  "source_documents_section",
+  "opportunity",
+  "quotation",
+  "column_break_2",
+  "sales_order",
+  "project_category",
+  "contract_section",
+  "contract_no",
+  "contract_value",
+  "billing_method",
+  "column_break_3",
+  "contract_start",
+  "contract_end",
+  "delivery_period",
+  "commercial_terms_section",
+  "payment_terms",
+  "advance_percent",
+  "retention_percent",
+  "column_break_4",
+  "warranty_terms",
+  "dlp_months",
+  "securities_section",
+  "bid_security",
+  "performance_bond",
+  "column_break_5",
+  "advance_guarantee",
+  "securities_notes",
+  "risks_section",
+  "risks",
+  "handover_pack_section",
+  "checklist",
+  "client_approved_brands_and_specifications_section",
+  "approved_brands",
+  "acceptance_section",
+  "accepted_by",
+  "column_break_6",
+  "accepted_on",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "HO-.YYYY.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "HO-.YYYY.-.#####",
+   "print_hide": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "project_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Project Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Client",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "remember_last_selected_value": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "handover_date",
+   "fieldtype": "Date",
+   "label": "Handover Date",
+   "reqd": 1
+  },
+  {
+   "description": "Remains the point of contact for result support until the project is complete",
+   "fieldname": "sales_engineer",
+   "fieldtype": "Link",
+   "label": "Sales Engineer",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "project_manager",
+   "fieldtype": "Link",
+   "label": "Receiving Project Manager",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "description": "Leave blank to create the project when the handover is accepted",
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "no_copy": 1,
+   "options": "Project"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Approval Status",
+   "no_copy": 1,
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_documents_section",
+   "fieldtype": "Section Break",
+   "label": "Source Documents"
+  },
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "label": "Opportunity",
+   "options": "Opportunity"
+  },
+  {
+   "fieldname": "quotation",
+   "fieldtype": "Link",
+   "label": "Approved Quotation",
+   "options": "Quotation"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order"
+  },
+  {
+   "fieldname": "project_category",
+   "fieldtype": "Select",
+   "label": "Project Category",
+   "options": "\nSupply and Install\nSupply Only\nWorks\nConsultancy\nOther"
+  },
+  {
+   "fieldname": "contract_section",
+   "fieldtype": "Section Break",
+   "label": "Contract"
+  },
+  {
+   "fieldname": "contract_no",
+   "fieldtype": "Data",
+   "label": "Contract No."
+  },
+  {
+   "fieldname": "contract_value",
+   "fieldtype": "Currency",
+   "label": "Contract Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "billing_method",
+   "fieldtype": "Select",
+   "label": "Billing Method",
+   "options": "\nMilestone\nMonthly Valuation\nOne-off at Completion"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contract_start",
+   "fieldtype": "Date",
+   "label": "Contract Start"
+  },
+  {
+   "fieldname": "contract_end",
+   "fieldtype": "Date",
+   "label": "Contract End"
+  },
+  {
+   "fieldname": "delivery_period",
+   "fieldtype": "Data",
+   "label": "Delivery Period"
+  },
+  {
+   "fieldname": "commercial_terms_section",
+   "fieldtype": "Section Break",
+   "label": "Commercial Terms"
+  },
+  {
+   "fieldname": "payment_terms",
+   "fieldtype": "Small Text",
+   "label": "Payment Terms"
+  },
+  {
+   "fieldname": "advance_percent",
+   "fieldtype": "Percent",
+   "label": "Advance Payment %"
+  },
+  {
+   "fieldname": "retention_percent",
+   "fieldtype": "Percent",
+   "label": "Retention %"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "warranty_terms",
+   "fieldtype": "Small Text",
+   "label": "Warranty Terms"
+  },
+  {
+   "fieldname": "dlp_months",
+   "fieldtype": "Int",
+   "label": "Defects Liability Period (Months)"
+  },
+  {
+   "fieldname": "securities_section",
+   "fieldtype": "Section Break",
+   "label": "Securities"
+  },
+  {
+   "fieldname": "bid_security",
+   "fieldtype": "Link",
+   "label": "Bid Security",
+   "options": "Bank Guarantee"
+  },
+  {
+   "fieldname": "performance_bond",
+   "fieldtype": "Link",
+   "label": "Performance Bond",
+   "options": "Bank Guarantee"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "advance_guarantee",
+   "fieldtype": "Link",
+   "label": "Advance Payment Guarantee",
+   "options": "Bank Guarantee"
+  },
+  {
+   "fieldname": "securities_notes",
+   "fieldtype": "Small Text",
+   "label": "Notes on Securities"
+  },
+  {
+   "fieldname": "risks_section",
+   "fieldtype": "Section Break",
+   "label": "Risks"
+  },
+  {
+   "fieldname": "risks",
+   "fieldtype": "Small Text",
+   "label": "Known Risks and Assumptions"
+  },
+  {
+   "fieldname": "handover_pack_section",
+   "fieldtype": "Section Break",
+   "label": "Handover Pack"
+  },
+  {
+   "fieldname": "checklist",
+   "fieldtype": "Table",
+   "label": "Handover Checklist",
+   "options": "Project Handover Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "client_approved_brands_and_specifications_section",
+   "fieldtype": "Section Break",
+   "label": "Client-Approved Brands and Specifications"
+  },
+  {
+   "fieldname": "approved_brands",
+   "fieldtype": "Table",
+   "label": "Approved Brands",
+   "options": "Project Approved Brand"
+  },
+  {
+   "fieldname": "acceptance_section",
+   "fieldtype": "Section Break",
+   "label": "Acceptance"
+  },
+  {
+   "fieldname": "accepted_by",
+   "fieldtype": "Link",
+   "label": "Accepted By",
+   "no_copy": 1,
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "accepted_on",
+   "fieldtype": "Datetime",
+   "label": "Accepted On",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Project Handover",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Project Handover",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Engineer",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Chief Operating Officer",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "General Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Manager",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "project_name,customer",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "project_name",
+ "track_changes": 1
+}

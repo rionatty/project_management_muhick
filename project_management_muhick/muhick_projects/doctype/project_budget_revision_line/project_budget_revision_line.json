@@ -1,0 +1,99 @@
+{
+ "actions": [],
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "cost_code",
+  "description",
+  "item_code",
+  "current_budget",
+  "committed",
+  "column_break_1",
+  "change_amount",
+  "revised_budget",
+  "justification"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "cost_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Cost Code",
+   "options": "Cost Code",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Description"
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "columns": 1,
+   "fieldname": "current_budget",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Budget Before",
+   "read_only": 1
+  },
+  {
+   "fieldname": "committed",
+   "fieldtype": "Currency",
+   "label": "Committed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 2,
+   "description": "Positive to increase the budget, negative to reduce it",
+   "fieldname": "change_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Change (+ / -)",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "revised_budget",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Budget After",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "justification",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Justification",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Project Budget Revision Line",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

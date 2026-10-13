@@ -1,0 +1,665 @@
+{
+ "actions": [],
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "projects_tab",
+  "site_stores_section",
+  "auto_create_site_warehouse",
+  "site_store_parent_warehouse",
+  "column_break_1",
+  "central_store_warehouse",
+  "goods_in_transit_warehouse",
+  "project_activation_gates_section",
+  "require_handover_before_execution",
+  "require_budget_before_execution",
+  "column_break_2",
+  "require_activity_plan_before_execution",
+  "retention_and_defects_liability_section",
+  "default_retention_percent",
+  "retention_release_at_practical_completion",
+  "column_break_3",
+  "default_dlp_months",
+  "dlp_reminder_days",
+  "dlp_reminder_frequency_days",
+  "handover_checklist_section",
+  "handover_checklist",
+  "budget_control_tab",
+  "budget_checks_section",
+  "budget_check_level",
+  "budget_action_on_purchase_order",
+  "budget_action_on_subcontract",
+  "column_break_4",
+  "budget_action_on_requisition",
+  "budget_override_role",
+  "min_subcontract_quotations",
+  "billing_tab",
+  "claims_and_invoicing_section",
+  "claim_income_item",
+  "retention_invoicing_method",
+  "column_break_5",
+  "subcontract_service_item",
+  "requisitions_and_accountability_section",
+  "block_requisition_if_pending_accountability",
+  "column_break_6",
+  "accountability_due_days",
+  "approvals_tab",
+  "approval_limits_by_value_and_risk_section",
+  "approval_thresholds",
+  "turnaround_time_section",
+  "default_turnaround_hours",
+  "send_turnaround_alerts",
+  "column_break_7",
+  "escalation_role",
+  "section_break_1",
+  "turnaround_rules",
+  "controls_tab",
+  "three_way_matching_order_receipt_supplier_invoice_section",
+  "three_way_match_action",
+  "three_way_match_override_role",
+  "column_break_8",
+  "match_qty_tolerance_percent",
+  "match_rate_tolerance_percent",
+  "segregation_of_duties_section",
+  "segregation_of_duties_action",
+  "quarantine_stock_section",
+  "block_issue_from_quarantine",
+  "column_break_9",
+  "quarantine_release_role",
+  "procurement_and_payments_tab",
+  "procurement_section",
+  "require_procurement_requisition",
+  "supplier_onboarding_action",
+  "column_break_10",
+  "phase_alert_days",
+  "show_purchase_orders_to_project_managers",
+  "supplier_onboarding_requirements_section",
+  "supplier_onboarding_checklist",
+  "payments_section",
+  "payment_plan_control",
+  "column_break_11",
+  "payables_alert_days",
+  "reminders_tab",
+  "site_reports_section",
+  "send_report_reminders",
+  "weekly_report_day",
+  "column_break_12",
+  "warranty_reminder_days",
+  "bids_section",
+  "bid_deadline_alert_days",
+  "text_messages_section",
+  "send_sms_alerts"
+ ],
+ "fields": [
+  {
+   "fieldname": "projects_tab",
+   "fieldtype": "Tab Break",
+   "label": "Projects"
+  },
+  {
+   "fieldname": "site_stores_section",
+   "fieldtype": "Section Break",
+   "label": "Site Stores"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_create_site_warehouse",
+   "fieldtype": "Check",
+   "label": "Create a Site Store for Every New Project"
+  },
+  {
+   "description": "Group warehouse under which each project's site store is created",
+   "fieldname": "site_store_parent_warehouse",
+   "fieldtype": "Link",
+   "label": "Parent Warehouse for Site Stores",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "central_store_warehouse",
+   "fieldtype": "Link",
+   "label": "Central Store",
+   "options": "Warehouse"
+  },
+  {
+   "description": "Stock transfers between the central store and site stores pass through this warehouse",
+   "fieldname": "goods_in_transit_warehouse",
+   "fieldtype": "Link",
+   "label": "Goods in Transit Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "project_activation_gates_section",
+   "fieldtype": "Section Break",
+   "label": "Project Activation Gates"
+  },
+  {
+   "default": "1",
+   "fieldname": "require_handover_before_execution",
+   "fieldtype": "Check",
+   "label": "Accepted Sales Handover Required"
+  },
+  {
+   "default": "1",
+   "fieldname": "require_budget_before_execution",
+   "fieldtype": "Check",
+   "label": "Approved Project Budget Required"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "require_activity_plan_before_execution",
+   "fieldtype": "Check",
+   "label": "Approved Activity Plan Required"
+  },
+  {
+   "fieldname": "retention_and_defects_liability_section",
+   "fieldtype": "Section Break",
+   "label": "Retention and Defects Liability"
+  },
+  {
+   "default": "10",
+   "fieldname": "default_retention_percent",
+   "fieldtype": "Percent",
+   "label": "Default Retention %"
+  },
+  {
+   "default": "50",
+   "fieldname": "retention_release_at_practical_completion",
+   "fieldtype": "Percent",
+   "label": "Retention Released at Practical Completion %"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "6",
+   "fieldname": "default_dlp_months",
+   "fieldtype": "Int",
+   "label": "Default Defects Liability Period (Months)"
+  },
+  {
+   "default": "30",
+   "fieldname": "dlp_reminder_days",
+   "fieldtype": "Int",
+   "label": "Start DLP Reminders (Days Before End)"
+  },
+  {
+   "default": "7",
+   "fieldname": "dlp_reminder_frequency_days",
+   "fieldtype": "Int",
+   "label": "Repeat DLP Reminder Every (Days)"
+  },
+  {
+   "fieldname": "handover_checklist_section",
+   "fieldtype": "Section Break",
+   "label": "Handover Checklist"
+  },
+  {
+   "description": "Copied into every new Project Handover",
+   "fieldname": "handover_checklist",
+   "fieldtype": "Table",
+   "label": "Handover Pack Items",
+   "options": "Handover Checklist Template"
+  },
+  {
+   "fieldname": "budget_control_tab",
+   "fieldtype": "Tab Break",
+   "label": "Budget Control"
+  },
+  {
+   "fieldname": "budget_checks_section",
+   "fieldtype": "Section Break",
+   "label": "Budget Checks"
+  },
+  {
+   "default": "Cost Code",
+   "fieldname": "budget_check_level",
+   "fieldtype": "Select",
+   "label": "Check Budget At",
+   "options": "Cost Code\nProject Total"
+  },
+  {
+   "default": "Stop",
+   "description": "An approved Purchase Order is a commitment and reduces the available budget immediately",
+   "fieldname": "budget_action_on_purchase_order",
+   "fieldtype": "Select",
+   "label": "Purchase Order Exceeds Available Budget",
+   "options": "Stop\nWarn\nIgnore"
+  },
+  {
+   "default": "Stop",
+   "fieldname": "budget_action_on_subcontract",
+   "fieldtype": "Select",
+   "label": "Subcontract Exceeds Available Budget",
+   "options": "Stop\nWarn\nIgnore"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Warn",
+   "fieldname": "budget_action_on_requisition",
+   "fieldtype": "Select",
+   "label": "Requisition / Labour Exceeds Available Budget",
+   "options": "Stop\nWarn\nIgnore"
+  },
+  {
+   "fieldname": "budget_override_role",
+   "fieldtype": "Link",
+   "label": "Role Allowed to Override Budget Stop",
+   "options": "Role"
+  },
+  {
+   "default": "3",
+   "fieldname": "min_subcontract_quotations",
+   "fieldtype": "Int",
+   "label": "Minimum Subcontract Quotations"
+  },
+  {
+   "fieldname": "billing_tab",
+   "fieldtype": "Tab Break",
+   "label": "Billing"
+  },
+  {
+   "fieldname": "claims_and_invoicing_section",
+   "fieldtype": "Section Break",
+   "label": "Claims and Invoicing"
+  },
+  {
+   "description": "Service item used as the single line on a Sales Invoice raised from an Interim Payment Certificate",
+   "fieldname": "claim_income_item",
+   "fieldtype": "Link",
+   "label": "Item for Certified Work Invoices",
+   "options": "Item"
+  },
+  {
+   "default": "Invoice Gross Certified Amount",
+   "description": "Confirm with Finance. Gross: retention stays outstanding on the invoice until released. Net: retention is invoiced when it is released.",
+   "fieldname": "retention_invoicing_method",
+   "fieldtype": "Select",
+   "label": "Retention Invoicing",
+   "options": "Invoice Gross Certified Amount\nInvoice Net of Retention"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Service item used on Purchase Invoices raised from a Service Receipt Note",
+   "fieldname": "subcontract_service_item",
+   "fieldtype": "Link",
+   "label": "Item for Subcontract Invoices",
+   "options": "Item"
+  },
+  {
+   "fieldname": "requisitions_and_accountability_section",
+   "fieldtype": "Section Break",
+   "label": "Requisitions and Accountability"
+  },
+  {
+   "default": "1",
+   "fieldname": "block_requisition_if_pending_accountability",
+   "fieldtype": "Check",
+   "label": "Block New Requisition While Accountability Is Pending"
+  },
+  {
+   "fieldname": "column_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "7",
+   "fieldname": "accountability_due_days",
+   "fieldtype": "Int",
+   "label": "Accountability Due (Days After Payment)"
+  },
+  {
+   "fieldname": "approvals_tab",
+   "fieldtype": "Tab Break",
+   "label": "Approvals"
+  },
+  {
+   "fieldname": "approval_limits_by_value_and_risk_section",
+   "fieldtype": "Section Break",
+   "label": "Approval Limits by Value and Risk"
+  },
+  {
+   "description": "Documents with no matching threshold follow the full approval route",
+   "fieldname": "approval_thresholds",
+   "fieldtype": "Table",
+   "label": "Approval Thresholds",
+   "options": "Approval Threshold"
+  },
+  {
+   "fieldname": "turnaround_time_section",
+   "fieldtype": "Section Break",
+   "label": "Turnaround Time"
+  },
+  {
+   "default": "72",
+   "fieldname": "default_turnaround_hours",
+   "fieldtype": "Float",
+   "label": "Default Allowed Hours per Approval Step"
+  },
+  {
+   "default": "1",
+   "fieldname": "send_turnaround_alerts",
+   "fieldtype": "Check",
+   "label": "Send Overdue Approval Alerts"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "escalation_role",
+   "fieldtype": "Link",
+   "label": "Default Escalation Role",
+   "options": "Role"
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "turnaround_rules",
+   "fieldtype": "Table",
+   "label": "Turnaround Rules",
+   "options": "Approval Turnaround Rule"
+  },
+  {
+   "fieldname": "controls_tab",
+   "fieldtype": "Tab Break",
+   "label": "Controls"
+  },
+  {
+   "fieldname": "three_way_matching_order_receipt_supplier_invoice_section",
+   "fieldtype": "Section Break",
+   "label": "Three-Way Matching (Order, Receipt, Supplier Invoice)"
+  },
+  {
+   "default": "Warn",
+   "description": "Block puts the supplier invoice on hold and stops payment until the mismatch is resolved or overridden",
+   "fieldname": "three_way_match_action",
+   "fieldtype": "Select",
+   "label": "On Mismatch",
+   "options": "Off\nWarn\nBlock"
+  },
+  {
+   "fieldname": "three_way_match_override_role",
+   "fieldtype": "Link",
+   "label": "Role Allowed to Override",
+   "options": "Role"
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "match_qty_tolerance_percent",
+   "fieldtype": "Percent",
+   "label": "Quantity Tolerance %"
+  },
+  {
+   "fieldname": "match_rate_tolerance_percent",
+   "fieldtype": "Percent",
+   "label": "Rate Tolerance %"
+  },
+  {
+   "fieldname": "segregation_of_duties_section",
+   "fieldtype": "Section Break",
+   "label": "Segregation of Duties"
+  },
+  {
+   "default": "Warn",
+   "fieldname": "segregation_of_duties_action",
+   "fieldtype": "Select",
+   "label": "Same User on Receipt, Invoice and Payment",
+   "options": "Off\nWarn\nBlock"
+  },
+  {
+   "fieldname": "quarantine_stock_section",
+   "fieldtype": "Section Break",
+   "label": "Quarantine Stock"
+  },
+  {
+   "default": "1",
+   "fieldname": "block_issue_from_quarantine",
+   "fieldtype": "Check",
+   "label": "Block Issue and Delivery from Quarantine Stores"
+  },
+  {
+   "fieldname": "column_break_9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "quarantine_release_role",
+   "fieldtype": "Link",
+   "label": "Role Allowed to Release Quarantine Stock",
+   "options": "Role"
+  },
+  {
+   "fieldname": "procurement_and_payments_tab",
+   "fieldtype": "Tab Break",
+   "label": "Procurement and Payments"
+  },
+  {
+   "fieldname": "procurement_section",
+   "fieldtype": "Section Break",
+   "label": "Procurement"
+  },
+  {
+   "default": "Warn",
+   "fieldname": "require_procurement_requisition",
+   "fieldtype": "Select",
+   "label": "Purchase Order Without an Approved Procurement Requisition",
+   "options": "Off\nWarn\nBlock"
+  },
+  {
+   "default": "Warn",
+   "fieldname": "supplier_onboarding_action",
+   "fieldtype": "Select",
+   "label": "Purchase Order to a Supplier Not Yet Approved",
+   "options": "Off\nWarn\nBlock"
+  },
+  {
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "7",
+   "fieldname": "phase_alert_days",
+   "fieldtype": "Int",
+   "label": "Alert Procurement Before a Phase Starts (Days)"
+  },
+  {
+   "description": "Leave unticked to keep supplier prices from the operations team. They still see requests, budgets and commitments.",
+   "fieldname": "show_purchase_orders_to_project_managers",
+   "fieldtype": "Check",
+   "label": "Project Managers Can Open Purchase Orders"
+  },
+  {
+   "fieldname": "supplier_onboarding_requirements_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier Onboarding Requirements"
+  },
+  {
+   "description": "Copied to every new supplier",
+   "fieldname": "supplier_onboarding_checklist",
+   "fieldtype": "Table",
+   "label": "Onboarding Requirements",
+   "options": "Handover Checklist Template"
+  },
+  {
+   "fieldname": "payments_section",
+   "fieldtype": "Section Break",
+   "label": "Payments"
+  },
+  {
+   "default": "Warn",
+   "fieldname": "payment_plan_control",
+   "fieldtype": "Select",
+   "label": "Supplier Payment Not on an Approved Payment Plan",
+   "options": "Off\nWarn\nBlock"
+  },
+  {
+   "fieldname": "column_break_11",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "7",
+   "fieldname": "payables_alert_days",
+   "fieldtype": "Int",
+   "label": "Alert Finance of Invoices Falling Due Within (Days)"
+  },
+  {
+   "fieldname": "reminders_tab",
+   "fieldtype": "Tab Break",
+   "label": "Reminders"
+  },
+  {
+   "fieldname": "site_reports_section",
+   "fieldtype": "Section Break",
+   "label": "Site Reports"
+  },
+  {
+   "default": "1",
+   "fieldname": "send_report_reminders",
+   "fieldtype": "Check",
+   "label": "Remind Project Managers of Missing Site Reports"
+  },
+  {
+   "default": "Monday",
+   "fieldname": "weekly_report_day",
+   "fieldtype": "Select",
+   "label": "Weekly Report Due On",
+   "options": "Monday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday"
+  },
+  {
+   "fieldname": "column_break_12",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "30",
+   "fieldname": "warranty_reminder_days",
+   "fieldtype": "Int",
+   "label": "Warranty Expiry Reminder (Days Before)"
+  },
+  {
+   "fieldname": "bids_section",
+   "fieldtype": "Section Break",
+   "label": "Bids"
+  },
+  {
+   "default": "3",
+   "fieldname": "bid_deadline_alert_days",
+   "fieldtype": "Int",
+   "label": "Alert Before a Bid Submission Deadline (Days)"
+  },
+  {
+   "fieldname": "text_messages_section",
+   "fieldtype": "Section Break",
+   "label": "Text Messages"
+  },
+  {
+   "description": "Uses the gateway in SMS Settings and each user's mobile number. Leave unticked until SMS Settings is configured.",
+   "fieldname": "send_sms_alerts",
+   "fieldtype": "Check",
+   "label": "Also Send Approval Alerts by SMS"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Muhick Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "General Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Chief Operating Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Officer",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

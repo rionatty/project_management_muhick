@@ -1,0 +1,214 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "reference_doctype",
+  "reference_name",
+  "project",
+  "workflow_state",
+  "column_break_1",
+  "entered_on",
+  "exited_on",
+  "hours_in_state",
+  "allowed_hours",
+  "column_break_2",
+  "is_open",
+  "next_state",
+  "actioned_by",
+  "alert_sent_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Document Type",
+   "options": "DocType",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Document",
+   "options": "reference_doctype",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "Project",
+   "read_only": 1
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Approval Step",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "entered_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Entered Step On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "exited_on",
+   "fieldtype": "Datetime",
+   "label": "Left Step On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "hours_in_state",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Hours in Step",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allowed_hours",
+   "fieldtype": "Float",
+   "label": "Allowed Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_open",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Still Pending",
+   "read_only": 1
+  },
+  {
+   "fieldname": "next_state",
+   "fieldtype": "Data",
+   "label": "Moved To",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actioned_by",
+   "fieldtype": "Link",
+   "label": "Actioned By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "alert_sent_on",
+   "fieldtype": "Datetime",
+   "label": "Overdue Alert Sent On",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Approval Turnaround Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "General Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Chief Operating Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Officer",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "reference_doctype,reference_name",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "reference_name",
+ "track_changes": 1
+}

@@ -1,0 +1,114 @@
+{
+ "actions": [],
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "supplier",
+  "quotation_received",
+  "quotation_date",
+  "quoted_amount",
+  "duration_days",
+  "payment_terms",
+  "column_break_1",
+  "track_record",
+  "concurrent_projects",
+  "risk_notes",
+  "quotation_attachment",
+  "is_selected"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Subcontractor",
+   "options": "Supplier",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "quotation_received",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Quotation Received"
+  },
+  {
+   "fieldname": "quotation_date",
+   "fieldtype": "Date",
+   "label": "Quotation Date"
+  },
+  {
+   "columns": 2,
+   "fieldname": "quoted_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Quoted Amount"
+  },
+  {
+   "columns": 1,
+   "fieldname": "duration_days",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Duration (Days)"
+  },
+  {
+   "fieldname": "payment_terms",
+   "fieldtype": "Data",
+   "label": "Payment Terms"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 1,
+   "fieldname": "track_record",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Track Record",
+   "options": "\nNot Known\nPoor\nFair\nGood\nExcellent"
+  },
+  {
+   "columns": 1,
+   "description": "A subcontractor spread across many active projects is a delivery risk",
+   "fieldname": "concurrent_projects",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Other Active Projects"
+  },
+  {
+   "fieldname": "risk_notes",
+   "fieldtype": "Small Text",
+   "label": "Risk Notes"
+  },
+  {
+   "fieldname": "quotation_attachment",
+   "fieldtype": "Attach",
+   "label": "Quotation"
+  },
+  {
+   "columns": 1,
+   "fieldname": "is_selected",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Selected"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Subcontract RFQ Quotation",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

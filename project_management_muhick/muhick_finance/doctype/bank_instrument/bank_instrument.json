@@ -1,0 +1,359 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "title",
+  "instrument_type",
+  "bank_facility",
+  "reference_no",
+  "column_break_1",
+  "status",
+  "company",
+  "beneficiary",
+  "amount",
+  "column_break_2",
+  "issue_date",
+  "expiry_date",
+  "document",
+  "raised_for_section",
+  "project",
+  "bid",
+  "column_break_3",
+  "purchase_order",
+  "bank_guarantee",
+  "bank_fees_section",
+  "fee_percent_per_quarter",
+  "quarterly_fee",
+  "column_break_4",
+  "total_fees",
+  "fees_charged",
+  "next_fee_due",
+  "section_break_1",
+  "fees",
+  "cancellation_or_release_section",
+  "closed_on",
+  "column_break_5",
+  "closing_reason",
+  "last_alert_on"
+ ],
+ "fields": [
+  {
+   "default": "BIN-.YYYY.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "BIN-.YYYY.-.#####",
+   "print_hide": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Instrument",
+   "reqd": 1
+  },
+  {
+   "fieldname": "instrument_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Type",
+   "options": "Bid Security\nPerformance Bond\nAdvance Payment Guarantee\nLetter of Credit\nImport Loan\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "bank_facility",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Bank Facility",
+   "options": "Bank Facility",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "label": "Bank Reference No."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Requested",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Requested\nActive\nCancellation Requested\nCancelled\nReleased\nExpired",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "beneficiary",
+   "fieldtype": "Data",
+   "label": "Beneficiary",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "End Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "document",
+   "fieldtype": "Attach",
+   "label": "Instrument Document"
+  },
+  {
+   "fieldname": "raised_for_section",
+   "fieldtype": "Section Break",
+   "label": "Raised For"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "Project"
+  },
+  {
+   "fieldname": "bid",
+   "fieldtype": "Link",
+   "label": "Bid",
+   "options": "Bid"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "purchase_order",
+   "fieldtype": "Link",
+   "label": "Purchase Order",
+   "options": "Purchase Order"
+  },
+  {
+   "fieldname": "bank_guarantee",
+   "fieldtype": "Link",
+   "label": "Bank Guarantee",
+   "options": "Bank Guarantee"
+  },
+  {
+   "description": "The bank charges a fee each quarter for as long as the instrument runs",
+   "fieldname": "bank_fees_section",
+   "fieldtype": "Section Break",
+   "label": "Bank Fees"
+  },
+  {
+   "fieldname": "fee_percent_per_quarter",
+   "fieldtype": "Percent",
+   "label": "Fee % per Quarter"
+  },
+  {
+   "fieldname": "quarterly_fee",
+   "fieldtype": "Currency",
+   "label": "Fee per Quarter"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_fees",
+   "fieldtype": "Currency",
+   "label": "Total Fees to End Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fees_charged",
+   "fieldtype": "Currency",
+   "label": "Fees Charged to Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "next_fee_due",
+   "fieldtype": "Date",
+   "in_standard_filter": 1,
+   "label": "Next Fee Due",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "fees",
+   "fieldtype": "Table",
+   "label": "Fee Schedule",
+   "options": "Bank Instrument Fee"
+  },
+  {
+   "fieldname": "cancellation_or_release_section",
+   "fieldtype": "Section Break",
+   "label": "Cancellation or Release"
+  },
+  {
+   "fieldname": "closed_on",
+   "fieldtype": "Date",
+   "label": "Cancelled / Released On"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "closing_reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "mandatory_depends_on": "eval:doc.status=='Cancellation Requested'"
+  },
+  {
+   "fieldname": "last_alert_on",
+   "fieldtype": "Date",
+   "hidden": 1,
+   "label": "Last Alert",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Finance",
+ "name": "Bank Instrument",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Officer",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "General Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Chief Operating Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Engineer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Head of Sales",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Manager",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "title,reference_no,beneficiary",
+ "show_title_field_in_link": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

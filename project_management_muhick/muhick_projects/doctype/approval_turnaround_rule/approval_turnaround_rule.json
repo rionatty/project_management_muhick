@@ -1,0 +1,58 @@
+{
+ "actions": [],
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_type",
+  "workflow_state",
+  "max_hours",
+  "escalate_to_role"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Document Type",
+   "options": "DocType",
+   "reqd": 1
+  },
+  {
+   "description": "Leave blank to apply to every pending step of this document",
+   "fieldname": "workflow_state",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Approval Step"
+  },
+  {
+   "fieldname": "max_hours",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Allowed Hours",
+   "reqd": 1
+  },
+  {
+   "fieldname": "escalate_to_role",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Escalate To",
+   "options": "Role"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Approval Turnaround Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

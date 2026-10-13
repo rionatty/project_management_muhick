@@ -1,0 +1,455 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "title",
+  "procuring_entity",
+  "customer",
+  "opportunity",
+  "column_break_1",
+  "status",
+  "assigned_to",
+  "company",
+  "tender_reference",
+  "column_break_2",
+  "lead_source",
+  "bid_type",
+  "advert",
+  "qualification_section",
+  "submission_deadline",
+  "site_visit_required",
+  "site_visit_date",
+  "column_break_3",
+  "financial_requirement",
+  "qualification_notes",
+  "bid_section",
+  "estimated_cost",
+  "bid_price",
+  "margin_percent",
+  "column_break_4",
+  "administrative_bid_ready",
+  "technical_bid_ready",
+  "financial_bid_ready",
+  "column_break_5",
+  "submission_mode",
+  "submitted_on",
+  "bid_documents",
+  "bid_security_section",
+  "bid_security_required",
+  "bid_security",
+  "column_break_6",
+  "bid_security_amount",
+  "follow_up_section",
+  "follow_ups",
+  "next_follow_up",
+  "outcome_section",
+  "outcome_date",
+  "award_notice",
+  "sales_order",
+  "column_break_7",
+  "outcome_reason",
+  "lessons",
+  "last_alert_on"
+ ],
+ "fields": [
+  {
+   "default": "BID-.YYYY.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "BID-.YYYY.-.#####",
+   "print_hide": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bid / Tender",
+   "reqd": 1
+  },
+  {
+   "fieldname": "procuring_entity",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Procuring Entity",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Client",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "label": "Opportunity",
+   "options": "Opportunity"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Identified",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Identified\nQualified\nNot Pursued\nIn Preparation\nSubmitted\nUnder Evaluation\nWon\nLost\nCancelled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "assigned_to",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Sales Engineer",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "remember_last_selected_value": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "tender_reference",
+   "fieldtype": "Data",
+   "label": "Tender Reference"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lead_source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "\nAdvertisement\nGovernment Procurement Portal\nWebsite\nNewspaper\nReferral\nExisting Client\nSent by Management\nOther"
+  },
+  {
+   "fieldname": "bid_type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "\nWorks\nSupply and Install\nSupply Only\nConsultancy"
+  },
+  {
+   "fieldname": "advert",
+   "fieldtype": "Attach",
+   "label": "Advert / Invitation"
+  },
+  {
+   "fieldname": "qualification_section",
+   "fieldtype": "Section Break",
+   "label": "Qualification"
+  },
+  {
+   "fieldname": "submission_deadline",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Submission Deadline"
+  },
+  {
+   "fieldname": "site_visit_required",
+   "fieldtype": "Check",
+   "label": "Site Visit Required"
+  },
+  {
+   "depends_on": "eval:doc.site_visit_required",
+   "fieldname": "site_visit_date",
+   "fieldtype": "Date",
+   "label": "Site Visit Date"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "financial_requirement",
+   "fieldtype": "Small Text",
+   "label": "Financial Requirement"
+  },
+  {
+   "fieldname": "qualification_notes",
+   "fieldtype": "Small Text",
+   "label": "Why Pursue / Not Pursue",
+   "mandatory_depends_on": "eval:doc.status=='Not Pursued'"
+  },
+  {
+   "fieldname": "bid_section",
+   "fieldtype": "Section Break",
+   "label": "Bid"
+  },
+  {
+   "fieldname": "estimated_cost",
+   "fieldtype": "Currency",
+   "label": "Estimated Cost"
+  },
+  {
+   "fieldname": "bid_price",
+   "fieldtype": "Currency",
+   "label": "Bid Price"
+  },
+  {
+   "fieldname": "margin_percent",
+   "fieldtype": "Percent",
+   "label": "Margin %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Licences, accounts, tax clearance, bid security",
+   "fieldname": "administrative_bid_ready",
+   "fieldtype": "Check",
+   "label": "Administrative Bid Ready"
+  },
+  {
+   "description": "Specifications and data sheets checked against the client's requirements",
+   "fieldname": "technical_bid_ready",
+   "fieldtype": "Check",
+   "label": "Technical Bid Ready"
+  },
+  {
+   "description": "Costing, margin and taxes",
+   "fieldname": "financial_bid_ready",
+   "fieldtype": "Check",
+   "label": "Financial Bid Ready"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "submission_mode",
+   "fieldtype": "Select",
+   "label": "Submission Mode",
+   "options": "\nPhysical\nEmail\nFlash Disk\nPortal"
+  },
+  {
+   "fieldname": "submitted_on",
+   "fieldtype": "Date",
+   "label": "Submitted On",
+   "mandatory_depends_on": "eval:in_list(['Submitted','Under Evaluation','Won','Lost'], doc.status)"
+  },
+  {
+   "fieldname": "bid_documents",
+   "fieldtype": "Attach",
+   "label": "Bid Documents"
+  },
+  {
+   "fieldname": "bid_security_section",
+   "fieldtype": "Section Break",
+   "label": "Bid Security"
+  },
+  {
+   "fieldname": "bid_security_required",
+   "fieldtype": "Check",
+   "label": "Bid Security Required"
+  },
+  {
+   "depends_on": "eval:doc.bid_security_required",
+   "fieldname": "bid_security",
+   "fieldtype": "Link",
+   "label": "Bid Security",
+   "no_copy": 1,
+   "options": "Bank Instrument",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.bid_security_required",
+   "fieldname": "bid_security_amount",
+   "fieldtype": "Currency",
+   "label": "Bid Security Amount"
+  },
+  {
+   "fieldname": "follow_up_section",
+   "fieldtype": "Section Break",
+   "label": "Follow-Up"
+  },
+  {
+   "fieldname": "follow_ups",
+   "fieldtype": "Table",
+   "label": "Follow-Ups",
+   "options": "Bid Follow Up"
+  },
+  {
+   "fieldname": "next_follow_up",
+   "fieldtype": "Date",
+   "in_standard_filter": 1,
+   "label": "Next Follow-Up",
+   "read_only": 1
+  },
+  {
+   "fieldname": "outcome_section",
+   "fieldtype": "Section Break",
+   "label": "Outcome"
+  },
+  {
+   "fieldname": "outcome_date",
+   "fieldtype": "Date",
+   "label": "Outcome Date"
+  },
+  {
+   "fieldname": "award_notice",
+   "fieldtype": "Attach",
+   "label": "Best Evaluated Bidder Notice"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "no_copy": 1,
+   "options": "Sales Order"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Recorded for every bid, win or lose",
+   "fieldname": "outcome_reason",
+   "fieldtype": "Small Text",
+   "label": "Why It Was Won / Lost",
+   "mandatory_depends_on": "eval:in_list(['Won','Lost','Cancelled'], doc.status)"
+  },
+  {
+   "fieldname": "lessons",
+   "fieldtype": "Small Text",
+   "label": "Strengths, Weaknesses and Lessons"
+  },
+  {
+   "fieldname": "last_alert_on",
+   "fieldtype": "Date",
+   "hidden": 1,
+   "label": "Last Alert",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Sales",
+ "name": "Bid",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Engineer",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Head of Sales",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "General Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Chief Operating Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Officer",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Procurement Manager",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "title,procuring_entity,tender_reference",
+ "show_title_field_in_link": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

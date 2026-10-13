@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_type",
+  "risk_class",
+  "upto_amount",
+  "approval_route"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Document Type",
+   "options": "DocType",
+   "reqd": 1
+  },
+  {
+   "default": "Any",
+   "fieldname": "risk_class",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Risk Class",
+   "options": "Any\nLow\nMedium\nHigh"
+  },
+  {
+   "description": "Applies when the document total is less than or equal to this amount",
+   "fieldname": "upto_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Up To Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "approval_route",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Approval Route",
+   "options": "First Approver Only\nUp to Second Approver\nFull Route",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Approval Threshold",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

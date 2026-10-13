@@ -1,0 +1,158 @@
+{
+ "actions": [],
+ "creation": "2026-10-12 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "cost_code",
+  "budget_section",
+  "activity",
+  "description",
+  "item_code",
+  "uom",
+  "column_break_1",
+  "qty",
+  "rate",
+  "amount",
+  "phase_and_procurement_plan_section",
+  "milestone",
+  "procurement_type",
+  "column_break_2",
+  "lead_time_days",
+  "required_by_date",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "cost_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Cost Code",
+   "options": "Cost Code",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fetch_from": "cost_code.budget_section",
+   "fieldname": "budget_section",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Section",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "description": "Activity or BOQ section this cost belongs to",
+   "fieldname": "activity",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Activity"
+  },
+  {
+   "columns": 2,
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 1,
+   "default": "1",
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "phase_and_procurement_plan_section",
+   "fieldtype": "Section Break",
+   "label": "Phase and Procurement Plan"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "milestone",
+   "fieldtype": "Link",
+   "label": "Milestone / Phase",
+   "options": "Project Milestone"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "procurement_type",
+   "fieldtype": "Select",
+   "label": "Procurement Type",
+   "options": "\nLocal\nInternational\nFrom Stock\nNot Applicable"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "lead_time_days",
+   "fieldtype": "Int",
+   "label": "Lead Time (Days)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "required_by_date",
+   "fieldtype": "Date",
+   "label": "Required on Site By"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Projects",
+ "name": "Project Budget Line",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
