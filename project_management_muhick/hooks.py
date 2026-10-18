@@ -45,6 +45,7 @@ doctype_js = {
 
 override_doctype_dashboards = {
 	"Project": "project_management_muhick.overrides.dashboards.get_project_dashboard",
+	"Task": "project_management_muhick.overrides.dashboards.get_task_dashboard",
 }
 
 # Document events

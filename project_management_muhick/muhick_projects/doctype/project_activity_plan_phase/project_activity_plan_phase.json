@@ -24,7 +24,7 @@
    "fieldname": "phase_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Phase",
+   "label": "Milestone / Phase",
    "reqd": 1
   },
   {
@@ -85,7 +85,7 @@
    "description": "Set when the plan is approved",
    "fieldname": "phase",
    "fieldtype": "Link",
-   "label": "Phase Task",
+   "label": "Milestone Task",
    "no_copy": 1,
    "options": "Task",
    "read_only": 1
@@ -107,7 +107,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-18 10:00:00.000000",
+ "modified": "2026-10-18 13:42:43.914262",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Activity Plan Phase",

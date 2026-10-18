@@ -16,3 +16,20 @@ def get_project_dashboard(data):
 		]
 	)
 	return data
+
+
+def get_task_dashboard(data):
+	"""On a milestone (a group task), the documents raised against it."""
+	data.setdefault("non_standard_fieldnames", {}).update(
+		{
+			"Material Request": "muhick_phase", "Stock Entry": "muhick_phase", "Project Claim": "phase",
+			"Labour Schedule": "phase", "Casual Sheet": "phase", "Project Requisition": "phase", "Subcontract RFQ": "phase",
+		}
+	)
+	data.setdefault("transactions", []).extend(
+		[
+			{"label": _("Milestone Materials"), "items": ["Material Request", "Stock Entry"]},
+			{"label": _("Milestone Labour and Claims"), "items": ["Labour Schedule", "Casual Sheet", "Project Requisition", "Subcontract RFQ", "Project Claim"]},
+		]
+	)
+	return data

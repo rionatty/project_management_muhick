@@ -18,7 +18,7 @@ from project_management_muhick.muhick_projects.utils import get_phases
 def execute(filters=None):
 	filters = frappe._dict(filters or {})
 	columns = [
-		{"fieldname": "phase_name", "label": _("Phase"), "fieldtype": "Data", "width": 180},
+		{"fieldname": "phase_name", "label": _("Milestone / Phase"), "fieldtype": "Data", "width": 180},
 		{"fieldname": "cost_code", "label": _("Cost Code"), "fieldtype": "Link", "options": "Cost Code", "width": 100},
 		{"fieldname": "item_code", "label": _("Item"), "fieldtype": "Link", "options": "Item", "width": 140},
 		{"fieldname": "description", "label": _("Description"), "fieldtype": "Data", "width": 220},

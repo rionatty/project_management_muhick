@@ -68,17 +68,17 @@ class ProjectActivityPlan(Document):
 		for row in self.phases:
 			row.phase_name = (row.phase_name or "").strip()
 			if row.phase_name in names:
-				frappe.throw(_("Phases row {0}: {1} appears twice.").format(row.idx, row.phase_name))
+				frappe.throw(_("Milestones row {0}: {1} appears twice.").format(row.idx, row.phase_name))
 			names.add(row.phase_name)
 			if getdate(row.planned_end) < getdate(row.planned_start):
-				frappe.throw(_("Phases row {0}: Planned End is before Planned Start.").format(row.idx))
+				frappe.throw(_("Milestones row {0}: Planned End is before Planned Start.").format(row.idx))
 			if row.phase:
 				task = frappe.db.get_value("Task", row.phase, ["project", "is_group"], as_dict=True)
 				if not task or task.project != self.project or not task.is_group:
-					frappe.throw(_("Phases row {0}: {1} is not a phase of project {2}.").format(row.idx, row.phase, self.project))
+					frappe.throw(_("Milestones row {0}: {1} is not a milestone of project {2}.").format(row.idx, row.phase, self.project))
 		self.total_weight = sum(flt(r.weight) for r in self.phases)
 		if self.total_weight and abs(self.total_weight - 100) > 0.01:
-			frappe.throw(_("Phase weights must total 100% (they total {0}%).").format(f"{self.total_weight:g}"))
+			frappe.throw(_("Milestone weights must total 100% (they total {0}%).").format(f"{self.total_weight:g}"))
 
 	def validate_activities(self):
 		phases = {r.phase_name: r for r in self.phases}
@@ -90,14 +90,14 @@ class ProjectActivityPlan(Document):
 			subjects.add(row.subject)
 			phase = phases.get(row.phase_name)
 			if not phase:
-				frappe.throw(_("Activities row {0}: {1} is not a phase of this plan.").format(row.idx, row.phase_name))
+				frappe.throw(_("Activities row {0}: {1} is not a milestone of this plan.").format(row.idx, row.phase_name))
 			start, end = getdate(row.start_date), getdate(row.end_date)
 			if end < start:
 				frappe.throw(_("Activities row {0}: End is before Start.").format(row.idx))
 			# ERPNext keeps a child task inside its parent's dates
 			if start < getdate(phase.planned_start) or end > getdate(phase.planned_end):
 				frappe.throw(
-					_("Activities row {0}: {1} must fall within its phase {2} ({3} to {4}).").format(
+					_("Activities row {0}: {1} must fall within its milestone {2} ({3} to {4}).").format(
 						row.idx, row.subject, row.phase_name, phase.planned_start, phase.planned_end
 					)
 				)
@@ -113,7 +113,7 @@ class ProjectActivityPlan(Document):
 		seen = set()
 		for row in self.items:
 			if row.phase_name not in phases:
-				frappe.throw(_("Items Required row {0}: {1} is not a phase of this plan.").format(row.idx, row.phase_name))
+				frappe.throw(_("Items Required row {0}: {1} is not a milestone of this plan.").format(row.idx, row.phase_name))
 			if flt(row.qty) <= 0:
 				frappe.throw(_("Items Required row {0}: enter the quantity of {1}.").format(row.idx, row.item_code))
 			if (row.phase_name, row.item_code) in seen:

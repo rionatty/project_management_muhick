@@ -57,7 +57,7 @@ class ProjectBudget(Document):
 			if line.activity:
 				parent = frappe.db.get_value("Task", line.activity, "parent_task")
 				if line.phase and parent != line.phase:
-					frappe.throw(_("Budget Lines row {0}: {1} is not an activity of phase {2}.").format(line.idx, line.activity, line.phase))
+					frappe.throw(_("Budget Lines row {0}: {1} is not a task of milestone {2}.").format(line.idx, line.activity, line.phase))
 				line.phase = line.phase or parent
 			if line.phase:
 				check_phase(self.project, line.phase, _("Budget Lines row {0}").format(line.idx))

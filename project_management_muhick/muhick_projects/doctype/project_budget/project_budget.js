@@ -6,7 +6,7 @@ frappe.ui.form.on("Project Budget", {
 		frm.set_query("cost_code", "lines", () => ({ filters: { disabled: 0 } }));
 		frm.set_query("item_code", "lines", () => ({ filters: { disabled: 0 } }));
 		frm.set_query("phase", "lines", () => muhick.phase_filters(frm.doc.project));
-		// an activity is a child task of the line's phase
+		// an activity is a task of the line's milestone
 		frm.set_query("activity", "lines", (doc, cdt, cdn) => {
 			const row = locals[cdt][cdn];
 			return { filters: { project: frm.doc.project || "", parent_task: row.phase || "", status: ["!=", "Cancelled"] } };
@@ -57,7 +57,7 @@ frappe.ui.form.on("Project Budget Cost Code", {
 	estimate_to_complete: (frm, cdt, cdn) => frappe.model.set_value(cdt, cdn, "etc_is_manual", 1),
 });
 
-// lines for the items of the approved activity plan, skipping items already budgeted in that phase
+// lines for the items of the approved activity plan, skipping items already budgeted in that milestone
 function get_plan_items(frm) {
 	frappe
 		.xcall("project_management_muhick.muhick_projects.doctype.project_budget.project_budget.get_plan_items", {
@@ -79,7 +79,7 @@ function get_plan_items(frm) {
 		});
 }
 
-// the budget totalled by phase, below the lines
+// the budget totalled by milestone, below the lines
 function show_phase_summary(frm) {
 	const totals = {};
 	(frm.doc.lines || []).forEach((r) => {
@@ -90,7 +90,7 @@ function show_phase_summary(frm) {
 		const rows = Object.keys(totals)
 			.sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1))
 			.map((key) => {
-				const label = key ? names[key] || key : __("No phase");
+				const label = key ? names[key] || key : __("No milestone");
 				const amount = format_currency(totals[key], frm.doc.currency);
 				return `<tr><td>${frappe.utils.escape_html(label)}</td><td class="text-right">${amount}</td></tr>`;
 			})

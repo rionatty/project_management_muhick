@@ -20,8 +20,8 @@ def execute(filters=None):
 	filters = frappe._dict(filters or {})
 	columns = [
 		{"fieldname": "project", "label": _("Project"), "fieldtype": "Link", "options": "Project", "width": 120},
-		{"fieldname": "name", "label": _("Phase Task"), "fieldtype": "Link", "options": "Task", "width": 130},
-		{"fieldname": "subject", "label": _("Phase"), "fieldtype": "Data", "width": 220},
+		{"fieldname": "name", "label": _("Milestone Task"), "fieldtype": "Link", "options": "Task", "width": 130},
+		{"fieldname": "subject", "label": _("Milestone / Phase"), "fieldtype": "Data", "width": 220},
 		{"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 110},
 		{"fieldname": "progress", "label": _("% Complete"), "fieldtype": "Percent", "width": 100},
 		{"fieldname": "planned_end", "label": _("Planned End"), "fieldtype": "Date", "width": 110},

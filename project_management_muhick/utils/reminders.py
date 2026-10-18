@@ -76,7 +76,7 @@ def phases_due_for_claim():
 	for p in rows:
 		notify(
 			[project_manager_of(p.project)],
-			_("Phase {0} is complete but not yet claimed.").format(p.subject),
+			_("Milestone {0} is complete but not yet claimed.").format(p.subject),
 			doc=frappe._dict(doctype="Task", name=p.name),
 		)
 
@@ -116,7 +116,7 @@ def phases_starting():
 		if today.weekday() != 0 and start != add_days(today, days):
 			continue
 		doc = frappe._dict(doctype="Task", name=p.name)
-		subject = _("Phase {0} of project {1} starts on {2}. Raise its material request so the items are ordered.").format(
+		subject = _("Milestone {0} of project {1} starts on {2}. Raise its material request so the items are ordered.").format(
 			p.subject, p.project, start
 		)
 		notify_roles([PRM, PRO], subject, doc=doc, extra_users=[project_manager_of(p.project)])

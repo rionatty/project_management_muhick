@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("Material Request", {
 	setup(frm) {
-		// a phase is a group task of the project
+		// a milestone (phase) is a group task of the project
 		frm.set_query("muhick_phase", () => ({
 			filters: { project: frm.doc.muhick_project || "", is_group: 1, status: ["!=", "Cancelled"] },
 		}));
@@ -15,7 +15,7 @@ frappe.ui.form.on("Material Request", {
 			frm.add_custom_button(__("Frequent Items"), () => pick_frequent_items(frm));
 		}
 		if (frm.doc.docstatus === 0 && frm.doc.muhick_project && frm.doc.muhick_phase) {
-			frm.add_custom_button(__("Get Items from Phase"), () => get_phase_items(frm));
+			frm.add_custom_button(__("Get Items from Milestone"), () => get_phase_items(frm));
 		}
 		const status = frm.doc.muhick_budget_status;
 		if (status === "Exceeds Budget" || status === "Not Budgeted") {
@@ -45,7 +45,7 @@ frappe.ui.form.on("Material Request", {
 	},
 });
 
-// what the approved activity plan needs for this phase, less what other requests already ask for
+// what the approved activity plan needs for this milestone, less what other requests already ask for
 function get_phase_items(frm) {
 	frappe
 		.xcall("project_management_muhick.overrides.material_request.get_phase_items", {
@@ -62,8 +62,8 @@ function get_phase_items(frm) {
 			frm.refresh_field("items");
 			frappe.show_alert({
 				message: added.length
-					? __("{0} item(s) added from the phase plan.", [added.length])
-					: __("Nothing left to request for this phase."),
+					? __("{0} item(s) added from the milestone's plan.", [added.length])
+					: __("Nothing left to request for this milestone."),
 				indicator: added.length ? "green" : "orange",
 			});
 		});

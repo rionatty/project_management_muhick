@@ -17,7 +17,7 @@ frappe.ui.form.on("Project Activity Plan", {
 			});
 		}
 		if (frm.doc.docstatus === 0 && frm.doc.project && !frm.doc.revision_of) {
-			frm.add_custom_button(__("Get Phases"), () => get_phases(frm));
+			frm.add_custom_button(__("Get Milestones"), () => get_phases(frm));
 		}
 	},
 
@@ -31,7 +31,7 @@ frappe.ui.form.on("Project Activity Plan Phase", {
 	phases_remove: set_phase_options,
 });
 
-// the phase columns of the activity and item tables offer only this plan's phases
+// the milestone columns of the activity and item tables offer only this plan's milestones
 function set_phase_options(frm) {
 	const names = ["", ...(frm.doc.phases || []).map((r) => r.phase_name).filter(Boolean)];
 	["activities", "items"].forEach((table) => {
@@ -39,7 +39,7 @@ function set_phase_options(frm) {
 	});
 }
 
-// load the phases and their activities from a Project Template, or from the project's own phase tasks
+// load the milestones and their activities from a Project Template, or from the project's own group tasks
 function get_phases(frm) {
 	frappe.prompt(
 		[
@@ -48,7 +48,7 @@ function get_phases(frm) {
 				fieldtype: "Link",
 				options: "Project Template",
 				label: __("Project Template"),
-				description: __("Leave empty to use the phase tasks the project already has."),
+				description: __("Leave empty to use the milestones (group tasks) the project already has."),
 			},
 		],
 		(values) => {
@@ -59,7 +59,7 @@ function get_phases(frm) {
 				})
 				.then((r) => {
 					if (!r.phases.length) {
-						frappe.msgprint(__("No phases found. Add the phases in the table, or set up a Project Template."));
+						frappe.msgprint(__("No milestones found. Add them in the table, or set up a Project Template."));
 						return;
 					}
 					frm.clear_table("phases");
@@ -71,7 +71,7 @@ function get_phases(frm) {
 					frm.dirty();
 				});
 		},
-		__("Get Phases"),
+		__("Get Milestones"),
 		__("Load")
 	);
 }

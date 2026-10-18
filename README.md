@@ -25,7 +25,7 @@ and certificates, retention, payments and the controls around them.
 
 **Procurement and stores**
 
-- Material Request raised per phase ("Get Items from Phase" loads what the plan still needs for it),
+- Material Request raised per milestone ("Get Items from Milestone" loads what the plan still needs for it),
   routed by budget status and by type of request, with a stock check.
 - Supplier selection approval, Procurement Requisition, Purchase Order and goods received note
   approvals, supplier onboarding, specification change requests, consignment tracking for imports.
@@ -131,9 +131,12 @@ again: it only creates what is missing.
 
 ## Things to know
 
-- **Phases are standard Tasks.** A phase is a group task of the project and its activities are its
-  child tasks, so the Task tree, Gantt chart and timesheets work as usual. Keep standard phase lists
-  in Project Templates; "Get Phases" on a new activity plan loads one. The plan sets each task's
+- **Milestones (phases) are standard Tasks.** A milestone is a group task of the project and its
+  activities are its child tasks, so the Task tree, Gantt chart and timesheets work as usual. Every
+  project task must belong to a milestone (the Task field "Milestone / Phase"). A milestone's form
+  shows its activities, the items the plan needs for it against what has been requested, its budget,
+  and (under Connections) its material requests, stock entries, labour, requisitions and claims. Keep standard phase lists
+  in Project Templates; "Get Milestones" on a new activity plan loads one. The plan sets each task's
   name, dates and weight (change them through a plan revision); progress on the activities rolls up
   to the phase and then to the project. Give items a Default Cost Code so budget lines fill it in.
 

@@ -139,24 +139,24 @@
    "mandatory_depends_on": "eval:doc.revision_of"
   },
   {
-   "description": "Phases are group tasks of the project. Use Get Phases to load them from the project or from a Project Template.",
+   "description": "Each milestone (phase) is a group task of the project and its activities are tasks under it. Use Get Milestones to load them from the project or from a Project Template.",
    "fieldname": "phases_section",
    "fieldtype": "Section Break",
-   "label": "Phases"
+   "label": "Milestones / Phases"
   },
   {
    "allow_bulk_edit": 1,
    "fieldname": "phases",
    "fieldtype": "Table",
-   "label": "Phases",
+   "label": "Milestones / Phases",
    "options": "Project Activity Plan Phase",
    "reqd": 1
   },
   {
-   "description": "Activities become tasks under their phase when the plan is approved.",
+   "description": "Every activity belongs to a milestone and becomes a task under it when the plan is approved.",
    "fieldname": "activities_section",
    "fieldtype": "Section Break",
-   "label": "Activities"
+   "label": "Activities (Tasks)"
   },
   {
    "allow_bulk_edit": 1,
@@ -166,10 +166,10 @@
    "options": "Project Activity Plan Activity"
   },
   {
-   "description": "The items each phase needs, from the Item master. The budget and the phase material requests are taken from this list.",
+   "description": "The items each milestone needs, from the Item master. The budget and each milestone's material requests are taken from this list.",
    "fieldname": "items_section",
    "fieldtype": "Section Break",
-   "label": "Items Required"
+   "label": "Items Required per Milestone"
   },
   {
    "fieldname": "items",
@@ -235,7 +235,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-18 10:00:00.000000",
+ "modified": "2026-10-18 13:42:43.914262",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Activity Plan",

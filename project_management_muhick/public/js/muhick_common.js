@@ -11,12 +11,12 @@ muhick.set_row_amount = function (cdt, cdn, qty_field, rate_field, amount_field)
 	frappe.model.set_value(cdt, cdn, amount_field || "amount", amount);
 };
 
-// a phase is a group task of the project
+// a milestone (phase) is a group task of the project
 muhick.phase_filters = function (project) {
 	return { filters: { project: project || "", is_group: 1, status: ["!=", "Cancelled"] } };
 };
 
-// limit phase and cost code pickers to what belongs to the form's project
+// limit milestone and cost code pickers to what belongs to the form's project
 muhick.set_project_queries = function (frm, tables) {
 	if (frm.fields_dict.phase) {
 		frm.set_query("phase", () => muhick.phase_filters(frm.doc.project));

@@ -24,7 +24,7 @@
    "fieldname": "phase",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Project Phase",
+   "label": "Project Milestone / Phase",
    "options": "Task"
   },
   {
@@ -50,7 +50,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-18 10:00:00.000000",
+ "modified": "2026-10-18 13:42:43.914262",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Subcontract Agreement Milestone",

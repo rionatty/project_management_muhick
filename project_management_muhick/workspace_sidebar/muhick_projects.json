@@ -1,6 +1,6 @@
 {
  "app": "project_management_muhick",
- "creation": "2026-10-12 10:00:00.000000",
+ "creation": "2026-10-18 13:44:01.977023",
  "docstatus": 0,
  "doctype": "Workspace Sidebar",
  "header_icon": "project",
@@ -77,9 +77,22 @@
   {
    "child": 1,
    "collapsible": 1,
+   "filters": "[[\"Task\", \"is_group\", \"=\", 1]]",
    "indent": 0,
    "keep_closed": 0,
-   "label": "Phases and Activities (Tasks)",
+   "label": "Milestones / Phases",
+   "link_to": "Task",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "filters": "[[\"Task\", \"is_group\", \"=\", 0]]",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Tasks",
    "link_to": "Task",
    "link_type": "DocType",
    "show_arrow": 0,
@@ -977,7 +990,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-18 13:44:01.977023",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",

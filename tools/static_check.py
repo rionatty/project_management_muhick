@@ -165,7 +165,7 @@ for name, d in OURS.items():
 				if tdt in ALL and target not in fields_of(tdt) and target != "name":
 					err(f"{where}: fetch_from target {tdt}.{target} does not exist")
 		for key in ("depends_on", "mandatory_depends_on", "read_only_depends_on"):
-			for ref in re.findall(r"doc\.([a-z_0-9]+)", f.get(key) or ""):
+			for ref in re.findall(r"doc\.(?!__)([a-z_0-9]+)", f.get(key) or ""):
 				if ref not in byname and ref != "docstatus":
 					err(f"{where}: {key} refers to missing field {ref}")
 		default = f.get("default")
@@ -231,7 +231,7 @@ for dt, fl in CUSTOM.items():
 		if cf["fieldtype"] not in ("Section Break", "Column Break", "Tab Break") and not cf.get("label"):
 			err(f"{where}: no label")
 		for key in ("depends_on", "mandatory_depends_on"):
-			for ref in re.findall(r"doc\.([a-z_0-9]+)", cf.get(key) or ""):
+			for ref in re.findall(r"doc\.(?!__)([a-z_0-9]+)", cf.get(key) or ""):
 				if ref not in existing | seen | {x["fieldname"] for x in fl}:
 					err(f"{where}: {key} refers to missing field {ref}")
 
@@ -383,7 +383,7 @@ for dt, (states, transitions) in wf_mod.get_workflows().items():
 		need = "write" if b == "0" else "submit" if (a == "0" and b == "1") else "cancel" if b == "2" else "write"
 		if need not in ptypes:
 			err(f"workflow {dt}: role {role} needs '{need}' permission for {t['state']} -> {t['next_state']}")
-		for ref in re.findall(r"doc\.([a-z_0-9]+)", t.get("condition") or ""):
+		for ref in re.findall(r"doc\.(?!__)([a-z_0-9]+)", t.get("condition") or ""):
 			if ref not in flds:
 				err(f"workflow {dt}: condition refers to missing field {ref}")
 	reachable = {t["next_state"] for t in transitions} | {states[0]["state"]}
@@ -905,8 +905,32 @@ for py in glob.glob(os.path.join(APP, PKG, "**", "*.py"), recursive=True):
 			if known is not None and name not in known:
 				err(f"{where}: {module} has no name '{name}'")
 
+# ------------------------------------------------------------------ 13. a changed record carries a newer timestamp
+# migrate re-imports a doctype, report, workspace or sidebar file only when its "modified" is newer
+import subprocess
+
+try:
+	_changed_files = subprocess.run(
+		["git", "-C", APP, "diff", "--name-only", "HEAD", "--", PKG], capture_output=True, text=True, check=True
+	).stdout.split()
+except Exception:
+	_changed_files = []
+stale = 0
+for rel in _changed_files:
+	path = os.path.join(APP, rel)
+	if not rel.endswith(".json") or not os.path.exists(path):
+		continue
+	try:
+		before = json.loads(subprocess.run(["git", "-C", APP, "show", f"HEAD:{rel}"], capture_output=True, text=True, check=True).stdout)
+	except Exception:
+		continue  # a new file
+	after = json.load(open(path, encoding="utf-8"))
+	if isinstance(after, dict) and after.get("modified") and str(after["modified"]) <= str(before.get("modified", "")):
+		stale += 1
+		err(f"{rel}: changed, but its modified timestamp is not newer, so migrate will not import the change")
+
 # ------------------------------------------------------------------ report
-print(f"{imports_checked} imports resolved")
+print(f"{imports_checked} imports resolved, {len(_changed_files)} changed files checked for a newer timestamp")
 print(f"{len(TEMPLATES)} templates, {len(RECORDS)} shipped records checked against their doctype")
 print(f"{db_reads} database calls checked ({unresolved} with a field list built at run time), {len(REPORTS)} reports, {len(CARDS)} number cards, {len(CHARTS)} charts, {len(PRINT_FORMATS)} print formats")
 print(f"{len(OURS)} app doctypes, {len(STD)} standard doctypes indexed, {sum(len(v) for v in CUSTOM.values())} custom fields, {len(wf_dts)} workflows")

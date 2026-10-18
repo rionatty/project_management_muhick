@@ -280,7 +280,7 @@ def get_phase_items(project: str, phase: str, material_request: str | None = Non
 	plan = frappe.get_doc("Project Activity Plan", plan_name)
 	phase_row = next((r for r in plan.phases if r.phase == phase), None)
 	if not phase_row:
-		frappe.throw(_("{0} is not a phase of the approved activity plan {1}.").format(phase, plan_name))
+		frappe.throw(_("{0} is not a milestone of the approved activity plan {1}.").format(phase, plan_name))
 	requested = defaultdict(float)
 	for r in frappe.db.sql(
 		"""

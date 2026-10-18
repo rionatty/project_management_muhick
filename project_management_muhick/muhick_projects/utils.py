@@ -65,7 +65,7 @@ def check_phase(project, phase, label=None):
 	"""Throw unless phase is a phase (group task) of the project."""
 	task = frappe.db.get_value("Task", phase, ["project", "is_group"], as_dict=True)
 	if not task or task.project != project or not task.is_group:
-		frappe.throw(_("{0}: {1} is not a phase of project {2}.").format(label or _("Phase"), phase, project))
+		frappe.throw(_("{0}: {1} is not a milestone (phase) of project {2}.").format(label or _("Milestone / Phase"), phase, project))
 
 
 def validate_dates(start, end, start_label, end_label):
