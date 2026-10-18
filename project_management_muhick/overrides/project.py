@@ -7,6 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_months, flt, getdate, nowdate
 
+from project_management_muhick.muhick_projects.utils import get_phases
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import COO, PM, get_settings, require_roles
 
@@ -125,11 +126,11 @@ def start_execution(project: str):
 
 # ------------------------------------------------------------------ progress and position
 def update_progress(project):
-	"""Project progress from its milestones, weighted as in the approved activity plan."""
-	rows = frappe.get_all("Project Milestone", filters={"project": project}, fields=["weight", "percent_complete"])
+	"""Project progress from its phases, weighted as in the approved activity plan."""
+	rows = get_phases(project, ("task_weight", "progress"))
 	if not rows:
 		return
-	progress = calc.weighted_progress([(r.weight, r.percent_complete) for r in rows])
+	progress = calc.weighted_progress([(r.task_weight, r.progress) for r in rows])
 	# ERPNext recalculates the figure itself unless the project is on manual progress
 	if frappe.db.get_value("Project", project, "percent_complete_method") == "Manual":
 		frappe.db.set_value("Project", project, "percent_complete", progress, update_modified=False)

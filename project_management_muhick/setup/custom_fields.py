@@ -99,7 +99,7 @@ MATERIAL_REQUEST = _chain(
 		_sec("muhick_project_section", "Project and Budget"),
 		dict(fieldname="muhick_request_origin", label="Request From", fieldtype="Select", options="\nProject\nDefects Liability\nSite Store\nUser Department\nAdministration\nFixed Asset", in_standard_filter=1),
 		dict(fieldname="muhick_project", label="Project", fieldtype="Link", options="Project", in_standard_filter=1),
-		dict(fieldname="muhick_milestone", label="Milestone / Phase", fieldtype="Link", options="Project Milestone"),
+		dict(fieldname="muhick_phase", label="Phase (Milestone)", fieldtype="Link", options="Task", mandatory_depends_on="eval:doc.muhick_project && doc.muhick_request_origin=='Project'", description="Project requests are raised per phase. Get Items from Phase loads what the activity plan needs for it."),
 		_col("muhick_project_column"),
 		dict(fieldname="muhick_budget_status", label="Budget Status", fieldtype="Select", options=BUDGET_STATUS, read_only=1, no_copy=1, in_standard_filter=1, allow_on_submit=1),
 		dict(fieldname="muhick_budget_remarks", label="Budget Check", fieldtype="Small Text", read_only=1, no_copy=1, allow_on_submit=1),
@@ -142,7 +142,7 @@ CUSTOM_FIELDS = {
 	"Stock Entry": _chain(
 		"project",
 		[
-			dict(fieldname="muhick_milestone", label="Milestone / Phase", fieldtype="Link", options="Project Milestone"),
+			dict(fieldname="muhick_phase", label="Phase (Milestone)", fieldtype="Link", options="Task"),
 			_ro("muhick_purchase_order", "Delivery of Purchase Order", "Link", options="Purchase Order"),
 			dict(fieldname="muhick_is_disposal", label="Disposal / Write-Off", fieldtype="Check", depends_on="eval:doc.purpose=='Material Issue'", description="Damaged, expired or obsolete stock being disposed of. Needs Finance approval."),
 			dict(fieldname="muhick_disposal_reason", label="Reason for Disposal", fieldtype="Small Text", depends_on="eval:doc.muhick_is_disposal", mandatory_depends_on="eval:doc.muhick_is_disposal"),
@@ -166,8 +166,23 @@ CUSTOM_FIELDS = {
 	"Sales Order": [
 		dict(fieldname="muhick_sale_type", label="Sale Type", fieldtype="Select", options="\nStock\nProject\nAdditions", insert_after="order_type", description="Project and Additions notify the Project Manager and start the handover"),
 	],
-	"Task": [
-		dict(fieldname="muhick_milestone", label="Milestone / Phase", fieldtype="Link", options="Project Milestone", insert_after="project", in_standard_filter=1),
+	# phases are group tasks, activities their child tasks; these hold what the approved plan sets
+	"Task": _chain(
+		"is_milestone",
+		[
+			_sec("muhick_plan_section", "Approved Plan and Billing", collapsible=1),
+			_ro("muhick_activity_plan", "Activity Plan", "Link", options="Project Activity Plan"),
+			_ro("muhick_baseline_start", "Baseline Start", "Date"),
+			_ro("muhick_baseline_end", "Baseline End", "Date"),
+			_col("muhick_plan_column"),
+			_ro("muhick_is_billing_milestone", "Billing Milestone", "Check", depends_on="eval:doc.is_group"),
+			_ro("muhick_planned_valuation", "Planned Valuation", depends_on="eval:doc.is_group"),
+			_ro("muhick_planned_claim_date", "Planned Claim Date", "Date", depends_on="eval:doc.is_group"),
+			_ro("muhick_billing_status", "Billing Status", "Select", options="\nClaimed\nCertified", depends_on="eval:doc.is_group"),
+		],
+	),
+	"Item": [
+		dict(fieldname="muhick_cost_code", label="Default Cost Code", fieldtype="Link", options="Cost Code", insert_after="item_group", description="Proposed on budget lines and requests for this item"),
 	],
 	"Warehouse": _chain(
 		"warehouse_type",

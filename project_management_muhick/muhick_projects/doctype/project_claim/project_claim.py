@@ -15,7 +15,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, now_datetime
 
-from project_management_muhick.muhick_projects.utils import require_stage, validate_dates
+from project_management_muhick.muhick_projects.utils import check_phase, phase_done, require_stage, validate_dates
 from project_management_muhick.overrides import project as project_api
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import COO, FINANCE_ROLES, PM, notify_roles, require_roles, setting
@@ -30,6 +30,8 @@ PROJECT_FIELDS = [
 class ProjectClaim(Document):
 	def validate(self):
 		require_stage(self.project, ("Execution", "Practical Completion"), _("Raising a claim"))
+		if self.phase:
+			check_phase(self.project, self.phase)
 		validate_dates(self.period_from, self.period_to, _("Work Done From"), _("Work Done To"))
 		project = frappe.db.get_value("Project", self.project, PROJECT_FIELDS, as_dict=True)
 		if self.is_new() and not flt(self.retention_percent):
@@ -93,21 +95,28 @@ class ProjectClaim(Document):
 	def on_submit(self):
 		"""Issued to the client (printed or emailed)."""
 		self.db_set("status", "Submitted to Client")
-		self.set_milestone_status("Claimed", only_from=("Completed",))
+		self.set_phase_billing("Claimed", only_from=("Completed",))
 
 	def on_cancel(self):
 		if self.status in ("Invoiced", "Paid"):
 			frappe.throw(_("Cancel sales invoice {0} first.").format(self.sales_invoice))
 		was_certified = self.status == "Certified"
 		self.db_set("status", "Cancelled")
-		self.set_milestone_status("Completed", only_from=("Claimed", "Certified"))
+		self.set_phase_billing("Completed", only_from=("Claimed", "Certified"))
 		if was_certified:
 			update_certified_quantities(self.project)
 			project_api.update_position(self.project)
 
-	def set_milestone_status(self, status, only_from):
-		if self.milestone and frappe.db.get_value("Project Milestone", self.milestone, "status") in only_from:
-			frappe.db.set_value("Project Milestone", self.milestone, "status", status)
+	def set_phase_billing(self, status, only_from):
+		"""Claimed / Certified is kept on the phase task; "Completed" clears it again."""
+		if not self.phase:
+			return
+		task = frappe.db.get_value("Task", self.phase, ["status", "progress", "muhick_billing_status"], as_dict=True)
+		current = task.muhick_billing_status or ("Completed" if phase_done(task) else "")
+		if current in only_from:
+			frappe.db.set_value(
+				"Task", self.phase, "muhick_billing_status", "" if status == "Completed" else status, update_modified=False
+			)
 
 	@frappe.whitelist()
 	def certify(
@@ -154,7 +163,7 @@ class ProjectClaim(Document):
 		)
 		update_certified_quantities(self.project)
 		project_api.update_position(self.project)
-		self.set_milestone_status("Certified", only_from=("Completed", "Claimed"))
+		self.set_phase_billing("Certified", only_from=("Completed", "Claimed"))
 		notify_roles(
 			FINANCE_ROLES,
 			_("Certificate {0} for {1} is signed ({2}). Raise the sales invoice.").format(
@@ -169,7 +178,7 @@ class ProjectClaim(Document):
 		if self.docstatus != 1 or self.status != "Submitted to Client":
 			frappe.throw(_("Only a claim submitted to the client can be marked as rejected."))
 		self.db_set({"status": "Rejected by Client", "certification_remarks": reason})
-		self.set_milestone_status("Completed", only_from=("Claimed",))
+		self.set_phase_billing("Completed", only_from=("Claimed",))
 
 
 def get_previous_quantities(project, exclude=None) -> dict:

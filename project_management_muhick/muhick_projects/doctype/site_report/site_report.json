@@ -19,7 +19,7 @@
   "overall_progress",
   "progress_section",
   "summary",
-  "milestones",
+  "phases",
   "people_on_site_section",
   "manpower",
   "subcontractor_progress",
@@ -136,10 +136,10 @@
    "reqd": 1
   },
   {
-   "fieldname": "milestones",
+   "fieldname": "phases",
    "fieldtype": "Table",
-   "label": "Progress by Milestone",
-   "options": "Site Report Milestone"
+   "label": "Progress by Phase",
+   "options": "Site Report Phase"
   },
   {
    "fieldname": "people_on_site_section",
@@ -241,7 +241,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Site Report",

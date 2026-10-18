@@ -59,7 +59,7 @@ class ServiceReceiptNote(Document):
 		milestones = frappe.get_all(
 			"Subcontract Agreement Milestone",
 			filters={"parent": self.subcontract_agreement},
-			fields=["name", "description", "project_milestone", "amount"],
+			fields=["name", "description", "phase", "amount"],
 			order_by="idx asc",
 		)
 		if not milestones:
@@ -68,7 +68,7 @@ class ServiceReceiptNote(Document):
 		for m in milestones:
 			self.append(
 				"items",
-				{"description": m.description, "agreement_row": m.name, "project_milestone": m.project_milestone, "contract_amount": m.amount},
+				{"description": m.description, "agreement_row": m.name, "phase": m.phase, "contract_amount": m.amount},
 			)
 
 	def previously_certified(self, agreement_row) -> float:

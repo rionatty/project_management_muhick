@@ -3,7 +3,9 @@
 
 frappe.ui.form.on("Stock Entry", {
 	setup(frm) {
-		frm.set_query("muhick_milestone", () => ({ filters: { project: frm.doc.project || "" } }));
+		frm.set_query("muhick_phase", () => ({
+			filters: { project: frm.doc.project || "", is_group: 1, status: ["!=", "Cancelled"] },
+		}));
 		frm.set_query("muhick_cost_code", "items", () => ({ filters: { disabled: 0 } }));
 	},
 });

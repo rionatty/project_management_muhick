@@ -12,12 +12,11 @@ from collections import defaultdict
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import flt, getdate, nowdate
 
 from project_management_muhick.muhick_projects import budget_engine
+from project_management_muhick.muhick_projects.utils import check_phase, get_phases, phase_done
 from project_management_muhick.utils.common import get_settings
-
-DONE = ("Completed", "Claimed", "Certified")
 
 
 def validate(doc, method=None):
@@ -160,23 +159,17 @@ def _check_brands(doc, project):
 
 
 def _check_phase(doc, project):
-	"""A request for a later phase needs an explanation."""
+	"""Requests are raised per phase. A request for a later phase needs an explanation."""
 	doc.muhick_out_of_phase = 0
-	milestone = doc.get("muhick_milestone")
-	if not milestone:
+	phase = doc.get("muhick_phase")
+	if not phase:
 		return
-	milestones = frappe.get_all(
-		"Project Milestone",
-		filters={"project": project},
-		fields=["name", "status", "planned_start", "planned_end"],
-		order_by="planned_start asc, sequence asc",
-	)
-	if not any(m.name == milestone for m in milestones):
-		frappe.throw(_("Milestone {0} does not belong to project {1}.").format(milestone, project))
-	current = next((m for m in milestones if m.status not in DONE), None)
-	selected = next(m for m in milestones if m.name == milestone)
-	if current and selected.name != current.name and selected.planned_start and current.planned_end:
-		if selected.planned_start > current.planned_end:
+	check_phase(project, phase)
+	phases = get_phases(project)
+	current = next((p for p in phases if not phase_done(p)), None)
+	selected = next((p for p in phases if p.name == phase), None)
+	if current and selected and selected.name != current.name and selected.exp_start_date and current.exp_end_date:
+		if getdate(selected.exp_start_date) > getdate(current.exp_end_date):
 			doc.muhick_out_of_phase = 1
 
 
@@ -255,7 +248,7 @@ def make_purchase_request(source_name: str):
 			"company": source.company,
 			"schedule_date": source.schedule_date,
 			"muhick_project": source.get("muhick_project"),
-			"muhick_milestone": source.get("muhick_milestone"),
+			"muhick_phase": source.get("muhick_phase"),
 			"muhick_request_origin": source.get("muhick_request_origin"),
 			"muhick_justification": _("Shortfall on store request {0}").format(source.name),
 		}
@@ -272,6 +265,64 @@ def make_purchase_request(source_name: str):
 			},
 		)
 	return request
+
+
+@frappe.whitelist()
+def get_phase_items(project: str, phase: str, material_request: str | None = None) -> list:
+	"""What the approved activity plan needs for one phase, less what other requests for that
+	phase already ask for. Quantities are in each item's stock unit."""
+	frappe.has_permission("Material Request", "create", throw=True)
+	frappe.get_doc("Project", project).check_permission("read")
+	check_phase(project, phase)
+	plan_name = frappe.db.get_value("Project Activity Plan", {"project": project, "docstatus": 1, "is_current": 1}, "name")
+	if not plan_name:
+		frappe.throw(_("Project {0} has no approved activity plan.").format(project))
+	plan = frappe.get_doc("Project Activity Plan", plan_name)
+	phase_row = next((r for r in plan.phases if r.phase == phase), None)
+	if not phase_row:
+		frappe.throw(_("{0} is not a phase of the approved activity plan {1}.").format(phase, plan_name))
+	requested = defaultdict(float)
+	for r in frappe.db.sql(
+		"""
+		select mri.item_code, sum(mri.stock_qty) as qty
+		from `tabMaterial Request Item` mri inner join `tabMaterial Request` mr on mr.name = mri.parent
+		where mr.docstatus < 2 and mr.muhick_project = %(project)s and mr.muhick_phase = %(phase)s
+			and mr.name != %(exclude)s
+		group by mri.item_code
+		""",
+		{"project": project, "phase": phase, "exclude": material_request or ""},
+		as_dict=True,
+	):
+		requested[r.item_code] = flt(r.qty)
+	today = getdate(nowdate())
+	warehouse = frappe.db.get_value("Project", project, "muhick_site_warehouse")
+	rows = []
+	for item in plan.items:
+		if item.phase_name != phase_row.phase_name:
+			continue
+		remaining = flt(item.qty) - requested[item.item_code]
+		if remaining <= 1e-9:
+			continue
+		requested[item.item_code] = max(requested[item.item_code] - flt(item.qty), 0)
+		info = frappe.get_cached_value("Item", item.item_code, ["item_name", "stock_uom", "muhick_cost_code"], as_dict=True)
+		needed_on = getdate(item.required_by or phase_row.planned_start)
+		rows.append(
+			{
+				"item_code": item.item_code,
+				"item_name": info.item_name,
+				"description": info.item_name,
+				"qty": remaining,
+				"uom": info.stock_uom,
+				"stock_uom": info.stock_uom,
+				"conversion_factor": 1,
+				"stock_qty": remaining,
+				"schedule_date": max(needed_on, today),
+				"warehouse": warehouse,
+				"project": project,
+				"muhick_cost_code": budget_engine.get_budget_cost_code(project, item.item_code) or info.muhick_cost_code,
+			}
+		)
+	return rows
 
 
 @frappe.whitelist()

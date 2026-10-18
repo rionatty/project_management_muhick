@@ -9,12 +9,14 @@ and certificates, retention, payments and the controls around them.
 **Projects**
 
 - Sales-to-project handover with a mandatory handover pack the Project Manager accepts or returns.
-- Bill of Quantities, and a project budget built by cost code (typed in or uploaded from Excel).
+- Bill of Quantities, and a project budget built by phase and cost code from Item-master items,
+  taken from the activity plan's items or typed in.
 - Commitments: approved purchase orders, subcontracts, requisitions and labour reduce the available
   budget at once, before anything is paid. Original Budget, Approved Variations, Current Budget and
   Forecast Final Cost are kept separately; an approved budget is changed only by a revision.
-- Activity plan with milestones (phases) and tasks, a baseline, and revisions that state why the
-  schedule moved.
+- Activity plan: each phase with its activities and the items it needs, a baseline, and revisions
+  that state why the schedule moved. Phases and activities are standard ERPNext Tasks (a phase is a
+  group task, its activities are child tasks), loaded from a Project Template or entered on the plan.
 - Cash requisitions with accountability, weekly labour schedules and casual sheets.
 - Subcontract RFQ and evaluation, agreement, and a service receipt note that gates the invoice.
 - Claims that mirror the BOQ, the client's certificate, the invoice, retention and its release,
@@ -23,7 +25,8 @@ and certificates, retention, payments and the controls around them.
 
 **Procurement and stores**
 
-- Material Request routed by budget status and by type of request, with a stock check.
+- Material Request raised per phase ("Get Items from Phase" loads what the plan still needs for it),
+  routed by budget status and by type of request, with a stock check.
 - Supplier selection approval, Procurement Requisition, Purchase Order and goods received note
   approvals, supplier onboarding, specification change requests, consignment tracking for imports.
 - A site store per project; approvals for returns from site, disposals, deliveries and customer returns.
@@ -127,6 +130,12 @@ again: it only creates what is missing.
    lines and its budget cost codes.
 
 ## Things to know
+
+- **Phases are standard Tasks.** A phase is a group task of the project and its activities are its
+  child tasks, so the Task tree, Gantt chart and timesheets work as usual. Keep standard phase lists
+  in Project Templates; "Get Phases" on a new activity plan loads one. The plan sets each task's
+  name, dates and weight (change them through a plan revision); progress on the activities rolls up
+  to the phase and then to the project. Give items a Default Cost Code so budget lines fill it in.
 
 - **Workflows belong to the site once created.** Change steps or roles in the Workflow screen;
   a later migrate will not overwrite them. To recreate them from code:

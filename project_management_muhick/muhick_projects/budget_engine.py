@@ -66,17 +66,22 @@ def get_budget_rate(project, item_code) -> float:
 
 
 def get_budget_cost_code(project, item_code) -> str | None:
-	"""Cost code an item is budgeted under, when it is budgeted under exactly one."""
-	budget = get_approved_budget(project)
-	if not budget or not item_code:
+	"""Cost code an item is budgeted under when it is budgeted under exactly one; for an item
+	not in the budget, the item's own Default Cost Code."""
+	if not item_code:
 		return None
-	codes = frappe.get_all(
-		"Project Budget Line",
-		filters={"parent": budget, "item_code": item_code},
-		pluck="cost_code",
-		distinct=True,
+	budget = get_approved_budget(project)
+	codes = (
+		frappe.get_all(
+			"Project Budget Line", filters={"parent": budget, "item_code": item_code}, pluck="cost_code", distinct=True
+		)
+		if budget
+		else []
 	)
-	return codes[0] if len(codes) == 1 else None
+	if len(codes) == 1:
+		return codes[0]
+	# under several cost codes the user chooses
+	return None if codes else frappe.get_cached_value("Item", item_code, "muhick_cost_code")
 
 
 # ------------------------------------------------------------------ position

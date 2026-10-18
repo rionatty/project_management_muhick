@@ -3,8 +3,9 @@
 
 frappe.ui.form.on("Material Request", {
 	setup(frm) {
-		frm.set_query("muhick_milestone", () => ({
-			filters: { project: frm.doc.muhick_project || "" },
+		// a phase is a group task of the project
+		frm.set_query("muhick_phase", () => ({
+			filters: { project: frm.doc.muhick_project || "", is_group: 1, status: ["!=", "Cancelled"] },
 		}));
 		frm.set_query("muhick_cost_code", "items", () => ({ filters: { disabled: 0 } }));
 	},
@@ -12,6 +13,9 @@ frappe.ui.form.on("Material Request", {
 	refresh(frm) {
 		if (frm.doc.docstatus === 0) {
 			frm.add_custom_button(__("Frequent Items"), () => pick_frequent_items(frm));
+		}
+		if (frm.doc.docstatus === 0 && frm.doc.muhick_project && frm.doc.muhick_phase) {
+			frm.add_custom_button(__("Get Items from Phase"), () => get_phase_items(frm));
 		}
 		const status = frm.doc.muhick_budget_status;
 		if (status === "Exceeds Budget" || status === "Not Budgeted") {
@@ -37,9 +41,33 @@ frappe.ui.form.on("Material Request", {
 		(frm.doc.items || []).forEach((row) => {
 			frappe.model.set_value(row.doctype, row.name, "project", frm.doc.muhick_project);
 		});
-		frm.set_value("muhick_milestone", null);
+		frm.set_value("muhick_phase", null);
 	},
 });
+
+// what the approved activity plan needs for this phase, less what other requests already ask for
+function get_phase_items(frm) {
+	frappe
+		.xcall("project_management_muhick.overrides.material_request.get_phase_items", {
+			project: frm.doc.muhick_project,
+			phase: frm.doc.muhick_phase,
+			material_request: frm.is_new() ? null : frm.doc.name,
+		})
+		.then((rows) => {
+			// a new request starts with an empty row
+			(frm.doc.items || []).filter((r) => !r.item_code).forEach((r) => frappe.model.clear_doc(r.doctype, r.name));
+			const present = new Set((frm.doc.items || []).map((r) => r.item_code));
+			const added = rows.filter((row) => !present.has(row.item_code));
+			added.forEach((row) => frm.add_child("items", { ...row, warehouse: row.warehouse || frm.doc.set_warehouse }));
+			frm.refresh_field("items");
+			frappe.show_alert({
+				message: added.length
+					? __("{0} item(s) added from the phase plan.", [added.length])
+					: __("Nothing left to request for this phase."),
+				indicator: added.length ? "green" : "orange",
+			});
+		});
+}
 
 // quick selection of the items bought most often, instead of typing each one
 function pick_frequent_items(frm) {

@@ -40,6 +40,7 @@ doctype_js = {
 	"Supplier Quotation": "public/js/supplier_quotation.js",
 	"Sales Order": "public/js/sales_order.js",
 	"Stock Entry": "public/js/stock_entry.js",
+	"Task": "public/js/task.js",
 }
 
 override_doctype_dashboards = {
@@ -60,6 +61,10 @@ doc_events = {
 	"Material Request": {
 		"validate": "project_management_muhick.overrides.material_request.validate",
 		**_approval_events,
+	},
+	"Task": {
+		"validate": "project_management_muhick.overrides.task.validate",
+		"on_update": "project_management_muhick.overrides.task.on_update",
 	},
 	"Supplier": {
 		"validate": "project_management_muhick.overrides.supplier.validate",

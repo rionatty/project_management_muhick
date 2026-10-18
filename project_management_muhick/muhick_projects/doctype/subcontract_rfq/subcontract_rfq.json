@@ -9,7 +9,7 @@
   "project",
   "project_name",
   "company",
-  "milestone",
+  "phase",
   "column_break_1",
   "title",
   "cost_code",
@@ -69,10 +69,11 @@
    "reqd": 1
   },
   {
-   "fieldname": "milestone",
+   "description": "A phase is a group task of the project",
+   "fieldname": "phase",
    "fieldtype": "Link",
-   "label": "Milestone / Phase",
-   "options": "Project Milestone"
+   "label": "Phase (Milestone)",
+   "options": "Task"
   },
   {
    "fieldname": "column_break_1",
@@ -219,7 +220,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Subcontract RFQ",

@@ -44,6 +44,30 @@ def set_budget_status(doc, amounts):
 	return status, remarks
 
 
+PHASE_FIELDS = ("name", "subject", "status", "progress", "task_weight", "exp_start_date", "exp_end_date")
+
+
+def get_phases(project, fields=PHASE_FIELDS):
+	"""The project's phases: its top-level group tasks that are not cancelled, in date order."""
+	return frappe.get_all(
+		"Task",
+		filters={"project": project, "is_group": 1, "parent_task": ("is", "not set"), "status": ("!=", "Cancelled")},
+		fields=list(fields),
+		order_by="exp_start_date asc, lft asc",
+	)
+
+
+def phase_done(phase) -> bool:
+	return phase.get("status") == "Completed" or flt(phase.get("progress")) >= 100
+
+
+def check_phase(project, phase, label=None):
+	"""Throw unless phase is a phase (group task) of the project."""
+	task = frappe.db.get_value("Task", phase, ["project", "is_group"], as_dict=True)
+	if not task or task.project != project or not task.is_group:
+		frappe.throw(_("{0}: {1} is not a phase of project {2}.").format(label or _("Phase"), phase, project))
+
+
 def validate_dates(start, end, start_label, end_label):
 	if start and end and frappe.utils.getdate(end) < frappe.utils.getdate(start):
 		frappe.throw(_("{0} cannot be before {1}.").format(end_label, start_label))

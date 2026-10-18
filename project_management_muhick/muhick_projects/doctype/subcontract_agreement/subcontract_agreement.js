@@ -4,7 +4,7 @@
 frappe.ui.form.on("Subcontract Agreement", {
 	setup(frm) {
 		muhick.set_project_queries(frm);
-		frm.set_query("project_milestone", "milestones", () => ({ filters: { project: frm.doc.project || "" } }));
+		frm.set_query("phase", "milestones", () => muhick.phase_filters(frm.doc.project));
 	},
 
 	refresh(frm) {

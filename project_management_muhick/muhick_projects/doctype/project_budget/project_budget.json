@@ -16,6 +16,8 @@
   "workflow_state",
   "budget_build_up_section",
   "lines",
+  "phase_summary_section",
+  "phase_summary",
   "budget_position_by_cost_code_section",
   "cost_codes",
   "totals_section",
@@ -120,6 +122,17 @@
    "label": "Budget Lines",
    "options": "Project Budget Line",
    "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "phase_summary_section",
+   "fieldtype": "Section Break",
+   "label": "Budget by Phase"
+  },
+  {
+   "fieldname": "phase_summary",
+   "fieldtype": "HTML",
+   "label": "Budget by Phase"
   },
   {
    "fieldname": "budget_position_by_cost_code_section",
@@ -277,7 +290,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget",

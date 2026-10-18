@@ -114,6 +114,11 @@ STD_ROLES = {
 }
 ROLES = set(roles_mod.ROLES) | STD_ROLES
 
+# Select fields whose options a form script fills in (Frappe skips server validation of empty options)
+DYNAMIC_SELECTS = set()
+for _js in glob.glob(os.path.join(APP, PKG, "**", "*.js"), recursive=True):
+	DYNAMIC_SELECTS |= set(re.findall(r"""(?:update_docfield_property|set_df_property)\(\s*["'](\w+)["']\s*,\s*["']options["']""", open(_js, encoding="utf-8").read()))
+
 # ------------------------------------------------------------------ 1. doctype json
 for name, d in OURS.items():
 	flds = d["fields"]
@@ -145,8 +150,8 @@ for name, d in OURS.items():
 				err(f"{where}: Link to child table {opt}")
 		if ft == "Dynamic Link" and f.get("options") not in byname:
 			err(f"{where}: Dynamic Link options must be a field of the doctype")
-		if ft == "Select" and not f.get("options"):
-			err(f"{where}: Select without options")
+		if ft == "Select" and not f.get("options") and f["fieldname"] not in DYNAMIC_SELECTS:
+			err(f"{where}: Select without options (and no form script sets them)")
 		if f.get("in_list_view") and ft in NO_VALUE:
 			err(f"{where}: {ft} cannot be in list view")
 		if f.get("reqd") and f.get("read_only") and not f.get("fetch_from") and not f.get("default"):
@@ -336,6 +341,13 @@ for event in ("on_update", "on_submit", "on_cancel"):
 	tracked = {dt for dt, ev in ns["doc_events"].items() if TRACK in _handlers(ev.get(event) or [])}
 	if wf_dts != tracked:
 		err(f"hooks: approval tracking on {event} differs from workflow doctypes: {sorted(wf_dts ^ tracked)}")
+
+# patches listed in patches.txt are modules with an execute()
+for line in open(os.path.join(APP, PKG, "patches.txt"), encoding="utf-8"):
+	line = line.split("#")[0].strip()
+	if line and not line.startswith("["):
+		if not resolve(f"{line}.execute"):
+			err(f"patches.txt: {line} has no execute()")
 
 # ------------------------------------------------------------------ 5. workflows
 for dt, (states, transitions) in wf_mod.get_workflows().items():

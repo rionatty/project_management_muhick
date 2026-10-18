@@ -4,5 +4,5 @@
 from frappe.model.document import Document
 
 
-class ProjectActivityPlanMilestone(Document):
+class ProjectActivityPlanItem(Document):
 	pass

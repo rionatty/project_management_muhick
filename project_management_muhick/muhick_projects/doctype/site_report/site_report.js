@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("Site Report", {
 	setup(frm) {
-		frm.set_query("milestone", "milestones", () => ({ filters: { project: frm.doc.project || "" } }));
+		frm.set_query("phase", "phases", () => muhick.phase_filters(frm.doc.project));
 	},
 
 	refresh(frm) {
@@ -13,7 +13,7 @@ frappe.ui.form.on("Site Report", {
 					frappe.msgprint(__("Select the project and the period first."));
 					return;
 				}
-				// fills milestone progress, labour by trade, materials issued and equipment on site
+				// fills phase progress, labour by trade, materials issued and equipment on site
 				frm.call("fetch_from_system").then(() => {
 					frm.refresh_fields();
 					frm.dirty();
@@ -35,7 +35,7 @@ frappe.ui.form.on("Site Report", {
 	},
 });
 
-frappe.ui.form.on("Site Report Milestone", {
+frappe.ui.form.on("Site Report Phase", {
 	actual_percent(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
 		frappe.model.set_value(cdt, cdn, "variance_percent", flt(row.actual_percent) - flt(row.planned_percent));

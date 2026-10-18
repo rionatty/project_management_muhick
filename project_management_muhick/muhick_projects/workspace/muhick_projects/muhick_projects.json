@@ -26,7 +26,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Handover and Planning",
-   "link_count": 6,
+   "link_count": 5,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -78,18 +78,7 @@
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Milestone",
-   "link_count": 0,
-   "link_to": "Project Milestone",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "dependencies": "",
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Task",
+   "label": "Phases and Activities (Tasks)",
    "link_count": 0,
    "link_to": "Task",
    "link_type": "DocType",
@@ -900,7 +889,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Setup",
-   "link_count": 3,
+   "link_count": 4,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -911,6 +900,17 @@
    "label": "Muhick Settings",
    "link_count": 0,
    "link_to": "Muhick Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Phase Templates",
+   "link_count": 0,
+   "link_to": "Project Template",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"

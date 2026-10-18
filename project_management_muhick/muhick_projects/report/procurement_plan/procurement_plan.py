@@ -12,12 +12,13 @@ from frappe import _
 from frappe.utils import add_days, flt, getdate, nowdate
 
 from project_management_muhick.muhick_projects import budget_engine
+from project_management_muhick.muhick_projects.utils import get_phases
 
 
 def execute(filters=None):
 	filters = frappe._dict(filters or {})
 	columns = [
-		{"fieldname": "milestone_name", "label": _("Milestone / Phase"), "fieldtype": "Data", "width": 180},
+		{"fieldname": "phase_name", "label": _("Phase"), "fieldtype": "Data", "width": 180},
 		{"fieldname": "cost_code", "label": _("Cost Code"), "fieldtype": "Link", "options": "Cost Code", "width": 100},
 		{"fieldname": "item_code", "label": _("Item"), "fieldtype": "Link", "options": "Item", "width": 140},
 		{"fieldname": "description", "label": _("Description"), "fieldtype": "Data", "width": 220},
@@ -40,17 +41,12 @@ def execute(filters=None):
 		"Project Budget Line",
 		filters={"parent": budget, "budget_section": "Materials"},
 		fields=[
-			"cost_code", "item_code", "description", "procurement_type", "qty", "amount", "milestone",
+			"cost_code", "item_code", "description", "procurement_type", "qty", "amount", "phase",
 			"required_by_date", "lead_time_days",
 		],
 		order_by="idx asc",
 	)
-	milestones = {
-		m.name: m
-		for m in frappe.get_all(
-			"Project Milestone", filters={"project": filters.project}, fields=["name", "milestone_name", "planned_start"]
-		)
-	}
+	phases = {p.name: p for p in get_phases(filters.project, ("name", "subject", "exp_start_date"))}
 	ordered = defaultdict(float)
 	for r in frappe.db.sql(
 		"""
@@ -65,10 +61,10 @@ def execute(filters=None):
 	today = getdate(nowdate())
 	rows = []
 	for line in lines:
-		milestone = milestones.get(line.milestone)
-		line.milestone_name = milestone.milestone_name if milestone else None
+		phase = phases.get(line.phase)
+		line.phase_name = phase.subject if phase else None
 		# needed on site by its own date, otherwise when its phase starts
-		line.required_by = line.required_by_date or (milestone.planned_start if milestone else None)
+		line.required_by = line.required_by_date or (getdate(phase.exp_start_date) if phase and phase.exp_start_date else None)
 		line.order_by = add_days(line.required_by, -int(line.lead_time_days or 0)) if line.required_by else None
 		line.ordered_qty = min(ordered.get(line.item_code, 0), flt(line.qty)) if line.item_code else 0
 		if line.item_code:

@@ -1,11 +1,11 @@
 {
  "actions": [],
- "creation": "2026-10-12 10:00:00.000000",
+ "creation": "2026-10-18 10:00:00.000000",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "milestone_name",
+  "phase_name",
   "planned_start",
   "planned_end",
   "weight",
@@ -14,17 +14,17 @@
   "is_billing_milestone",
   "column_break_1",
   "description",
-  "milestone",
+  "phase",
   "previous_start",
   "previous_end"
  ],
  "fields": [
   {
    "columns": 3,
-   "fieldname": "milestone_name",
+   "fieldname": "phase_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Milestone / Phase",
+   "label": "Phase",
    "reqd": 1
   },
   {
@@ -82,11 +82,12 @@
    "label": "Scope"
   },
   {
-   "fieldname": "milestone",
+   "description": "Set when the plan is approved",
+   "fieldname": "phase",
    "fieldtype": "Link",
-   "label": "Existing Milestone",
+   "label": "Phase Task",
    "no_copy": 1,
-   "options": "Project Milestone",
+   "options": "Task",
    "read_only": 1
   },
   {
@@ -106,10 +107,10 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
- "name": "Project Activity Plan Milestone",
+ "name": "Project Activity Plan Phase",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",

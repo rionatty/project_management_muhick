@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 """Weekly, monthly, progress and completion reports. The system fills in what it already knows
-(milestone progress against plan, casual labour by trade, materials issued, equipment on site);
+(phase progress against plan, casual labour by trade, materials issued, equipment on site);
 the Project Manager adds the narrative, the reasons for being ahead or behind, and photos."""
 
 import frappe
@@ -10,7 +10,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
-from project_management_muhick.muhick_projects.utils import validate_dates
+from project_management_muhick.muhick_projects.utils import get_phases, validate_dates
 from project_management_muhick.utils import calc
 
 
@@ -20,19 +20,19 @@ class SiteReport(Document):
 		if not self.prepared_by:
 			self.prepared_by = frappe.session.user
 		weights = {}
-		if self.milestones:
+		if self.phases:
 			weights = dict(
 				frappe.get_all(
-					"Project Milestone",
-					filters={"name": ("in", [r.milestone for r in self.milestones])},
-					fields=["name", "weight"],
+					"Task",
+					filters={"name": ("in", [r.phase for r in self.phases])},
+					fields=["name", "task_weight"],
 					as_list=True,
 				)
 			)
-		for row in self.milestones:
+		for row in self.phases:
 			row.variance_percent = flt(row.actual_percent) - flt(row.planned_percent)
-		self.planned_progress = calc.weighted_progress([(weights.get(r.milestone), r.planned_percent) for r in self.milestones])
-		self.overall_progress = calc.weighted_progress([(weights.get(r.milestone), r.actual_percent) for r in self.milestones])
+		self.planned_progress = calc.weighted_progress([(weights.get(r.phase), r.planned_percent) for r in self.phases])
+		self.overall_progress = calc.weighted_progress([(weights.get(r.phase), r.actual_percent) for r in self.phases])
 
 	@frappe.whitelist()
 	def fetch_from_system(self):
@@ -41,28 +41,23 @@ class SiteReport(Document):
 			frappe.throw(_("Only a draft report can be refreshed."))
 		if not (self.project and self.period_from and self.period_to):
 			frappe.throw(_("Select the project and the period first."))
-		self.fetch_milestones()
+		self.fetch_phases()
 		self.fetch_manpower()
 		self.materials_used = self.get_materials_used()
 		self.equipment_on_site = self.get_equipment_on_site()
 		self.subcontractor_progress = self.get_subcontractor_progress()
 
-	def fetch_milestones(self):
-		remarks = {r.milestone: r.remarks for r in self.milestones}
-		self.set("milestones", [])
-		for m in frappe.get_all(
-			"Project Milestone",
-			filters={"project": self.project},
-			fields=["name", "planned_start", "planned_end", "percent_complete"],
-			order_by="sequence asc",
-		):
+	def fetch_phases(self):
+		remarks = {r.phase: r.remarks for r in self.phases}
+		self.set("phases", [])
+		for p in get_phases(self.project):
 			self.append(
-				"milestones",
+				"phases",
 				{
-					"milestone": m.name,
-					"planned_percent": calc.planned_percent(m.planned_start, m.planned_end, self.period_to),
-					"actual_percent": m.percent_complete,
-					"remarks": remarks.get(m.name),
+					"phase": p.name,
+					"planned_percent": calc.planned_percent(p.exp_start_date, p.exp_end_date, self.period_to),
+					"actual_percent": p.progress,
+					"remarks": remarks.get(p.name),
 				},
 			)
 

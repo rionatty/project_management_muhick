@@ -14,7 +14,7 @@ WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", 
 
 def send_daily_reminders():
 	jobs = (
-		overdue_accountability, missing_weekly_reports, milestones_due_for_claim, expiring_warranties,
+		overdue_accountability, missing_weekly_reports, phases_due_for_claim, expiring_warranties,
 		phases_starting, payables_falling_due, shipments_needing_attention,
 		bids_needing_attention, bank_instruments_needing_attention, contracts_and_maintenance_due,
 	)
@@ -63,18 +63,21 @@ def missing_weekly_reports():
 			)
 
 
-def milestones_due_for_claim():
-	"""A completed billing milestone that has not been claimed is revenue waiting."""
+def phases_due_for_claim():
+	"""A completed billing phase that has not been claimed is revenue waiting."""
 	rows = frappe.get_all(
-		"Project Milestone",
-		filters={"status": "Completed", "is_billing_milestone": 1},
-		fields=["name", "milestone_name", "project"],
+		"Task",
+		filters={
+			"is_group": 1, "muhick_is_billing_milestone": 1, "progress": (">=", 100),
+			"status": ("!=", "Cancelled"), "muhick_billing_status": ("is", "not set"),
+		},
+		fields=["name", "subject", "project"],
 	)
-	for m in rows:
+	for p in rows:
 		notify(
-			[project_manager_of(m.project)],
-			_("Milestone {0} is complete but not yet claimed.").format(m.milestone_name),
-			doc=frappe._dict(doctype="Project Milestone", name=m.name),
+			[project_manager_of(p.project)],
+			_("Phase {0} is complete but not yet claimed.").format(p.subject),
+			doc=frappe._dict(doctype="Task", name=p.name),
 		)
 
 
@@ -100,19 +103,23 @@ def phases_starting():
 	"""Tell Procurement and the Project Manager that a new phase is about to begin."""
 	days = get_settings().phase_alert_days or 7
 	today = getdate(nowdate())
-	for m in frappe.get_all(
-		"Project Milestone",
-		filters={"status": "Not Started", "planned_start": ("between", [today, add_days(today, days)])},
-		fields=["name", "milestone_name", "project", "planned_start"],
+	for p in frappe.get_all(
+		"Task",
+		filters={
+			"is_group": 1, "parent_task": ("is", "not set"), "status": "Open",
+			"exp_start_date": ("between", [today, add_days(today, days)]),
+		},
+		fields=["name", "subject", "project", "exp_start_date"],
 	):
-		# once a week per milestone is enough
-		if today.weekday() != 0 and getdate(m.planned_start) != add_days(today, days):
+		start = getdate(p.exp_start_date)
+		# once a week per phase is enough
+		if today.weekday() != 0 and start != add_days(today, days):
 			continue
-		doc = frappe._dict(doctype="Project Milestone", name=m.name)
-		subject = _("Phase {0} of project {1} starts on {2}. Check that its materials are ordered.").format(
-			m.milestone_name, m.project, m.planned_start
+		doc = frappe._dict(doctype="Task", name=p.name)
+		subject = _("Phase {0} of project {1} starts on {2}. Raise its material request so the items are ordered.").format(
+			p.subject, p.project, start
 		)
-		notify_roles([PRM, PRO], subject, doc=doc, extra_users=[project_manager_of(m.project)])
+		notify_roles([PRM, PRO], subject, doc=doc, extra_users=[project_manager_of(p.project)])
 
 
 def payables_falling_due():

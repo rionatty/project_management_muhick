@@ -19,10 +19,12 @@
   "change_driver",
   "column_break_2",
   "revision_reason",
-  "milestones_section",
-  "milestones",
-  "tasks_section",
-  "tasks",
+  "phases_section",
+  "phases",
+  "activities_section",
+  "activities",
+  "items_section",
+  "items",
   "plan_summary_section",
   "plan_start",
   "plan_end",
@@ -137,29 +139,43 @@
    "mandatory_depends_on": "eval:doc.revision_of"
   },
   {
-   "fieldname": "milestones_section",
+   "description": "Phases are group tasks of the project. Use Get Phases to load them from the project or from a Project Template.",
+   "fieldname": "phases_section",
    "fieldtype": "Section Break",
-   "label": "Milestones"
+   "label": "Phases"
   },
   {
    "allow_bulk_edit": 1,
-   "fieldname": "milestones",
+   "fieldname": "phases",
    "fieldtype": "Table",
-   "label": "Milestones",
-   "options": "Project Activity Plan Milestone",
+   "label": "Phases",
+   "options": "Project Activity Plan Phase",
    "reqd": 1
   },
   {
-   "fieldname": "tasks_section",
+   "description": "Activities become tasks under their phase when the plan is approved.",
+   "fieldname": "activities_section",
    "fieldtype": "Section Break",
-   "label": "Tasks"
+   "label": "Activities"
   },
   {
    "allow_bulk_edit": 1,
-   "fieldname": "tasks",
+   "fieldname": "activities",
    "fieldtype": "Table",
-   "label": "Tasks",
-   "options": "Project Activity Plan Task"
+   "label": "Activities",
+   "options": "Project Activity Plan Activity"
+  },
+  {
+   "description": "The items each phase needs, from the Item master. The budget and the phase material requests are taken from this list.",
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Items Required"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items Required",
+   "options": "Project Activity Plan Item"
   },
   {
    "fieldname": "plan_summary_section",
@@ -219,7 +235,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Activity Plan",

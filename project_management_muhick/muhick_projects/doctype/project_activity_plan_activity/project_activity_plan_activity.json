@@ -1,12 +1,12 @@
 {
  "actions": [],
- "creation": "2026-10-12 10:00:00.000000",
+ "creation": "2026-10-18 10:00:00.000000",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "subject",
-  "milestone_name",
+  "phase_name",
   "start_date",
   "end_date",
   "task_weight",
@@ -21,16 +21,17 @@
    "fieldname": "subject",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Task",
+   "label": "Activity",
    "reqd": 1
   },
   {
    "columns": 2,
-   "description": "Must match a milestone in the table above",
-   "fieldname": "milestone_name",
-   "fieldtype": "Data",
+   "description": "One of the phases above",
+   "fieldname": "phase_name",
+   "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Milestone / Phase",
+   "label": "Phase",
+   "options": "",
    "reqd": 1
   },
   {
@@ -58,7 +59,7 @@
   },
   {
    "columns": 2,
-   "description": "Subject of the task that must finish first",
+   "description": "Activity that must finish first",
    "fieldname": "depends_on_subject",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -74,9 +75,10 @@
    "label": "Description"
   },
   {
+   "description": "Set when the plan is approved",
    "fieldname": "task",
    "fieldtype": "Link",
-   "label": "Existing Task",
+   "label": "Task",
    "no_copy": 1,
    "options": "Task",
    "read_only": 1
@@ -86,10 +88,10 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
- "name": "Project Activity Plan Task",
+ "name": "Project Activity Plan Activity",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",
