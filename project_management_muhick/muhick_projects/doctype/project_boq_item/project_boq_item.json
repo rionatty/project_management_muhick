@@ -6,7 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "item_no",
-  "phase",
+  "milestone",
   "item_code",
   "description",
   "uom",
@@ -33,12 +33,12 @@
   {
    "allow_on_submit": 1,
    "columns": 1,
-   "description": "A milestone (group task) of the project; it can be set after the BOQ is approved",
-   "fieldname": "phase",
+   "description": "From the milestone list (Task Type), shared by all projects. Requests, orders and issues for this milestone of the project are counted on the line.",
+   "fieldname": "milestone",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Milestone / Phase",
-   "options": "Task"
+   "options": "Task Type"
   },
   {
    "columns": 1,
@@ -169,7 +169,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-22 00:07:01.075396",
+ "modified": "2026-10-22 00:14:31.384347",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project BOQ Item",

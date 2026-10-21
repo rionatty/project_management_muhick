@@ -37,7 +37,8 @@ CARDS = [
 		("Project", "Project", D), ("Project Handover", "Project Handover", D), ("Bill of Quantities", "Project BOQ", D),
 		("Activity Plan", "Project Activity Plan", D),
 		# filtered views of the standard Task list: a milestone is a group task, its activities child tasks
-		("Milestones / Phases", "Task", D, [["Task", "is_group", "=", 1]]),
+		("Milestones (Master List)", "Task Type", D),
+		("Project Milestones", "Task", D, [["Task", "is_group", "=", 1]]),
 		("Tasks", "Task", D, [["Task", "is_group", "=", 0]]),
 	]),
 	("Budget and Cost Control", [
@@ -255,7 +256,7 @@ dump("project_management_muhick/desktop_icon/muhick_projects.json", {
 ours = {json.load(open(f, encoding="utf-8"))["name"] for f in glob.glob("project_management_muhick/**/doctype/*/*.json", recursive=True)}
 reports = {json.load(open(f, encoding="utf-8"))["name"] for f in glob.glob("project_management_muhick/**/report/*/*.json", recursive=True)}
 standard_reports = {"Project Summary", "Daily Timesheet Summary", "Timesheet Billing Summary", "Project wise Stock Tracking", "Delayed Tasks Summary"}
-standard = {"Timesheet", "Activity Type", "Activity Cost", "Project Type", "Project Update", "Projects Settings", "Project", "Task", "Project Template", "Material Request", "Supplier Quotation", "Purchase Order", "Purchase Receipt", "Payment Request", "Payment Entry", "Vehicle"}
+standard = {"Task Type", "Timesheet", "Activity Type", "Activity Cost", "Project Type", "Project Update", "Projects Settings", "Project", "Task", "Project Template", "Material Request", "Supplier Quotation", "Purchase Order", "Purchase Receipt", "Payment Request", "Payment Entry", "Vehicle"}
 bad = [(label, to) for _, e in CARDS for label, to, k, *_ in e if to not in (reports | standard_reports if k == R else ours | standard)]
 bad += [(label, to) for label, to, typ in SHORTCUTS if to not in (reports if typ == "Report" else ours | standard)]
 bad += [(n, dt) for n, _, _, dt, _ in NUMBER_CARDS if dt not in ours]

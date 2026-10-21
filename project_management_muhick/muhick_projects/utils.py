@@ -3,6 +3,8 @@
 
 """Helpers shared by the project documents."""
 
+import re
+
 import frappe
 from frappe import _
 from frappe.utils import flt
@@ -66,6 +68,18 @@ def check_phase(project, phase, label=None):
 	task = frappe.db.get_value("Task", phase, ["project", "is_group"], as_dict=True)
 	if not task or task.project != project or not task.is_group:
 		frappe.throw(_("{0}: {1} is not a milestone (phase) of project {2}.").format(label or _("Milestone / Phase"), phase, project))
+
+
+def ensure_milestone(name):
+	"""The name as it stands in the shared milestone list (Task Type); a new name is added to it."""
+	name = re.sub(r"[<>]", "", name or "").strip()  # characters a document name cannot hold
+	if not name:
+		return None
+	existing = frappe.db.get_value("Task Type", name)
+	if existing:
+		return existing
+	frappe.get_doc({"doctype": "Task Type", "description": _("Milestone")}).insert(set_name=name, ignore_permissions=True)
+	return name
 
 
 def validate_dates(start, end, start_label, end_label):

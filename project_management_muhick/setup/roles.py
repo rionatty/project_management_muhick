@@ -50,6 +50,8 @@ STANDARD_DOCTYPE_PERMISSIONS = {
 	"Stock Entry": {SK: SUBMIT, SSK: SUBMIT, PRM: APPROVE, FM: APPROVE, FO: APPROVE, PM: READ},
 	"Project": {GM: READ, FM: READ, FO: READ, PRM: READ, PRO: READ, SK: READ, SSK: READ, SE: READ},
 	"Task": {GM: READ, FM: READ, PRM: READ, PRO: READ, SSK: READ},
+	# the shared milestone list; Project Managers and the COO maintain it through Projects Manager
+	"Task Type": {SE: READ, GM: READ, FM: READ, FO: READ, PRM: READ, PRO: READ},
 }
 
 

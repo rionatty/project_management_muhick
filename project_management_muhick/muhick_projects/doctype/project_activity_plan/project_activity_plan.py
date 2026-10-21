@@ -6,7 +6,9 @@ needs. Approved COO -> Finance -> General Manager.
 
 Phases and activities are standard ERPNext Tasks: a phase is a group task of the project and its
 activities are its child tasks, so the Task tree, the Gantt chart and timesheets work as usual.
-Standard phase lists come from a Project Template. Approval creates or updates the tasks. A later
+Milestone names come from the shared milestone list (ERPNext's Task Type), and each project
+milestone task carries its milestone in the standard Type field. Standard sets of milestones and
+activities come from a Project Template. Approval creates or updates the tasks. A later
 change to dates, weights or valuations is a revision: a new plan that states why the schedule
 moved, while the first approved dates stay on each task as its baseline. The items each phase
 needs stay on the plan; the budget and the phase material requests are taken from them.
@@ -17,6 +19,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, flt, getdate, nowdate, strip_html
 
+from project_management_muhick.muhick_projects.utils import ensure_milestone
 from project_management_muhick.overrides import project as project_api
 
 # plan row field -> Task field
@@ -199,7 +202,12 @@ class ProjectActivityPlan(Document):
 		names = {}
 		for row in self.phases:
 			task = frappe.get_doc("Task", row.phase) if row.phase else frappe.new_doc("Task")
-			task.update({"subject": row.phase_name, "project": self.project, "is_group": 1, "muhick_activity_plan": self.name})
+			task.update(
+				{
+					"subject": row.phase_name, "type": row.phase_name, "project": self.project, "is_group": 1,
+					"muhick_activity_plan": self.name,
+				}
+			)
 			for source, target in PHASE_FIELDS.items():
 				task.set(target, row.get(source))
 			if row.description:
@@ -297,12 +305,13 @@ def _from_template(project, template):
 		begin = add_days(start, int(t.start or 0))
 		return begin, add_days(begin, max(int(t.duration or 0), 0))
 
-	phases, activities = [], []
+	phases, activities, names = [], [], {}
 	for t in tasks:
 		if t.parent_task in by_name:
 			continue
 		begin, end = dates(t)
-		phases.append({"phase_name": t.subject, "planned_start": begin, "planned_end": end, "weight": t.task_weight})
+		names[t.name] = ensure_milestone(t.type or t.subject)
+		phases.append({"phase_name": names[t.name], "planned_start": begin, "planned_end": end, "weight": t.task_weight})
 	for t in tasks:
 		parent = by_name.get(t.parent_task)
 		if not parent:
@@ -311,7 +320,7 @@ def _from_template(project, template):
 		dependency = next((by_name[d.task].subject for d in t.depends_on if d.task in by_name), None)
 		activities.append(
 			{
-				"phase_name": parent.subject, "subject": t.subject, "start_date": begin, "end_date": end,
+				"phase_name": names.get(parent.name, parent.subject), "subject": t.subject, "start_date": begin, "end_date": end,
 				"task_weight": t.task_weight, "depends_on_subject": dependency,
 			}
 		)
@@ -325,13 +334,13 @@ def _from_project(project):
 	for p in frappe.get_all(
 		"Task",
 		filters={"project": project, "is_group": 1, "parent_task": ("is", "not set"), "status": ("!=", "Cancelled")},
-		fields=["name", "subject", "exp_start_date", "exp_end_date", "task_weight", "description"],
+		fields=["name", "subject", "type", "exp_start_date", "exp_end_date", "task_weight", "description"],
 		order_by="exp_start_date asc, lft asc",
 	):
-		names[p.name] = p.subject
+		names[p.name] = ensure_milestone(p.type or p.subject)
 		phases.append(
 			{
-				"phase": p.name, "phase_name": p.subject, "planned_start": _date(p.exp_start_date),
+				"phase": p.name, "phase_name": names[p.name], "planned_start": _date(p.exp_start_date),
 				"planned_end": _date(p.exp_end_date), "weight": p.task_weight, "description": strip_html(p.description or ""),
 			}
 		)

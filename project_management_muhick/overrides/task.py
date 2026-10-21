@@ -2,9 +2,10 @@
 # For license information, please see license.txt
 
 """Milestones (phases) and their activities are standard Tasks: a milestone is a group task of the
-project and its activities are child tasks. Every project task belongs to a milestone. The approved
-activity plan stays in charge of names, dates and weights; activity progress rolls up to the
-milestone and the milestones up to the project; the Project Manager is told when a billing
+project and its activities are child tasks. Every project task belongs to a milestone, and every
+milestone carries its entry in the shared milestone list (Task Type) in the standard Type field.
+The approved activity plan stays in charge of names, dates and weights; activity progress rolls up
+to the milestone and the milestones up to the project; the Project Manager is told when a billing
 milestone is complete. The milestone's form shows its activities, items and budget."""
 
 import frappe
@@ -12,7 +13,7 @@ from frappe import _
 from frappe.utils import cstr, flt, getdate
 
 from project_management_muhick.muhick_projects import budget_engine
-from project_management_muhick.muhick_projects.utils import phase_done
+from project_management_muhick.muhick_projects.utils import ensure_milestone, phase_done
 from project_management_muhick.overrides import project as project_api
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import notify, project_manager_of
@@ -27,6 +28,7 @@ NUMBERS = ("task_weight", "muhick_planned_valuation", "is_group", "muhick_is_bil
 
 def validate(doc, method=None):
 	require_milestone(doc)
+	set_milestone_type(doc)
 	before = None if doc.is_new() else doc.get_doc_before_save()
 	if not before or not doc.get("muhick_activity_plan"):
 		return
@@ -55,6 +57,13 @@ def require_milestone(doc):
 		return
 	if frappe.db.exists("Task", {"project": doc.project, "is_group": 1, "status": ("!=", "Cancelled")}):
 		frappe.throw(_("Choose the Milestone / Phase that task {0} belongs to.").format(doc.subject))
+
+
+def set_milestone_type(doc):
+	"""A milestone created without a Type gets its name from the list; BOQ lines meet the project's
+	documents through it. Tasks copied from a Project Template wait for the activity plan."""
+	if doc.project and doc.is_group and not doc.parent_task and not doc.type and not doc.get("template_task"):
+		doc.type = ensure_milestone(doc.subject)
 
 
 def _changed(before, doc, field):

@@ -138,6 +138,8 @@ again: it only creates what is missing.
   project reports), so ERPNext's Projects icon is hidden while the app is installed. It comes back
   if the app is uninstalled; the standard workspace is still at /desk/projects.
 
+- **Milestones come from one shared list**, ERPNext's Task Type ("Milestones (Master List)" in the
+  menu). BOQ lines and the activity plan pick from it; Get Milestones adds names it does not know.
 - **Milestones (phases) are standard Tasks.** A milestone is a group task of the project and its
   activities are its child tasks, so the Task tree, Gantt chart and timesheets work as usual. Every
   project task must belong to a milestone (the Task field "Milestone / Phase"). A milestone's form

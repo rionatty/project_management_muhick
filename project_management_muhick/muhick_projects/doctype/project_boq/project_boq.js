@@ -5,7 +5,6 @@ frappe.ui.form.on("Project BOQ", {
 	setup(frm) {
 		// stock and non-stock items alike
 		frm.set_query("item_code", "items", () => ({ filters: { disabled: 0 } }));
-		frm.set_query("phase", "items", () => muhick.phase_filters(frm.doc.project));
 	},
 
 	refresh(frm) {
@@ -31,7 +30,7 @@ frappe.ui.form.on("Project BOQ Item", {
 	qty: (frm, cdt, cdn) => muhick.set_row_amount(cdt, cdn),
 	rate: (frm, cdt, cdn) => muhick.set_row_amount(cdt, cdn),
 	amount: show_stage_summary,
-	phase: show_stage_summary,
+	milestone: show_stage_summary,
 	items_remove: show_stage_summary,
 });
 
@@ -48,7 +47,7 @@ function show_stage_summary(frm) {
 	const stages = {};
 	const total = { lines: 0 };
 	(frm.doc.items || []).forEach((r) => {
-		const stage = (stages[r.phase || ""] = stages[r.phase || ""] || { lines: 0 });
+		const stage = (stages[r.milestone || ""] = stages[r.milestone || ""] || { lines: 0 });
 		[stage, total].forEach((t) => {
 			t.lines += 1;
 			measures.forEach(([key, qty_field]) => {
@@ -71,20 +70,15 @@ function show_stage_summary(frm) {
 			.slice(1)
 			.map(([key]) => `<td class="text-right">${money(t[key])}${share(t[key], t.amount)}</td>`)
 			.join("");
-	muhick.milestone_names(keys.filter(Boolean)).then((names) => {
-		const rows = keys
-			.sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1))
-			.map((key) => {
-				const label = key ? names[key] || key : __("No milestone");
-				return `<tr><td>${frappe.utils.escape_html(label)}</td>${cells(stages[key])}</tr>`;
-			})
-			.join("");
-		const head = [__("Milestone / Phase"), __("Lines"), __("BOQ Amount"), __("Certified"), __("Requested"), __("Purchased"), __("Consumed")];
-		field.$wrapper.html(
-			`<table class="table table-bordered table-condensed"><thead><tr>${head
-				.map((h, i) => `<th${i ? ' class="text-right"' : ""}>${h}</th>`)
-				.join("")}</tr></thead><tbody>${rows}</tbody>` +
-				`<tfoot><tr><th>${__("Total")}</th>${cells(total).replace(/<td/g, "<th").replace(/<\/td>/g, "</th>")}</tr></tfoot></table>`
-		);
-	});
+	const rows = keys
+		.sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1))
+		.map((key) => `<tr><td>${frappe.utils.escape_html(key || __("No milestone"))}</td>${cells(stages[key])}</tr>`)
+		.join("");
+	const head = [__("Milestone / Phase"), __("Lines"), __("BOQ Amount"), __("Certified"), __("Requested"), __("Purchased"), __("Consumed")];
+	field.$wrapper.html(
+		`<table class="table table-bordered table-condensed"><thead><tr>${head
+			.map((h, i) => `<th${i ? ' class="text-right"' : ""}>${h}</th>`)
+			.join("")}</tr></thead><tbody>${rows}</tbody>` +
+			`<tfoot><tr><th>${__("Total")}</th>${cells(total).replace(/<td/g, "<th").replace(/<\/td>/g, "</th>")}</tr></tfoot></table>`
+	);
 }
