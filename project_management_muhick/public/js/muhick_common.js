@@ -16,6 +16,18 @@ muhick.phase_filters = function (project) {
 	return { filters: { project: project || "", is_group: 1, status: ["!=", "Cancelled"] } };
 };
 
+// {task name: subject} for milestones shown in a summary
+muhick.milestone_names = function (names) {
+	if (!names.length) {
+		return Promise.resolve({});
+	}
+	return frappe.db.get_list("Task", { filters: { name: ["in", names] }, fields: ["name", "subject"] }).then((tasks) => {
+		const out = {};
+		tasks.forEach((t) => (out[t.name] = t.subject));
+		return out;
+	});
+};
+
 // limit milestone and cost code pickers to what belongs to the form's project
 muhick.set_project_queries = function (frm, tables) {
 	if (frm.fields_dict.phase) {

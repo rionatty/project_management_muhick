@@ -99,13 +99,5 @@ function show_phase_summary(frm) {
 			rows ? `<table class="table table-bordered table-condensed"><tbody>${rows}</tbody></table>` : ""
 		);
 	};
-	if (!phases.length) {
-		render({});
-		return;
-	}
-	frappe.db.get_list("Task", { filters: { name: ["in", phases] }, fields: ["name", "subject"] }).then((tasks) => {
-		const names = {};
-		tasks.forEach((t) => (names[t.name] = t.subject));
-		render(names);
-	});
+	muhick.milestone_names(phases).then(render);
 }
