@@ -66,6 +66,7 @@
    "reqd": 1
   },
   {
+   "description": "Type the project's name. It becomes the name of the project created when the handover is accepted.",
    "fieldname": "project_name",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -344,7 +345,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-21 23:25:10.082524",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Handover",

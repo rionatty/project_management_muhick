@@ -110,13 +110,12 @@ def get_checklist_template():
 
 @frappe.whitelist()
 def make_from_sales_order(source_name: str):
-	"""Start a handover from a confirmed Sales Order."""
+	"""Start a handover from a confirmed Sales Order. The project name is left for the user to type."""
 	so = frappe.get_doc("Sales Order", source_name)
 	so.check_permission("read")
 	doc = frappe.new_doc("Project Handover")
 	doc.update(
 		{
-			"project_name": so.get("title") or f"{so.customer_name} - {so.name}",
 			"customer": so.customer,
 			"company": so.company,
 			"sales_order": so.name,
