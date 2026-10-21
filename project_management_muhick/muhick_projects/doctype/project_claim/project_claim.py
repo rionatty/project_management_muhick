@@ -248,23 +248,22 @@ def get_claim_items(project: str, claim: str | None = None):
 	boq = frappe.db.get_value("Project", project, "muhick_boq")
 	fields = ["name", "item_no", "description", "uom", "qty", "rate", "parent"]
 	if boq:
-		for row in frappe.get_all("Project BOQ Item", filters={"parent": boq}, fields=[*fields, "section"], order_by="idx asc"):
-			items.append(_claim_row("BOQ", row, row.section, previous))
+		for row in frappe.get_all("Project BOQ Item", filters={"parent": boq}, fields=fields, order_by="idx asc"):
+			items.append(_claim_row("BOQ", row, previous))
 	orders = frappe.get_all("Project Variation Order", filters={"project": project, "docstatus": 1}, pluck="name", order_by="creation asc")
 	if orders:
 		for row in frappe.get_all(
 			"Project Variation Order Item", filters={"parent": ("in", orders)}, fields=fields, order_by="parent asc, idx asc"
 		):
-			items.append(_claim_row("Variation", row, row.parent, previous))
+			items.append(_claim_row("Variation", row, previous))
 	return items
 
 
-def _claim_row(source_type, row, section, previous):
+def _claim_row(source_type, row, previous):
 	done = flt(previous.get(row.name))
 	return {
 		"source_type": source_type,
 		"source_row": row.name,
-		"section": section,
 		"item_no": row.item_no,
 		"description": row.description,
 		"uom": row.uom,

@@ -5,7 +5,6 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "section",
   "item_no",
   "description",
   "item_code",
@@ -22,20 +21,13 @@
  "fields": [
   {
    "columns": 1,
-   "fieldname": "section",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Bill / Section"
-  },
-  {
-   "columns": 1,
    "fieldname": "item_no",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Item No."
   },
   {
-   "columns": 3,
+   "columns": 4,
    "fieldname": "description",
    "fieldtype": "Small Text",
    "in_list_view": 1,
@@ -114,7 +106,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-21 23:54:47.646505",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project BOQ Item",
