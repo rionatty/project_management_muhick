@@ -141,5 +141,25 @@ class TestProgress(unittest.TestCase):
 		self.assertEqual(calc.weighted_progress([]), 0.0)
 
 
+class TestBoqProgress(unittest.TestCase):
+	@staticmethod
+	def line(name, item="X", phase=None, qty=100):
+		return {"name": name, "item_code": item, "phase": phase, "qty": qty}
+
+	def test_lines_of_one_item_fill_in_order(self):
+		lines = [self.line("a"), self.line("b")]
+		self.assertEqual(calc.allocate_to_lines(lines, {("X", None): 150}), {"a": 100, "b": 50})
+
+	def test_milestones_keep_their_own_quantities(self):
+		lines = [self.line("a", phase="P1", qty=50), self.line("b", phase="P2", qty=50)]
+		totals = {("X", "P1"): 30, ("X", "P2"): 70}
+		self.assertEqual(calc.allocate_to_lines(lines, totals), {"a": 30, "b": 70})
+
+	def test_unmatched_quantities_go_to_lines_without_a_milestone(self):
+		lines = [self.line("a", phase="P1"), self.line("c")]
+		totals = {("X", "P1"): 10, ("X", None): 20, ("X", "P3"): 5, ("Y", None): 7}
+		self.assertEqual(calc.allocate_to_lines(lines, totals), {"a": 10, "c": 25})
+
+
 if __name__ == "__main__":
 	unittest.main()

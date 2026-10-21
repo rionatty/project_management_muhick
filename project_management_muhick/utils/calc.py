@@ -179,3 +179,37 @@ def weighted_progress(rows) -> float:
 	if total_weight <= 0:
 		return round(sum(p for _, p in rows) / len(rows), 2)
 	return round(sum(w * p for w, p in rows) / total_weight, 2)
+
+
+# ------------------------------------------------------------------ BOQ progress
+def allocate_to_lines(lines, totals) -> dict:
+	"""Spread document quantities over BOQ lines.
+
+	lines: [{"name", "item_code", "phase", "qty"}] in BOQ order.
+	totals: {(item_code, milestone or None): quantity}.
+	A total goes to the lines of the same item and milestone, in order, each line taking up to its
+	own quantity and the last one any excess. A total with no milestone, or whose milestone has no
+	line for the item, goes to the item's lines without a milestone. Returns {line name: quantity}.
+	"""
+	groups = {}
+	for line in lines:
+		groups.setdefault((line["item_code"], line.get("phase") or None), []).append(line)
+	result = {line["name"]: 0.0 for line in lines}
+	unplaced = {}
+	for (item, phase), qty in totals.items():
+		target = groups.get((item, phase)) if phase else None
+		if target:
+			_spread(target, _f(qty), result)
+		else:
+			unplaced[item] = unplaced.get(item, 0.0) + _f(qty)
+	for item, qty in unplaced.items():
+		if (item, None) in groups:
+			_spread(groups[(item, None)], qty, result)
+	return result
+
+
+def _spread(lines, qty, result):
+	for i, line in enumerate(lines):
+		share = qty if i == len(lines) - 1 else min(qty, max(_f(line["qty"]), 0.0))
+		result[line["name"]] += share
+		qty -= share

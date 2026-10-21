@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "item_no",
+  "phase",
   "item_code",
   "description",
   "uom",
@@ -16,18 +17,31 @@
   "cost_code",
   "opening_certified_qty",
   "certified_qty",
-  "remarks"
+  "remarks",
+  "progress_section",
+  "requested_qty",
+  "column_break_progress",
+  "purchased_qty",
+  "consumed_qty"
  ],
  "fields": [
   {
-   "columns": 1,
    "fieldname": "item_no",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Item No."
   },
   {
-   "columns": 2,
+   "allow_on_submit": 1,
+   "columns": 1,
+   "description": "A milestone (group task) of the project; it can be set after the BOQ is approved",
+   "fieldname": "phase",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Milestone / Phase",
+   "options": "Task"
+  },
+  {
+   "columns": 1,
    "description": "Any item from the Item master, stock or non-stock (services, labour)",
    "fieldname": "item_code",
    "fieldtype": "Link",
@@ -46,12 +60,10 @@
    "reqd": 1
   },
   {
-   "columns": 1,
    "fetch_from": "item_code.stock_uom",
    "fetch_if_empty": 1,
    "fieldname": "uom",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "UOM",
    "options": "UOM"
   },
@@ -72,7 +84,7 @@
    "reqd": 1
   },
   {
-   "columns": 2,
+   "columns": 1,
    "fieldname": "amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -109,13 +121,55 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "progress_section",
+   "fieldtype": "Section Break",
+   "label": "Requested, Purchased and Consumed"
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "description": "Submitted material requests for the project, in the item's stock unit, for this line's milestone when one is set",
+   "fieldname": "requested_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty Requested",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_progress",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "description": "Submitted purchase orders for the project, in the item's stock unit, for this line's milestone when one is set",
+   "fieldname": "purchased_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty Purchased",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "description": "Material issued to the project, in the item's stock unit, for this line's milestone when one is set",
+   "fieldname": "consumed_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty Consumed",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-21 23:58:48.308142",
+ "modified": "2026-10-22 00:07:01.075396",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project BOQ Item",

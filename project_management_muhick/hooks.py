@@ -54,6 +54,8 @@ override_doctype_dashboards = {
 
 _track = "project_management_muhick.utils.approval.track"
 _approval_events = {"on_update": _track, "on_submit": _track, "on_cancel": _track}
+# keeps the requested / purchased / consumed quantities on the project's BOQ lines current
+_boq = "project_management_muhick.muhick_projects.doctype.project_boq.project_boq.refresh_from_document"
 
 doc_events = {
 	"Project": {
@@ -62,7 +64,9 @@ doc_events = {
 	},
 	"Material Request": {
 		"validate": "project_management_muhick.overrides.material_request.validate",
-		**_approval_events,
+		"on_update": _track,
+		"on_submit": [_track, _boq],
+		"on_cancel": [_track, _boq],
 	},
 	"Task": {
 		"validate": "project_management_muhick.overrides.task.validate",
@@ -77,9 +81,9 @@ doc_events = {
 		"validate": "project_management_muhick.overrides.buying.validate_purchase_order",
 		"before_submit": "project_management_muhick.overrides.buying.before_submit_purchase_order",
 		"on_update": _track,
-		"on_submit": ["project_management_muhick.overrides.buying.on_submit_purchase_order", _track],
-		"on_cancel": ["project_management_muhick.overrides.buying.on_cancel_purchase_order", _track],
-		"on_update_after_submit": "project_management_muhick.overrides.buying.refresh_budgets",
+		"on_submit": ["project_management_muhick.overrides.buying.on_submit_purchase_order", _track, _boq],
+		"on_cancel": ["project_management_muhick.overrides.buying.on_cancel_purchase_order", _track, _boq],
+		"on_update_after_submit": ["project_management_muhick.overrides.buying.refresh_budgets", _boq],
 	},
 	"Purchase Receipt": {
 		"validate": "project_management_muhick.overrides.buying.validate_purchase_receipt",
@@ -106,8 +110,8 @@ doc_events = {
 	"Stock Entry": {
 		"validate": "project_management_muhick.overrides.stock.validate_stock_entry",
 		"on_update": _track,
-		"on_submit": ["project_management_muhick.overrides.stock.refresh_budgets", _track],
-		"on_cancel": ["project_management_muhick.overrides.stock.refresh_budgets", _track],
+		"on_submit": ["project_management_muhick.overrides.stock.refresh_budgets", _track, _boq],
+		"on_cancel": ["project_management_muhick.overrides.stock.refresh_budgets", _track, _boq],
 	},
 	"Delivery Note": {
 		"validate": "project_management_muhick.overrides.stock.validate_delivery_note",
