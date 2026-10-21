@@ -4,6 +4,8 @@
 frappe.ui.form.on("Project Variation Order", {
 	setup(frm) {
 		frm.set_query("cost_code", "items", () => ({ filters: { disabled: 0 } }));
+		// stock and non-stock items alike
+		frm.set_query("item_code", "items", () => ({ filters: { disabled: 0 } }));
 	},
 });
 

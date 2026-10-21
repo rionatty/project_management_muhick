@@ -2,6 +2,11 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Project BOQ", {
+	setup(frm) {
+		// stock and non-stock items alike
+		frm.set_query("item_code", "items", () => ({ filters: { disabled: 0 } }));
+	},
+
 	refresh(frm) {
 		if (frm.doc.docstatus === 1) {
 			frm.add_custom_button(

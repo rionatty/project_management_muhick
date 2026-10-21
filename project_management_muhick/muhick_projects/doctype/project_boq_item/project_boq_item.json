@@ -6,8 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "item_no",
-  "description",
   "item_code",
+  "description",
   "uom",
   "qty",
   "rate",
@@ -27,7 +27,18 @@
    "label": "Item No."
   },
   {
-   "columns": 4,
+   "columns": 2,
+   "description": "Any item from the Item master, stock or non-stock (services, labour)",
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "columns": 2,
+   "fetch_from": "item_code.item_name",
+   "fetch_if_empty": 1,
    "fieldname": "description",
    "fieldtype": "Small Text",
    "in_list_view": 1,
@@ -35,13 +46,9 @@
    "reqd": 1
   },
   {
-   "fieldname": "item_code",
-   "fieldtype": "Link",
-   "label": "Item",
-   "options": "Item"
-  },
-  {
    "columns": 1,
+   "fetch_from": "item_code.stock_uom",
+   "fetch_if_empty": 1,
    "fieldname": "uom",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -77,6 +84,8 @@
    "fieldtype": "Column Break"
   },
   {
+   "fetch_from": "item_code.muhick_cost_code",
+   "fetch_if_empty": 1,
    "fieldname": "cost_code",
    "fieldtype": "Link",
    "label": "Cost Code",
@@ -106,7 +115,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-21 23:54:47.646505",
+ "modified": "2026-10-21 23:58:48.308142",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project BOQ Item",
