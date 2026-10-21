@@ -329,6 +329,7 @@ for dt, ev in ns["doc_events"].items():
 for lst in ns["scheduler_events"].values():
 	paths |= set(lst)
 paths |= {ns["after_install"], ns["after_migrate"], *ns["override_doctype_dashboards"].values()}
+paths |= {ns[h] for h in ("before_uninstall", "after_uninstall") if h in ns}
 for p in sorted(paths):
 	if not resolve(p):
 		err(f"hooks: {p} does not resolve to a function")
@@ -618,8 +619,17 @@ def _load(pattern):
 	return [(p, json.load(open(p, encoding="utf-8"))) for p in glob.glob(os.path.join(APP, PKG, *pattern.split("/")), recursive=True)]
 
 
+STD_REPORTS = set()
+for app in ("frappe", "erpnext", "hrms"):
+	for _path in glob.glob(os.path.join(SRC, app, app, "**", "report", "*", "*.json"), recursive=True):
+		try:
+			STD_REPORTS.add(json.load(open(_path, encoding="utf-8"))["name"])
+		except Exception:  # noqa: BLE001
+			pass
+
+
 def _target_ok(kind, target):
-	return target in (REPORTS if kind == "Report" else ALL)
+	return target in (REPORTS.keys() | STD_REPORTS if kind == "Report" else ALL)
 
 
 CARDS = {d["name"]: d for _, d in _load("**/number_card/*/*.json")}

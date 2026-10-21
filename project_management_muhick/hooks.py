@@ -23,6 +23,7 @@ add_to_apps_screen = [
 
 after_install = "project_management_muhick.install.after_install"
 after_migrate = "project_management_muhick.install.after_migrate"
+before_uninstall = "project_management_muhick.install.before_uninstall"
 
 # Client scripts
 # --------------

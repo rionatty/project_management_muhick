@@ -131,6 +131,11 @@ again: it only creates what is missing.
 
 ## Things to know
 
+- **One projects icon.** The app's icon carries everything from ERPNext's own Projects workspace
+  (timesheets, activity types and costs, project types, project updates, settings and the standard
+  project reports), so ERPNext's Projects icon is hidden while the app is installed. It comes back
+  if the app is uninstalled; the standard workspace is still at /desk/projects.
+
 - **Milestones (phases) are standard Tasks.** A milestone is a group task of the project and its
   activities are its child tasks, so the Task tree, Gantt chart and timesheets work as usual. Every
   project task must belong to a milestone (the Task field "Milestone / Phase"). A milestone's form
@@ -181,6 +186,7 @@ project_management_muhick/
   muhick_controls/         three-way match, segregation of duties, reports
   templates/print_formats/ the shared approval form layout
 tools/static_check.py      development check; not loaded by the app
+tools/build_desk.py        writes the workspace, sidebar, icons, number cards and charts
 ```
 
 ## Development checks
