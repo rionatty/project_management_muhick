@@ -2,6 +2,14 @@
  "app": "project_management_muhick",
  "charts": [
   {
+   "chart_name": "Completed Projects",
+   "label": "Completed Projects"
+  },
+  {
+   "chart_name": "Project Summary",
+   "label": "Project Summary"
+  },
+  {
    "chart_name": "Certified Work by Month",
    "label": "Certified Work by Month"
   },
@@ -10,8 +18,8 @@
    "label": "Bids by Status"
   }
  ],
- "content": "[{\"id\":\"u8jzPde0Ig\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Approvals Pending\",\"col\":4}},{\"id\":\"xLd6GncfBA\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Claims With the Client\",\"col\":4}},{\"id\":\"epfJBd0Kh8\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Certificates to Invoice\",\"col\":4}},{\"id\":\"oOOL8dKLzd\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Open Defects\",\"col\":4}},{\"id\":\"ocJ2isAjIh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Requisitions to Account For\",\"col\":4}},{\"id\":\"KtJ0RlgLKO\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Bids in Progress\",\"col\":4}},{\"id\":\"mxgJTeKdNn\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Certified Work by Month\",\"col\":6}},{\"id\":\"FRIBXuDL7D\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Bids by Status\",\"col\":6}},{\"id\":\"xtpYlSXpfK\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Shortcuts</b></span>\",\"col\":12}},{\"id\":\"tHF4vUCsMe\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Project\",\"col\":3}},{\"id\":\"hGAkWvj7FA\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Project Budget\",\"col\":3}},{\"id\":\"c9QeWJKY40\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Material Request\",\"col\":3}},{\"id\":\"uvSwMFLZDe\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Claim\",\"col\":3}},{\"id\":\"1f8rESQedU\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pending Approvals\",\"col\":3}},{\"id\":\"StPKR0CsTy\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Project Portfolio\",\"col\":3}},{\"id\":\"4Qwb8DwkNh\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"FdnXsiVpzz\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Documents and Reports</b></span>\",\"col\":12}},{\"id\":\"63FfkCzJr4\",\"type\":\"card\",\"data\":{\"card_name\":\"Handover and Planning\",\"col\":4}},{\"id\":\"i0B3JrTAwR\",\"type\":\"card\",\"data\":{\"card_name\":\"Budget and Cost Control\",\"col\":4}},{\"id\":\"4y9ojfljoQ\",\"type\":\"card\",\"data\":{\"card_name\":\"Procurement\",\"col\":4}},{\"id\":\"oaF1Llqsaj\",\"type\":\"card\",\"data\":{\"card_name\":\"Payments and Claims\",\"col\":4}},{\"id\":\"AIxNKu8iS2\",\"type\":\"card\",\"data\":{\"card_name\":\"Bank and Funds\",\"col\":4}},{\"id\":\"G8NPRVdD53\",\"type\":\"card\",\"data\":{\"card_name\":\"Labour and Subcontracts\",\"col\":4}},{\"id\":\"X83RZJzzzz\",\"type\":\"card\",\"data\":{\"card_name\":\"Claims and Completion\",\"col\":4}},{\"id\":\"gEOzdmenCk\",\"type\":\"card\",\"data\":{\"card_name\":\"Site Records\",\"col\":4}},{\"id\":\"hvMdgaKjIg\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales and Bids\",\"col\":4}},{\"id\":\"8xNbe3nNyj\",\"type\":\"card\",\"data\":{\"card_name\":\"Administration\",\"col\":4}},{\"id\":\"Oq9wMxEhh2\",\"type\":\"card\",\"data\":{\"card_name\":\"Project Reports\",\"col\":4}},{\"id\":\"FDEEtfjgVv\",\"type\":\"card\",\"data\":{\"card_name\":\"Procurement and Finance Reports\",\"col\":4}},{\"id\":\"VqE1SkHbn8\",\"type\":\"card\",\"data\":{\"card_name\":\"Controls\",\"col\":4}},{\"id\":\"8HxjSI6bWH\",\"type\":\"card\",\"data\":{\"card_name\":\"Timesheets and Standard Project Tools\",\"col\":4}},{\"id\":\"tP3fS2qHx6\",\"type\":\"card\",\"data\":{\"card_name\":\"Setup\",\"col\":4}}]",
- "creation": "2026-10-21 23:01:27.871777",
+ "content": "[{\"id\":\"u8jzPde0Ig\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Projects at a Glance</b></span>\",\"col\":12}},{\"id\":\"xLd6GncfBA\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Completed Projects\",\"col\":6}},{\"id\":\"epfJBd0Kh8\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Project Summary\",\"col\":6}},{\"id\":\"oOOL8dKLzd\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Open Projects\",\"col\":4}},{\"id\":\"ocJ2isAjIh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Non Completed Tasks\",\"col\":4}},{\"id\":\"KtJ0RlgLKO\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Working Hours\",\"col\":4}},{\"id\":\"mxgJTeKdNn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Budget, Claims and Approvals</b></span>\",\"col\":12}},{\"id\":\"FRIBXuDL7D\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Approvals Pending\",\"col\":4}},{\"id\":\"xtpYlSXpfK\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Claims With the Client\",\"col\":4}},{\"id\":\"tHF4vUCsMe\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Certificates to Invoice\",\"col\":4}},{\"id\":\"hGAkWvj7FA\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Open Defects\",\"col\":4}},{\"id\":\"c9QeWJKY40\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Requisitions to Account For\",\"col\":4}},{\"id\":\"uvSwMFLZDe\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Bids in Progress\",\"col\":4}},{\"id\":\"1f8rESQedU\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Certified Work by Month\",\"col\":6}},{\"id\":\"StPKR0CsTy\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Bids by Status\",\"col\":6}},{\"id\":\"4Qwb8DwkNh\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Shortcuts</b></span>\",\"col\":12}},{\"id\":\"FdnXsiVpzz\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Project\",\"col\":3}},{\"id\":\"63FfkCzJr4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Project Budget\",\"col\":3}},{\"id\":\"i0B3JrTAwR\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Material Request\",\"col\":3}},{\"id\":\"4y9ojfljoQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Claim\",\"col\":3}},{\"id\":\"oaF1Llqsaj\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Pending Approvals\",\"col\":3}},{\"id\":\"AIxNKu8iS2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Project Portfolio\",\"col\":3}},{\"id\":\"G8NPRVdD53\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"X83RZJzzzz\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Documents and Reports</b></span>\",\"col\":12}},{\"id\":\"gEOzdmenCk\",\"type\":\"card\",\"data\":{\"card_name\":\"Handover and Planning\",\"col\":4}},{\"id\":\"hvMdgaKjIg\",\"type\":\"card\",\"data\":{\"card_name\":\"Budget and Cost Control\",\"col\":4}},{\"id\":\"8xNbe3nNyj\",\"type\":\"card\",\"data\":{\"card_name\":\"Procurement\",\"col\":4}},{\"id\":\"Oq9wMxEhh2\",\"type\":\"card\",\"data\":{\"card_name\":\"Payments and Claims\",\"col\":4}},{\"id\":\"FDEEtfjgVv\",\"type\":\"card\",\"data\":{\"card_name\":\"Bank and Funds\",\"col\":4}},{\"id\":\"VqE1SkHbn8\",\"type\":\"card\",\"data\":{\"card_name\":\"Labour and Subcontracts\",\"col\":4}},{\"id\":\"8HxjSI6bWH\",\"type\":\"card\",\"data\":{\"card_name\":\"Claims and Completion\",\"col\":4}},{\"id\":\"tP3fS2qHx6\",\"type\":\"card\",\"data\":{\"card_name\":\"Site Records\",\"col\":4}},{\"id\":\"kwXoIIXGvO\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales and Bids\",\"col\":4}},{\"id\":\"oNZYW2mZp0\",\"type\":\"card\",\"data\":{\"card_name\":\"Administration\",\"col\":4}},{\"id\":\"zVZomHFwUb\",\"type\":\"card\",\"data\":{\"card_name\":\"Project Reports\",\"col\":4}},{\"id\":\"bYrEqmSM9w\",\"type\":\"card\",\"data\":{\"card_name\":\"Procurement and Finance Reports\",\"col\":4}},{\"id\":\"CZ7Uw9xfog\",\"type\":\"card\",\"data\":{\"card_name\":\"Controls\",\"col\":4}},{\"id\":\"oEmvnEN5N1\",\"type\":\"card\",\"data\":{\"card_name\":\"Timesheets and Standard Project Tools\",\"col\":4}},{\"id\":\"aE6PwZPf1Q\",\"type\":\"card\",\"data\":{\"card_name\":\"Setup\",\"col\":4}}]",
+ "creation": "2026-10-21 23:22:14.414125",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -1067,11 +1075,23 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-21 23:01:27.871777",
+ "modified": "2026-10-21 23:22:14.414125",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",
  "number_cards": [
+  {
+   "label": "Open Projects",
+   "number_card_name": "Open Projects"
+  },
+  {
+   "label": "Non Completed Tasks",
+   "number_card_name": "Non Completed Tasks"
+  },
+  {
+   "label": "Working Hours",
+   "number_card_name": "Timesheet Working Hours"
+  },
   {
    "label": "Approvals Pending",
    "number_card_name": "Approvals Pending"

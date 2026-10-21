@@ -634,6 +634,15 @@ def _target_ok(kind, target):
 
 CARDS = {d["name"]: d for _, d in _load("**/number_card/*/*.json")}
 CHARTS = {d["name"]: d for _, d in _load("**/dashboard_chart/*/*.json")}
+# number cards and charts shipped by frappe / erpnext / hrms, which a workspace may also show
+STD_CARDS, STD_CHARTS = set(), set()
+for _app in ("frappe", "erpnext", "hrms"):
+	for _kind, _bucket in (("number_card", STD_CARDS), ("dashboard_chart", STD_CHARTS)):
+		for _path in glob.glob(os.path.join(SRC, _app, _app, "**", _kind, "*", "*.json"), recursive=True):
+			try:
+				_bucket.add(json.load(open(_path, encoding="utf-8"))["name"])
+			except Exception:  # noqa: BLE001
+				pass
 for name, d in CARDS.items():
 	dt = d.get("document_type")
 	if dt not in ALL:
@@ -672,10 +681,10 @@ for path, d in _load("**/workspace/*/*.json"):
 		if not _target_ok(s["type"], s["link_to"]):
 			err(f"workspace {ws}: shortcut '{s['label']}' points to unknown {s['type']} {s['link_to']}")
 	for c in d.get("number_cards", []):
-		if c["number_card_name"] not in CARDS:
+		if c["number_card_name"] not in CARDS.keys() | STD_CARDS:
 			err(f"workspace {ws}: unknown number card {c['number_card_name']}")
 	for c in d.get("charts", []):
-		if c["chart_name"] not in CHARTS:
+		if c["chart_name"] not in CHARTS.keys() | STD_CHARTS:
 			err(f"workspace {ws}: unknown chart {c['chart_name']}")
 	for block in json.loads(d.get("content") or "[]"):
 		data, kind = block.get("data", {}), block.get("type")
@@ -683,9 +692,10 @@ for path, d in _load("**/workspace/*/*.json"):
 			err(f"workspace {ws}: content shows card '{data.get('card_name')}' that has no links")
 		if kind == "shortcut" and data.get("shortcut_name") not in labels["shortcut"]:
 			err(f"workspace {ws}: content shows unknown shortcut '{data.get('shortcut_name')}'")
-		if kind == "number_card" and data.get("number_card_name") not in {c["number_card_name"] for c in d.get("number_cards", [])}:
+		# a block names the workspace row by its label (frappe workspace block.js matches obj.label)
+		if kind == "number_card" and data.get("number_card_name") not in {c.get("label") or c["number_card_name"] for c in d.get("number_cards", [])}:
 			err(f"workspace {ws}: content shows number card '{data.get('number_card_name')}' not listed on the workspace")
-		if kind == "chart" and data.get("chart_name") not in {c["chart_name"] for c in d.get("charts", [])}:
+		if kind == "chart" and data.get("chart_name") not in {c.get("label") or c["chart_name"] for c in d.get("charts", [])}:
 			err(f"workspace {ws}: content shows chart '{data.get('chart_name')}' not listed on the workspace")
 for path, d in _load("workspace_sidebar/*.json"):
 	for item in d.get("items", []):

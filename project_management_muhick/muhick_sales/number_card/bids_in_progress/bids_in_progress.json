@@ -1,6 +1,6 @@
 {
  "aggregate_function_based_on": "",
- "creation": "2026-10-21 23:01:27.871777",
+ "creation": "2026-10-21 23:22:14.414125",
  "currency": "",
  "docstatus": 0,
  "doctype": "Number Card",
@@ -12,7 +12,7 @@
  "is_public": 1,
  "is_standard": 1,
  "label": "Bids in Progress",
- "modified": "2026-10-21 23:01:27.871777",
+ "modified": "2026-10-21 23:22:14.414125",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bids in Progress",

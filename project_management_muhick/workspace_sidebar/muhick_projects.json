@@ -1,6 +1,6 @@
 {
  "app": "project_management_muhick",
- "creation": "2026-10-21 23:01:27.871777",
+ "creation": "2026-10-21 23:22:14.414125",
  "docstatus": 0,
  "doctype": "Workspace Sidebar",
  "header_icon": "project",
@@ -14,6 +14,30 @@
    "keep_closed": 0,
    "label": "Home",
    "link_to": "Muhick Projects",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "dashboard",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Projects Dashboard",
+   "link_to": "Project",
+   "link_type": "Dashboard",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "project",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "ERPNext Projects Page",
+   "link_to": "Projects",
    "link_type": "Workspace",
    "show_arrow": 0,
    "type": "Link"
@@ -1122,7 +1146,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-21 23:01:27.871777",
+ "modified": "2026-10-21 23:22:14.414125",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",

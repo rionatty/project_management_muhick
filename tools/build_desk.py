@@ -179,7 +179,15 @@ for label, to, typ in SHORTCUTS:
 		s["doc_view"] = "List"
 	shortcuts.append(s)
 
-content = [{"id": rid(), "type": "number_card", "data": {"number_card_name": name, "col": 4}} for name, *_ in NUMBER_CARDS]
+# ERPNext's own project dashboards (records shipped by ERPNext), first on the page: one icon covers both
+STANDARD_CHARTS = [("Completed Projects", "Completed Projects"), ("Project Summary", "Project Summary")]
+STANDARD_NUMBER_CARDS = [("Open Projects", "Open Projects"), ("Non Completed Tasks", "Non Completed Tasks"), ("Timesheet Working Hours", "Working Hours")]
+
+content = [{"id": rid(), "type": "header", "data": {"text": '<span class="h4"><b>Projects at a Glance</b></span>', "col": 12}}]
+content += [{"id": rid(), "type": "chart", "data": {"chart_name": label, "col": 6}} for _, label in STANDARD_CHARTS]
+content += [{"id": rid(), "type": "number_card", "data": {"number_card_name": label, "col": 4}} for _, label in STANDARD_NUMBER_CARDS]
+content += [{"id": rid(), "type": "header", "data": {"text": '<span class="h4"><b>Budget, Claims and Approvals</b></span>', "col": 12}}]
+content += [{"id": rid(), "type": "number_card", "data": {"number_card_name": name, "col": 4}} for name, *_ in NUMBER_CARDS]
 content += [{"id": rid(), "type": "chart", "data": {"chart_name": name, "col": 6}} for name, *_ in CHARTS]
 content += [{"id": rid(), "type": "header", "data": {"text": '<span class="h4"><b>Shortcuts</b></span>', "col": 12}}]
 content += [{"id": rid(), "type": "shortcut", "data": {"shortcut_name": label, "col": 3}} for label, _, _ in SHORTCUTS]
@@ -190,10 +198,12 @@ content += [
 content += [{"id": rid(), "type": "card", "data": {"card_name": card, "col": 4}} for card, _ in CARDS]
 
 dump("project_management_muhick/muhick_projects/workspace/muhick_projects/muhick_projects.json", {
-	**BASE, "app": "project_management_muhick", "charts": [{"chart_name": name, "label": name} for name, *_ in CHARTS],
+	**BASE, "app": "project_management_muhick",
+	"charts": [{"chart_name": name, "label": label} for name, label in STANDARD_CHARTS] + [{"chart_name": name, "label": name} for name, *_ in CHARTS],
 	"content": json.dumps(content, separators=(",", ":")), "custom_blocks": [], "doctype": "Workspace", "for_user": "",
 	"hide_custom": 0, "icon": "project", "is_hidden": 0, "label": WS, "links": links, "module": "Muhick Projects", "name": WS,
-	"number_cards": [{"label": name, "number_card_name": name} for name, *_ in NUMBER_CARDS], "parent_page": "", "public": 1,
+	"number_cards": [{"label": label, "number_card_name": name} for name, label in STANDARD_NUMBER_CARDS]
+	+ [{"label": name, "number_card_name": name} for name, *_ in NUMBER_CARDS], "parent_page": "", "public": 1,
 	"quick_lists": [], "restrict_to_domain": "", "roles": [], "sequence_id": 30.0, "shortcuts": shortcuts, "title": WS,
 	"type": "Workspace",
 })
@@ -207,7 +217,13 @@ def link(label, to, link_type="DocType", child=0, icon=None):
 	return d
 
 
-items = [link("Home", WS, "Workspace", icon="home"), link("Project", "Project", icon="projects")]
+items = [
+	link("Home", WS, "Workspace", icon="home"),
+	# ERPNext's Project dashboard and its own Projects page stay one click away
+	link("Projects Dashboard", "Project", "Dashboard", icon="dashboard"),
+	link("ERPNext Projects Page", "Projects", "Workspace", icon="project"),
+	link("Project", "Project", icon="projects"),
+]
 for card, entries in CARDS:
 	items.append({
 		"child": 0, "collapsible": 1, "icon": ICONS[card], "indent": 1, "keep_closed": 1 if card in CLOSED_SECTIONS else 0,
