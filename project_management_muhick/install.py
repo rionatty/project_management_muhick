@@ -15,8 +15,7 @@ STANDARD_PROJECTS_ICON = "Projects"
 # bid register: (placed after the item linking to, label, link type, link to, inside a section)
 CRM_SIDEBAR = "CRM"
 CRM_ITEMS = (
-	("Opportunity", "Bid", "DocType", "Bid", 0),
-	("Bid", "Sales Requisition", "DocType", "Sales Requisition", 0),
+	("Opportunity", "Sales Requisition", "DocType", "Sales Requisition", 0),
 	("Opportunity Summary by Sales Stage", "Bid Register", "Report", "Bid Register", 1),
 )
 
@@ -63,6 +62,8 @@ def add_sales_to_crm_menu():
 	developer site."""
 	if not frappe.db.exists("Workspace Sidebar", CRM_SIDEBAR):
 		return
+	# bids used to be a separate document
+	frappe.db.delete("Workspace Sidebar Item", {"parent": CRM_SIDEBAR, "link_to": "Bid"})
 	for after, label, link_type, link_to, child in CRM_ITEMS:
 		items = frappe.get_all(
 			"Workspace Sidebar Item",

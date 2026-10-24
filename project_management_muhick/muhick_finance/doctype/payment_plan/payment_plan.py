@@ -178,7 +178,7 @@ class PaymentPlan(Document):
 		"""Approved cash requisitions, casual sheets and expense claims waiting to be paid."""
 		sources = (
 			("Project Requisition", "purpose_title"), ("Casual Sheet", "project_name"),
-			("Reimbursement Claim", "purpose"), ("Sales Requisition", "bid_title"),
+			("Reimbursement Claim", "purpose"), ("Sales Requisition", "organisation"),
 		)
 		for doctype, title in sources:
 			for doc in frappe.get_all(

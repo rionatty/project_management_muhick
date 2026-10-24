@@ -177,29 +177,26 @@ def _alert_due(doctype, name, last_alert_on, today, every_days=7) -> bool:
 
 
 def bids_needing_attention():
-	"""Submission deadlines coming up, and follow-ups that have fallen due."""
+	"""Bid submission deadlines coming up. Follow-ups are the opportunity's own activities."""
 	today = getdate(nowdate())
 	days = get_settings().bid_deadline_alert_days or 3
-	for b in frappe.get_all(
-		"Bid",
-		filters={"status": ("in", ("Identified", "Qualified", "In Preparation")), "submission_deadline": ("is", "set")},
-		fields=["name", "title", "assigned_to", "submission_deadline"],
+	for o in frappe.get_all(
+		"Opportunity",
+		filters={
+			"status": "Open",
+			"sales_stage": ("in", ("Qualified", "In Preparation")),
+			"muhick_submission_deadline": ("is", "set"),
+		},
+		fields=["name", "customer_name", "opportunity_owner", "muhick_submission_deadline"],
 	):
-		left = (getdate(b.submission_deadline) - today).days
+		left = (getdate(o.muhick_submission_deadline) - today).days
 		if 0 <= left <= days:
 			notify_roles(
 				"Head of Sales",
-				_("Bid {0} is due for submission in {1} day(s).").format(b.title, left),
-				doc=frappe._dict(doctype="Bid", name=b.name),
-				extra_users=[b.assigned_to],
+				_("Bid {0} ({1}) is due for submission in {2} day(s).").format(o.name, o.customer_name, left),
+				doc=frappe._dict(doctype="Opportunity", name=o.name),
+				extra_users=[o.opportunity_owner],
 			)
-	for b in frappe.get_all(
-		"Bid",
-		filters={"status": ("in", ("Submitted", "Under Evaluation")), "next_follow_up": ("<=", today)},
-		fields=["name", "title", "assigned_to", "last_alert_on"],
-	):
-		if _alert_due("Bid", b.name, b.last_alert_on, today, every_days=3):
-			notify([b.assigned_to], _("Follow up on bid {0} and record what you find.").format(b.title), doc=frappe._dict(doctype="Bid", name=b.name))
 
 
 def bank_instruments_needing_attention():

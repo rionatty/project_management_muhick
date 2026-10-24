@@ -1,6 +1,6 @@
 {
  "app": "project_management_muhick",
- "creation": "2026-10-22 00:14:32.111565",
+ "creation": "2026-10-24 12:29:05.748811",
  "docstatus": 0,
  "doctype": "Workspace Sidebar",
  "header_icon": "project",
@@ -589,8 +589,19 @@
    "collapsible": 1,
    "indent": 0,
    "keep_closed": 0,
-   "label": "Bid",
-   "link_to": "Bid",
+   "label": "Lead",
+   "link_to": "Lead",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Opportunity (Bid)",
+   "link_to": "Opportunity",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Link"
@@ -1157,7 +1168,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-22 00:14:32.111565",
+ "modified": "2026-10-24 12:29:05.748811",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",

@@ -21,7 +21,7 @@
   "document",
   "raised_for_section",
   "project",
-  "bid",
+  "opportunity",
   "column_break_3",
   "purchase_order",
   "bank_guarantee",
@@ -149,10 +149,10 @@
    "options": "Project"
   },
   {
-   "fieldname": "bid",
+   "fieldname": "opportunity",
    "fieldtype": "Link",
-   "label": "Bid",
-   "options": "Bid"
+   "label": "Opportunity (Bid)",
+   "options": "Opportunity"
   },
   {
    "fieldname": "column_break_3",
@@ -251,7 +251,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-24 12:29:05.510250",
  "modified_by": "Administrator",
  "module": "Muhick Finance",
  "name": "Bank Instrument",

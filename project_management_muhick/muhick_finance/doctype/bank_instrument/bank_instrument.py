@@ -70,11 +70,13 @@ class BankInstrument(Document):
 		update_utilisation(self.bank_facility)
 		if self.flags.previous_facility and self.flags.previous_facility != self.bank_facility:
 			update_utilisation(self.flags.previous_facility)
-		if self.bid and self.instrument_type == "Bid Security":
-			if not frappe.db.get_value("Bid", self.bid, "bid_security"):
-				frappe.db.set_value("Bid", self.bid, {"bid_security": self.name, "bid_security_required": 1})
+		if self.opportunity and self.instrument_type == "Bid Security":
+			if not frappe.db.get_value("Opportunity", self.opportunity, "muhick_bid_security"):
+				frappe.db.set_value(
+					"Opportunity", self.opportunity, {"muhick_bid_security": self.name, "muhick_bid_security_required": 1}
+				)
 
 	def after_delete(self):
 		update_utilisation(self.bank_facility)
-		if self.bid and frappe.db.get_value("Bid", self.bid, "bid_security") == self.name:
-			frappe.db.set_value("Bid", self.bid, "bid_security", None)
+		if self.opportunity and frappe.db.get_value("Opportunity", self.opportunity, "muhick_bid_security") == self.name:
+			frappe.db.set_value("Opportunity", self.opportunity, "muhick_bid_security", None)

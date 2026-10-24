@@ -28,20 +28,19 @@ frappe.ui.form.on("Opportunity", {
 		if (frm.is_new() || ["Lost", "Closed"].includes(frm.doc.status)) {
 			return;
 		}
-		// the next steps of the sales process: the sales requisition goes on the bid, started if needed
-		frm.add_custom_button(
-			__("Sales Requisition"),
-			() =>
-				frappe.model.open_mapped_doc({
-					method: "project_management_muhick.muhick_sales.doctype.bid.bid.make_sales_requisition_for_opportunity",
-					frm: frm,
-				}),
-			__("Create")
-		);
-		frm.add_custom_button(
-			__("Bid"),
-			() => frappe.model.open_mapped_doc({ method: "project_management_muhick.muhick_sales.doctype.bid.bid.make_bid", frm: frm }),
-			__("Create")
-		);
+		const create = (label, method) => {
+			frm.add_custom_button(label, () => frappe.model.open_mapped_doc({ method: method, frm: frm }), __("Create"));
+		};
+		create(__("Sales Requisition"), "project_management_muhick.overrides.crm.make_sales_requisition");
+		if (frm.doc.muhick_bid_security_required && !frm.doc.muhick_bid_security) {
+			create(__("Bid Security"), "project_management_muhick.overrides.crm.make_bid_security");
+		}
+		const submitted = ["Submitted", "Under Evaluation", "Awarded"].includes(frm.doc.sales_stage);
+		if (frm.doc.muhick_submission_deadline && !submitted) {
+			const days = frappe.datetime.get_day_diff(frm.doc.muhick_submission_deadline, frappe.datetime.now_datetime());
+			if (days <= 3) {
+				frm.set_intro(__("Submission is due in {0} day(s).", [Math.max(days, 0)]), days < 0 ? "red" : "orange");
+			}
+		}
 	},
 });

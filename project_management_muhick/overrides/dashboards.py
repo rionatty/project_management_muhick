@@ -35,7 +35,7 @@ def get_task_dashboard(data):
 	return data
 
 
-def add_bids(data):
-	"""On a lead or an opportunity, the bids made from it."""
-	data.setdefault("transactions", []).append({"label": _("Bids"), "items": ["Bid"]})
+def get_opportunity_dashboard(data):
+	"""On an opportunity (a bid), its sales requisitions and its bid security."""
+	data.setdefault("transactions", []).append({"label": _("Bid"), "items": ["Sales Requisition", "Bank Instrument"]})
 	return data

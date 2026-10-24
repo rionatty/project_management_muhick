@@ -66,8 +66,9 @@ LEAD_SOURCES = [
 	("Other", None),
 ]
 SECTORS = ["Public Sector", "Private Sector"]
-# an opportunity goes through the same stages as its bid
-SALES_STAGES = ["Qualified", "In Preparation", "Submitted", "Under Evaluation"]
+# the stages of a bid (an opportunity); once awarded, the sales process follows, and a lost or
+# dropped bid is closed with ERPNext's Lost or Close
+SALES_STAGES = ["Qualified", "In Preparation", "Submitted", "Under Evaluation", "Awarded"]
 # ERPNext's sample values that do not fit the business; removed while nothing uses them. Opportunity
 # Type "Sales" stays: ERPNext falls back to it.
 SAMPLE_VALUES = {

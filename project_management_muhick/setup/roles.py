@@ -55,6 +55,8 @@ STANDARD_DOCTYPE_PERMISSIONS = {
 	# the Sector and Sales Stage lists; the Head of Sales maintains them as Sales Manager
 	"Market Segment": {SE: READ},
 	"Sales Stage": {SE: READ},
+	# bids are opportunities: management, finance and projects follow them
+	"Opportunity": {GM: READ, COO: READ, FM: READ, FO: READ, PM: READ, PRM: READ},
 }
 
 

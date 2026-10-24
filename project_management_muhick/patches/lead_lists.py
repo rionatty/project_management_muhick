@@ -19,8 +19,11 @@ RENAMED = {
 
 def execute():
 	setup_crm_lists()
+	# bids are opportunities now; a site that has not run this yet still has the old table
+	if not frappe.db.table_exists("Bid"):
+		return
 	for old, new in RENAMED.items():
-		frappe.db.set_value("Bid", {"lead_source": old}, "lead_source", new, update_modified=False)
-	for name in set(frappe.get_all("Bid", filters={"lead_source": ("is", "set")}, pluck="lead_source")):
+		frappe.db.sql("update `tabBid` set lead_source = %s where lead_source = %s", (new, old))
+	for (name,) in frappe.db.sql("select distinct lead_source from `tabBid` where ifnull(lead_source, '') != ''"):
 		if not frappe.db.exists("UTM Source", name):
 			frappe.get_doc(doctype="UTM Source").insert(set_name=name, ignore_permissions=True)

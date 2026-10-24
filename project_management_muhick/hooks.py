@@ -49,8 +49,7 @@ doctype_js = {
 override_doctype_dashboards = {
 	"Project": "project_management_muhick.overrides.dashboards.get_project_dashboard",
 	"Task": "project_management_muhick.overrides.dashboards.get_task_dashboard",
-	"Lead": "project_management_muhick.overrides.dashboards.add_bids",
-	"Opportunity": "project_management_muhick.overrides.dashboards.add_bids",
+	"Opportunity": "project_management_muhick.overrides.dashboards.get_opportunity_dashboard",
 }
 
 # Document events
@@ -63,7 +62,10 @@ _boq = "project_management_muhick.muhick_projects.doctype.project_boq.project_bo
 
 doc_events = {
 	"Lead": {"validate": "project_management_muhick.overrides.crm.validate_lead"},
-	"Opportunity": {"validate": "project_management_muhick.overrides.crm.validate_opportunity"},
+	"Opportunity": {
+		"validate": "project_management_muhick.overrides.crm.validate_opportunity",
+		"on_update": "project_management_muhick.overrides.crm.on_update_opportunity",
+	},
 	"Project": {
 		"validate": "project_management_muhick.overrides.project.validate",
 		"after_insert": "project_management_muhick.overrides.project.after_insert",

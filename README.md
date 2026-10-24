@@ -52,13 +52,14 @@ and certificates, retention, payments and the controls around them.
   Pursued with the reason. Only the Head of Sales decides, and the lead records who decided and when.
 - Only a qualified lead becomes an opportunity. The opportunity reads the same way and takes over the
   lead's details; its type of work and stages are the business's own (Qualified, In Preparation,
-  Submitted, Under Evaluation) in place of ERPNext's sample lists. Create > Sales Requisition on the
-  opportunity raises the funds for the bid (starting the bid if there is none yet), Create > Bid
-  starts the bid, and the bid moves the opportunity's stage as it goes. Leads, opportunities and
-  bids share one list of sources. ERPNext's CRM menu lists the bids, sales requisitions and the bid
-  register.
-- A bid register from opportunity to outcome: documents required, bid security, site visit,
-  follow-ups, the award notice, and reminders ahead of submission deadlines.
+  Submitted, Under Evaluation, Awarded) in place of ERPNext's sample lists.
+- The opportunity is the bid, built on the standard Opportunity: its Bid tab holds the tender, the
+  three parts of the bid, the submission, the bid security and the outcome. A bid is submitted only
+  when all three parts are ready. Follow-ups are the opportunity's own activities and comments; a lost
+  bid is recorded with ERPNext's lost reasons and competitors, and Finance is asked to cancel its bid
+  security. Create > Sales Requisition raises the funds for the bid. The Bid Register reports every
+  bid with what was spent on it and why it was won or lost, and deadlines are reminded ahead of time.
+  ERPNext's CRM menu lists the sales requisitions and the bid register.
 - Sales requisitions for the cost of preparing a bid, paid through the payment plan.
 - Sale type on the Sales Order (Stock, Project, Additions): project and additions orders notify the
   Project Manager and start the handover.

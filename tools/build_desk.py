@@ -72,7 +72,10 @@ CARDS = [
 		("Equipment Allocation", "Project Equipment Allocation", D), ("Equipment Log", "Equipment Log", D),
 		("Warranty", "Project Warranty", D),
 	]),
-	("Sales and Bids", [("Bid", "Bid", D), ("Sales Requisition", "Sales Requisition", D), ("Bid Register", "Bid Register", R)]),
+	("Sales and Bids", [
+		("Lead", "Lead", D), ("Opportunity (Bid)", "Opportunity", D), ("Sales Requisition", "Sales Requisition", D),
+		("Bid Register", "Bid Register", R),
+	]),
 	("Administration", [
 		("Fuel Requisition", "Fuel Requisition", D), ("Vehicle Service Request", "Vehicle Service Request", D),
 		("Vehicle", "Vehicle", D), ("Stationery Issue", "Stationery Issue", D), ("Service Contract", "Service Contract", D),
@@ -129,7 +132,7 @@ NUMBER_CARDS = [
 	("Certificates to Invoice", "muhick_projects", "Muhick Projects", "Project Claim", [["Project Claim", "status", "=", "Certified"]]),
 	("Open Defects", "muhick_projects", "Muhick Projects", "Project Defect", [["Project Defect", "status", "in", ["Open", "In Progress"]]]),
 	("Requisitions to Account For", "muhick_projects", "Muhick Projects", "Project Requisition", [["Project Requisition", "status", "in", ["Paid", "Accountability Submitted"]]]),
-	("Bids in Progress", "muhick_sales", "Muhick Sales", "Bid", [["Bid", "status", "in", ["Identified", "Qualified", "In Preparation", "Submitted", "Under Evaluation"]]]),
+	("Bids in Progress", "muhick_sales", "Muhick Sales", "Opportunity", [["Opportunity", "status", "=", "Open"]]),
 ]
 for name, mdir, module, doctype, filters in NUMBER_CARDS:
 	dump(f"project_management_muhick/{mdir}/number_card/{scrub(name)}/{scrub(name)}.json", {
@@ -153,7 +156,7 @@ CHARTS = [
 		"filters_json": json.dumps([["Project Claim", "status", "in", ["Certified", "Invoiced", "Paid"]]], separators=(",", ":")),
 	}),
 	("Bids by Status", "muhick_sales", {
-		"module": "Muhick Sales", "document_type": "Bid", "chart_type": "Group By", "group_by_based_on": "status",
+		"module": "Muhick Sales", "document_type": "Opportunity", "chart_type": "Group By", "group_by_based_on": "status",
 		"group_by_type": "Count", "timeseries": 0, "type": "Donut", "filters_json": "[]", "value_based_on": "",
 	}),
 ]
@@ -256,10 +259,10 @@ dump("project_management_muhick/desktop_icon/muhick_projects.json", {
 ours = {json.load(open(f, encoding="utf-8"))["name"] for f in glob.glob("project_management_muhick/**/doctype/*/*.json", recursive=True)}
 reports = {json.load(open(f, encoding="utf-8"))["name"] for f in glob.glob("project_management_muhick/**/report/*/*.json", recursive=True)}
 standard_reports = {"Project Summary", "Daily Timesheet Summary", "Timesheet Billing Summary", "Project wise Stock Tracking", "Delayed Tasks Summary"}
-standard = {"Task Type", "Timesheet", "Activity Type", "Activity Cost", "Project Type", "Project Update", "Projects Settings", "Project", "Task", "Project Template", "Material Request", "Supplier Quotation", "Purchase Order", "Purchase Receipt", "Payment Request", "Payment Entry", "Vehicle"}
+standard = {"Lead", "Opportunity", "Task Type", "Timesheet", "Activity Type", "Activity Cost", "Project Type", "Project Update", "Projects Settings", "Project", "Task", "Project Template", "Material Request", "Supplier Quotation", "Purchase Order", "Purchase Receipt", "Payment Request", "Payment Entry", "Vehicle"}
 bad = [(label, to) for _, e in CARDS for label, to, k, *_ in e if to not in (reports | standard_reports if k == R else ours | standard)]
 bad += [(label, to) for label, to, typ in SHORTCUTS if to not in (reports if typ == "Report" else ours | standard)]
-bad += [(n, dt) for n, _, _, dt, _ in NUMBER_CARDS if dt not in ours]
+bad += [(n, dt) for n, _, _, dt, _ in NUMBER_CARDS if dt not in ours | standard]
 unlinked = sorted(reports - {to for _, e in CARDS for _, to, k, *_ in e if k == R})
 menu_doctypes = {to for _, e in CARDS for _, to, k, *_ in e if k == D}
 parents = {json.load(open(f, encoding="utf-8"))["name"] for f in glob.glob("project_management_muhick/**/doctype/*/*.json", recursive=True) if not json.load(open(f, encoding="utf-8")).get("istable")}
