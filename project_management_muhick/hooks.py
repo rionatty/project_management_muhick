@@ -43,12 +43,14 @@ doctype_js = {
 	"Stock Entry": "public/js/stock_entry.js",
 	"Task": "public/js/task.js",
 	"Lead": "public/js/lead.js",
+	"Opportunity": "public/js/opportunity.js",
 }
 
 override_doctype_dashboards = {
 	"Project": "project_management_muhick.overrides.dashboards.get_project_dashboard",
 	"Task": "project_management_muhick.overrides.dashboards.get_task_dashboard",
-	"Lead": "project_management_muhick.overrides.dashboards.get_lead_dashboard",
+	"Lead": "project_management_muhick.overrides.dashboards.add_bids",
+	"Opportunity": "project_management_muhick.overrides.dashboards.add_bids",
 }
 
 # Document events
@@ -60,7 +62,8 @@ _approval_events = {"on_update": _track, "on_submit": _track, "on_cancel": _trac
 _boq = "project_management_muhick.muhick_projects.doctype.project_boq.project_boq.refresh_from_document"
 
 doc_events = {
-	"Lead": {"validate": "project_management_muhick.overrides.lead.validate"},
+	"Lead": {"validate": "project_management_muhick.overrides.crm.validate_lead"},
+	"Opportunity": {"validate": "project_management_muhick.overrides.crm.validate_opportunity"},
 	"Project": {
 		"validate": "project_management_muhick.overrides.project.validate",
 		"after_insert": "project_management_muhick.overrides.project.after_insert",

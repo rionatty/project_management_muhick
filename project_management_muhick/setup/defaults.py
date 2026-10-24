@@ -5,6 +5,8 @@
 
 import frappe
 
+from project_management_muhick.setup.custom_fields import TYPES_OF_WORK
+
 # the mandatory handover pack
 HANDOVER_CHECKLIST = [
 	("Signed contract", 1),
@@ -64,6 +66,18 @@ LEAD_SOURCES = [
 	("Other", None),
 ]
 SECTORS = ["Public Sector", "Private Sector"]
+# an opportunity goes through the same stages as its bid
+SALES_STAGES = ["Qualified", "In Preparation", "Submitted", "Under Evaluation"]
+# ERPNext's sample values that do not fit the business; removed while nothing uses them. Opportunity
+# Type "Sales" stays: ERPNext falls back to it.
+SAMPLE_VALUES = {
+	"Market Segment": ["Lower Income", "Middle Income", "Upper Income"],
+	"Opportunity Type": ["Support", "Maintenance"],
+	"Sales Stage": [
+		"Prospecting", "Qualification", "Needs Analysis", "Value Proposition", "Identifying Decision Makers",
+		"Perception Analysis", "Proposal/Price Quote", "Negotiation/Review",
+	],
+}
 
 
 def setup_defaults():
@@ -77,7 +91,7 @@ def setup_defaults():
 		if not frappe.db.exists("Labour Trade", trade):
 			frappe.get_doc(doctype="Labour Trade", trade_name=trade).insert(ignore_permissions=True)
 
-	setup_lead_lists()
+	setup_crm_lists()
 
 	settings = frappe.get_single("Muhick Settings")
 	changed = False
@@ -91,10 +105,23 @@ def setup_defaults():
 		settings.save(ignore_permissions=True)
 
 
-def setup_lead_lists():
+def setup_crm_lists():
 	for name, description in LEAD_SOURCES:
 		if not frappe.db.exists("UTM Source", name):
 			frappe.get_doc(doctype="UTM Source", description=description).insert(set_name=name, ignore_permissions=True)
+	for name in TYPES_OF_WORK:
+		if not frappe.db.exists("Opportunity Type", name):
+			frappe.get_doc(doctype="Opportunity Type").insert(set_name=name, ignore_permissions=True)
 	for name in SECTORS:
 		if not frappe.db.exists("Market Segment", name):
 			frappe.get_doc(doctype="Market Segment", market_segment=name).insert(ignore_permissions=True)
+	for name in SALES_STAGES:
+		if not frappe.db.exists("Sales Stage", name):
+			frappe.get_doc(doctype="Sales Stage", stage_name=name).insert(ignore_permissions=True)
+	for doctype, names in SAMPLE_VALUES.items():
+		for name in names:
+			if frappe.db.exists(doctype, name):
+				try:
+					frappe.delete_doc(doctype, name, ignore_permissions=True)
+				except frappe.LinkExistsError:
+					pass  # in use; left for the business to replace

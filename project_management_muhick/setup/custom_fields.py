@@ -10,6 +10,10 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 BUDGET_STATUS = "\nWithin Budget\nExceeds Budget\nNot Budgeted\nNot Applicable"
+# the kinds of work the business takes on: Type of Work on leads, opportunities and bids
+TYPES_OF_WORK = ["Works", "Supply and Install", "Supply Only", "Maintenance / Service", "Consultancy", "Car Hire"]
+# on the lead and the opportunity under the same name, so ERPNext copies it from one to the other
+REQUIREMENT = dict(fieldname="muhick_requirement", label="Requirement", fieldtype="Small Text", description="What the client needs: the scope in the advert, BOQ or enquiry")
 COST_CODE = dict(fieldname="muhick_cost_code", label="Cost Code", fieldtype="Link", options="Cost Code", insert_after="project")
 
 
@@ -234,7 +238,7 @@ CUSTOM_FIELDS = {
 		"request_type",
 		[
 			_sec("muhick_requirement_section"),
-			dict(fieldname="muhick_requirement", label="Requirement", fieldtype="Small Text", description="What the client needs: the scope in the advert, BOQ or enquiry"),
+			dict(REQUIREMENT),
 		],
 	)
 	# what the go / no-go rests on; Create > Bid carries it into the bid
@@ -248,6 +252,7 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_qualification_notes", label="Why Pursue / Not Pursue", fieldtype="Small Text", mandatory_depends_on="eval:doc.qualification_status=='Not Pursued'"),
 		],
 	),
+	"Opportunity": _chain("probability", [_sec("muhick_requirement_section"), dict(REQUIREMENT)]),
 }
 
 # the lead screen: every lead is an organisation (a company or a public body). Who it is, what it
@@ -273,6 +278,34 @@ LEAD_ORDER = [
 	"notes_tab", "notes_html", "notes",
 	"dashboard_tab",
 ]
+# the opportunity reads like its lead: the organisation, what it wants, where it came from and who
+# runs it, then how far it has gone; the bid's own stages are its sales stages
+OPPORTUNITY_ORDER = [
+	"naming_series", "opportunity_from", "party_name", "customer_name", "status",
+	"column_break0", "opportunity_type", "utm_source", "opportunity_owner",
+	"column_break_10", "sales_stage", "expected_closing", "transaction_date", "probability",
+	"muhick_requirement_section", "muhick_requirement",
+	"organization_details_section", "no_of_employees", "annual_revenue", "customer_group",
+	"column_break_23", "industry", "market_segment", "website",
+	"column_break_31", "city", "state", "country", "territory",
+	"section_break_14", "currency", "column_break_36", "conversion_rate", "column_break_17", "opportunity_amount",
+	"base_opportunity_amount",
+	"utm_analytics_section", "utm_medium", "column_break_emai", "utm_campaign", "utm_content",
+	"more_info", "company", "column_break1", "language", "amended_from", "title", "first_response_time",
+	"lost_detail_section", "lost_reasons", "order_lost_reason", "column_break_56", "competitors",
+	"contact_info", "primary_contact_section", "contact_person", "job_title", "column_break_54", "contact_email",
+	"contact_mobile", "column_break_22", "whatsapp", "phone", "phone_ext",
+	"address_contact_section", "address_html", "customer_address", "address_display", "column_break3", "contact_html",
+	"contact_display",
+	"items_section", "items", "section_break_32", "base_total", "column_break_33", "total",
+	"activities_tab", "open_activities_html", "all_activities_section", "all_activities_html",
+	"notes_tab", "notes_html", "notes",
+	"dashboard_tab",
+]
+OPPORTUNITY_HIDDEN = (
+	"probability", "no_of_employees", "annual_revenue", "industry", "utm_medium", "utm_campaign", "utm_content",
+	"language", "phone_ext",
+)
 LEAD_HIDDEN = (
 	"lead_name", "middle_name", "gender", "phone_ext", "no_of_employees", "annual_revenue", "industry", "fax",
 	"utm_medium", "utm_campaign", "utm_content", "language", "unsubscribed", "blog_subscriber",
@@ -295,7 +328,7 @@ PROPERTY_SETTERS = (
 	("Lead", "type", "description", "Main Contractor: a civil contractor asking for a price for the MEP works", "Text"),
 	("Lead", "market_segment", "label", "Sector", "Data"),
 	("Lead", "request_type", "label", "Type of Work", "Data"),
-	("Lead", "request_type", "options", "\nWorks\nSupply and Install\nSupply Only\nMaintenance / Service\nConsultancy\nCar Hire", "Text"),
+	("Lead", "request_type", "options", "\n" + "\n".join(TYPES_OF_WORK), "Text"),
 	# ERPNext's own condition looks at a field that no longer exists
 	("Lead", "customer", "depends_on", "eval:doc.utm_source=='Existing Customer'", "Code"),
 	("Lead", "lead_owner", "label", "Sales Engineer", "Data"),
@@ -323,6 +356,26 @@ PROPERTY_SETTERS = (
 	("Lead", "lead_owner", "in_list_view", "1", "Check"),
 	("Lead", "lead_owner", "in_standard_filter", "1", "Check"),
 	("Lead", "utm_source", "in_standard_filter", "1", "Check"),
+	("Opportunity", None, "field_order", json.dumps(OPPORTUNITY_ORDER), "Data"),
+	("Opportunity", "customer_name", "hidden", "0", "Check"),
+	("Opportunity", "customer_name", "label", "Organisation", "Data"),
+	("Opportunity", "opportunity_type", "label", "Type of Work", "Data"),
+	("Opportunity", "opportunity_type", "reqd", "1", "Check"),
+	("Opportunity", "opportunity_owner", "label", "Sales Engineer", "Data"),
+	("Opportunity", "sales_stage", "default", "Qualified", "Text"),
+	("Opportunity", "expected_closing", "label", "Expected Award Date", "Data"),
+	("Opportunity", "expected_closing", "description", "When the client is expected to decide", "Text"),
+	("Opportunity", "organization_details_section", "label", "Organisation", "Data"),
+	("Opportunity", "market_segment", "label", "Sector", "Data"),
+	("Opportunity", "job_title", "label", "Position", "Data"),
+	*(("Opportunity", f, "hidden", "1", "Check") for f in OPPORTUNITY_HIDDEN),
+	("Opportunity", "naming_series", "in_list_view", "0", "Check"),
+	("Opportunity", "opportunity_from", "in_list_view", "0", "Check"),
+	("Opportunity", "sales_stage", "in_list_view", "1", "Check"),
+	("Opportunity", "sales_stage", "in_standard_filter", "1", "Check"),
+	("Opportunity", "opportunity_owner", "in_list_view", "1", "Check"),
+	("Opportunity", "opportunity_owner", "in_standard_filter", "1", "Check"),
+	("Opportunity", "utm_source", "in_standard_filter", "1", "Check"),
 )
 
 

@@ -7,3 +7,4 @@
 project_management_muhick.patches.phases_as_tasks
 project_management_muhick.patches.milestone_list
 project_management_muhick.patches.lead_lists
+project_management_muhick.patches.crm_lists

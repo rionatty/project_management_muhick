@@ -7,7 +7,7 @@ source already used on a bid."""
 
 import frappe
 
-from project_management_muhick.setup.defaults import setup_lead_lists
+from project_management_muhick.setup.defaults import setup_crm_lists
 
 RENAMED = {
 	"Government Procurement Portal": "e-GP Portal",
@@ -18,7 +18,7 @@ RENAMED = {
 
 
 def execute():
-	setup_lead_lists()
+	setup_crm_lists()
 	for old, new in RENAMED.items():
 		frappe.db.set_value("Bid", {"lead_source": old}, "lead_source", new, update_modified=False)
 	for name in set(frappe.get_all("Bid", filters={"lead_source": ("is", "set")}, pluck="lead_source")):

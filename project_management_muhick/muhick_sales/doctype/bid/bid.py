@@ -19,6 +19,8 @@ HOS = "Head of Sales"
 CLOSED = ("Won", "Lost", "Cancelled", "Not Pursued")
 SUBMITTED = ("Submitted", "Under Evaluation", "Won", "Lost")
 SECURITY_RUNNING = ("Requested", "Active")
+# bid statuses that are also the sales stages of its opportunity
+OPPORTUNITY_STAGES = ("Qualified", "In Preparation", "Submitted", "Under Evaluation")
 
 
 class Bid(Document):
@@ -59,6 +61,8 @@ class Bid(Document):
 	def on_update(self):
 		if not self.flags.status_changed:
 			return
+		if self.opportunity and self.status in OPPORTUNITY_STAGES:
+			frappe.db.set_value("Opportunity", self.opportunity, "sales_stage", self.status)
 		if self.status in ("Lost", "Cancelled", "Not Pursued"):
 			self.request_security_cancellation()
 		if self.status in ("Won", "Lost"):
