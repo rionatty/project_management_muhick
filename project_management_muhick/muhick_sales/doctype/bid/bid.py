@@ -21,6 +21,14 @@ SUBMITTED = ("Submitted", "Under Evaluation", "Won", "Lost")
 SECURITY_RUNNING = ("Requested", "Active")
 # bid statuses that are also the sales stages of its opportunity
 OPPORTUNITY_STAGES = ("Qualified", "In Preparation", "Submitted", "Under Evaluation")
+# what the lead's go / no-go recorded: lead field -> bid field
+LEAD_FACTS = {
+	"muhick_submission_deadline": "submission_deadline",
+	"muhick_site_visit_required": "site_visit_required",
+	"muhick_site_visit_date": "site_visit_date",
+	"muhick_financial_requirement": "financial_requirement",
+	"muhick_qualification_notes": "qualification_notes",
+}
 
 
 class Bid(Document):
@@ -99,6 +107,51 @@ def make_sales_requisition(source_name: str):
 	doc = frappe.new_doc("Sales Requisition")
 	doc.update({"bid": bid.name, "bid_title": bid.title, "company": bid.company})
 	return doc
+
+
+@frappe.whitelist()
+def make_bid(source_name: str):
+	"""A bid for an opportunity, filled in with what the opportunity and its lead already say."""
+	return _bid_for(frappe.get_doc("Opportunity", source_name))
+
+
+@frappe.whitelist()
+def make_sales_requisition_for_opportunity(source_name: str):
+	"""The sales requisition straight from the opportunity. It belongs to the opportunity's bid, which
+	is started here when there is none yet."""
+	bid = frappe.db.get_value("Bid", {"opportunity": source_name, "status": ("not in", CLOSED)}, "name")
+	if not bid:
+		doc = _bid_for(frappe.get_doc("Opportunity", source_name))
+		doc.insert()
+		bid = doc.name
+		frappe.msgprint(_("Bid {0} was started for this opportunity.").format(bid), alert=True)
+	return make_sales_requisition(bid)
+
+
+def _bid_for(opportunity):
+	opportunity.check_permission("read")
+	bid = frappe.new_doc("Bid")
+	requirement = (opportunity.get("muhick_requirement") or "").split("\n")[0]
+	bid.update(
+		{
+			"opportunity": opportunity.name,
+			"title": (requirement or opportunity.customer_name or opportunity.name)[:140],
+			"procuring_entity": opportunity.customer_name or opportunity.party_name,
+			"assigned_to": opportunity.opportunity_owner or frappe.session.user,
+			"company": opportunity.company,
+			"lead_source": opportunity.utm_source,
+			"status": opportunity.sales_stage if opportunity.sales_stage in OPPORTUNITY_STAGES else "Qualified",
+		}
+	)
+	if opportunity.opportunity_type in (bid.meta.get_field("bid_type").options or "").split("\n"):
+		bid.bid_type = opportunity.opportunity_type
+	if opportunity.opportunity_from == "Customer":
+		bid.customer = opportunity.party_name
+	elif opportunity.opportunity_from == "Lead":
+		bid.lead = opportunity.party_name
+		facts = frappe.db.get_value("Lead", opportunity.party_name, list(LEAD_FACTS), as_dict=True) or {}
+		bid.update({field: facts.get(lead_field) for lead_field, field in LEAD_FACTS.items()})
+	return bid
 
 
 @frappe.whitelist()

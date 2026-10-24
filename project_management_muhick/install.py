@@ -11,6 +11,15 @@ from project_management_muhick.setup.workflows import setup_workflows
 # ERPNext's own desk icon for its Projects workspace
 STANDARD_PROJECTS_ICON = "Projects"
 
+# ERPNext's CRM menu, where the sales team works, also lists the bid, the sales requisition and the
+# bid register: (placed after the item linking to, label, link type, link to, inside a section)
+CRM_SIDEBAR = "CRM"
+CRM_ITEMS = (
+	("Opportunity", "Bid", "DocType", "Bid", 0),
+	("Bid", "Sales Requisition", "DocType", "Sales Requisition", 0),
+	("Opportunity Summary by Sales Stage", "Bid Register", "Report", "Bid Register", 1),
+)
+
 
 def after_install():
 	setup()
@@ -23,6 +32,7 @@ def after_migrate():
 
 def before_uninstall():
 	show_standard_projects_icon(True)
+	frappe.db.delete("Workspace Sidebar Item", {"parent": CRM_SIDEBAR, "link_to": ("in", [i[3] for i in CRM_ITEMS])})
 
 
 def setup():
@@ -33,6 +43,7 @@ def setup():
 	setup_standard_permissions()
 	setup_workflows()
 	show_standard_projects_icon(False)
+	add_sales_to_crm_menu()
 	frappe.clear_cache()
 
 
@@ -44,3 +55,39 @@ def show_standard_projects_icon(show):
 	if frappe.db.exists("Desktop Icon", STANDARD_PROJECTS_ICON):
 		if frappe.db.get_value("Desktop Icon", STANDARD_PROJECTS_ICON, "hidden") != hidden:
 			frappe.db.set_value("Desktop Icon", STANDARD_PROJECTS_ICON, "hidden", hidden)
+
+
+def add_sales_to_crm_menu():
+	"""Put back after every migrate, since ERPNext rewrites its menu when it updates it. The rows go
+	straight into the table: saving ERPNext's menu would also write it into ERPNext's files on a
+	developer site."""
+	if not frappe.db.exists("Workspace Sidebar", CRM_SIDEBAR):
+		return
+	for after, label, link_type, link_to, child in CRM_ITEMS:
+		items = frappe.get_all(
+			"Workspace Sidebar Item",
+			filters={"parent": CRM_SIDEBAR, "parenttype": "Workspace Sidebar"},
+			fields=["name", "idx", "link_to"],
+			order_by="idx asc",
+		)
+		if any(i.link_to == link_to for i in items):
+			continue
+		anchor = next((i for i in items if i.link_to == after), None)
+		idx = anchor.idx + 1 if anchor else len(items) + 1
+		for i in items:
+			if i.idx >= idx:
+				frappe.db.set_value("Workspace Sidebar Item", i.name, "idx", i.idx + 1, update_modified=False)
+		frappe.get_doc(
+			{
+				"doctype": "Workspace Sidebar Item",
+				"parent": CRM_SIDEBAR,
+				"parenttype": "Workspace Sidebar",
+				"parentfield": "items",
+				"idx": idx,
+				"type": "Link",
+				"label": label,
+				"link_type": link_type,
+				"link_to": link_to,
+				"child": child,
+			}
+		).db_insert()
