@@ -52,6 +52,19 @@ SUPPLIER_ONBOARDING = [
 
 LABOUR_TRADES = ["Electrician", "Plumber", "Mason", "Welder", "Painter", "Carpenter", "Helper", "Machine Operator"]
 
+# where leads come from (ERPNext's Source list, which bids use too) and the client's sector
+LEAD_SOURCES = [
+	("e-GP Portal", "Tenders on the government electronic procurement portal"),
+	("Newspaper Advert", None),
+	("Website Advert", "Adverts on government and company websites"),
+	("Referral", "Referred by a person or organisation the company has worked with"),
+	("Existing Customer", "A repeat client: pick the customer on the lead"),
+	("Sent by Management", "Passed on by the Managing Director or the General Manager"),
+	("Sales Team Prospecting", "Found by the sales team"),
+	("Other", None),
+]
+SECTORS = ["Public Sector", "Private Sector"]
+
 
 def setup_defaults():
 	for code, name, section, category in COST_CODES:
@@ -64,6 +77,8 @@ def setup_defaults():
 		if not frappe.db.exists("Labour Trade", trade):
 			frappe.get_doc(doctype="Labour Trade", trade_name=trade).insert(ignore_permissions=True)
 
+	setup_lead_lists()
+
 	settings = frappe.get_single("Muhick Settings")
 	changed = False
 	for table, rows in (("handover_checklist", HANDOVER_CHECKLIST), ("supplier_onboarding_checklist", SUPPLIER_ONBOARDING)):
@@ -74,3 +89,12 @@ def setup_defaults():
 	if changed:
 		settings.flags.ignore_mandatory = True
 		settings.save(ignore_permissions=True)
+
+
+def setup_lead_lists():
+	for name, description in LEAD_SOURCES:
+		if not frappe.db.exists("UTM Source", name):
+			frappe.get_doc(doctype="UTM Source", description=description).insert(set_name=name, ignore_permissions=True)
+	for name in SECTORS:
+		if not frappe.db.exists("Market Segment", name):
+			frappe.get_doc(doctype="Market Segment", market_segment=name).insert(ignore_permissions=True)

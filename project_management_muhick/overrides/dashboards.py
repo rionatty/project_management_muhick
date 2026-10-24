@@ -33,3 +33,9 @@ def get_task_dashboard(data):
 		]
 	)
 	return data
+
+
+def get_lead_dashboard(data):
+	"""The bids started from a lead."""
+	data.setdefault("transactions", []).append({"label": _("Bids"), "items": ["Bid"]})
+	return data

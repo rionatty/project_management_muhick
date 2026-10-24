@@ -10,6 +10,7 @@
   "procuring_entity",
   "customer",
   "opportunity",
+  "lead",
   "column_break_1",
   "status",
   "assigned_to",
@@ -94,6 +95,12 @@
    "options": "Opportunity"
   },
   {
+   "fieldname": "lead",
+   "fieldtype": "Link",
+   "label": "Lead",
+   "options": "Lead"
+  },
+  {
    "fieldname": "column_break_1",
    "fieldtype": "Column Break"
   },
@@ -134,15 +141,15 @@
   },
   {
    "fieldname": "lead_source",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Source",
-   "options": "\nAdvertisement\nGovernment Procurement Portal\nWebsite\nNewspaper\nReferral\nExisting Client\nSent by Management\nOther"
+   "options": "UTM Source"
   },
   {
    "fieldname": "bid_type",
    "fieldtype": "Select",
    "label": "Type",
-   "options": "\nWorks\nSupply and Install\nSupply Only\nConsultancy"
+   "options": "\nWorks\nSupply and Install\nSupply Only\nMaintenance / Service\nConsultancy\nCar Hire"
   },
   {
    "fieldname": "advert",
@@ -347,7 +354,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-24 11:16:14.100249",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bid",

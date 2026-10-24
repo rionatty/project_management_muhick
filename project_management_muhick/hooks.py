@@ -42,11 +42,13 @@ doctype_js = {
 	"Sales Order": "public/js/sales_order.js",
 	"Stock Entry": "public/js/stock_entry.js",
 	"Task": "public/js/task.js",
+	"Lead": "public/js/lead.js",
 }
 
 override_doctype_dashboards = {
 	"Project": "project_management_muhick.overrides.dashboards.get_project_dashboard",
 	"Task": "project_management_muhick.overrides.dashboards.get_task_dashboard",
+	"Lead": "project_management_muhick.overrides.dashboards.get_lead_dashboard",
 }
 
 # Document events

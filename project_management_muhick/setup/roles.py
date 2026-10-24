@@ -52,6 +52,8 @@ STANDARD_DOCTYPE_PERMISSIONS = {
 	"Task": {GM: READ, FM: READ, PRM: READ, PRO: READ, SSK: READ},
 	# the shared milestone list; Project Managers and the COO maintain it through Projects Manager
 	"Task Type": {SE: READ, GM: READ, FM: READ, FO: READ, PRM: READ, PRO: READ},
+	# the Sector list on leads; the Head of Sales maintains it as Sales Manager
+	"Market Segment": {SE: READ},
 }
 
 

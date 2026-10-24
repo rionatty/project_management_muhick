@@ -3,6 +3,8 @@
 
 """Fields the app adds to standard ERPNext documents. All are prefixed muhick_."""
 
+import json
+
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
@@ -228,7 +230,40 @@ CUSTOM_FIELDS = {
 	"Journal Entry": [
 		_ro("muhick_reimbursement_claim", "Reimbursement Claim", "Link", options="Reimbursement Claim", insert_after="user_remark"),
 	],
+	"Lead": _chain(
+		"request_type",
+		[
+			_sec("muhick_requirement_section"),
+			dict(fieldname="muhick_requirement", label="Requirement", fieldtype="Small Text", description="What the client needs: the scope in the advert, BOQ or enquiry"),
+		],
+	),
 }
+
+# the lead screen: every lead is an organisation (a company or a public body). Who it is, what it
+# wants and where it came from come first, then its contact person and the go / no-go; fields the
+# business does not use are hidden further down
+LEAD_ORDER = [
+	"naming_series", "company_name", "type", "market_segment",
+	"column_break_1", "request_type", "utm_source", "customer",
+	"col_break123", "lead_owner", "status",
+	"muhick_requirement_section", "muhick_requirement",
+	"contact_info_tab", "salutation", "first_name", "middle_name", "last_name", "job_title", "gender",
+	"column_break_20", "mobile_no", "whatsapp_no", "phone", "phone_ext",
+	"column_break_16", "email_id", "website", "lead_name",
+	"qualification_tab", "qualification_status", "column_break_64", "qualified_by", "qualified_on",
+	"address_section", "address_html", "column_break_38", "city", "state", "country", "territory", "column_break2", "contact_html",
+	"organization_section", "no_of_employees", "column_break_28", "annual_revenue", "industry", "column_break_31", "fax",
+	"utm_analytics_section", "utm_medium", "column_break_gkxo", "utm_campaign", "utm_content",
+	"other_info_tab", "company", "column_break_22", "language", "image", "title", "column_break_50", "disabled",
+	"unsubscribed", "blog_subscriber",
+	"activities_tab", "open_activities_html", "all_activities_section", "all_activities_html",
+	"notes_tab", "notes_html", "notes",
+	"dashboard_tab",
+]
+LEAD_HIDDEN = (
+	"lead_name", "middle_name", "gender", "phone_ext", "no_of_employees", "annual_revenue", "industry", "fax",
+	"utm_medium", "utm_campaign", "utm_content", "language", "unsubscribed", "blog_subscriber",
+)
 
 
 # standard fields shown the way this app uses them: (doctype, field or None for the doctype, property, value, type)
@@ -239,6 +274,35 @@ PROPERTY_SETTERS = (
 	("Task", "parent_task", "in_standard_filter", "1", "Check"),
 	# links to a task show its name (subject), not TASK-2026-00012
 	("Task", None, "show_title_field_in_link", "1", "Check"),
+	("Lead", None, "field_order", json.dumps(LEAD_ORDER), "Data"),
+	("Lead", "company_name", "label", "Organisation", "Data"),
+	("Lead", "company_name", "reqd", "1", "Check"),
+	("Lead", "company_name", "description", "The client, procuring entity or main contractor", "Text"),
+	("Lead", "type", "options", "\nClient\nMain Contractor\nConsultant", "Text"),
+	("Lead", "type", "description", "Main Contractor: a civil contractor asking for a price for the MEP works", "Text"),
+	("Lead", "market_segment", "label", "Sector", "Data"),
+	("Lead", "request_type", "label", "Type of Work", "Data"),
+	("Lead", "request_type", "options", "\nWorks\nSupply and Install\nSupply Only\nMaintenance / Service\nConsultancy\nCar Hire", "Text"),
+	# ERPNext's own condition looks at a field that no longer exists
+	("Lead", "customer", "depends_on", "eval:doc.utm_source=='Existing Customer'", "Code"),
+	("Lead", "lead_owner", "label", "Sales Engineer", "Data"),
+	("Lead", "lead_owner", "description", "Runs the lead from qualification to the outcome", "Text"),
+	("Lead", "contact_info_tab", "label", "Contact Person", "Data"),
+	("Lead", "job_title", "label", "Position", "Data"),
+	("Lead", "qualification_tab", "label", "Qualification (Go / No-Go)", "Data"),
+	("Lead", "qualification_tab", "collapsible", "0", "Check"),
+	("Lead", "qualification_status", "description", "Whether to pursue it, given the deadline, the timeline, the money needed and any site visit", "Text"),
+	*(("Lead", f, "hidden", "1", "Check") for f in LEAD_HIDDEN),
+	# the list: the organisation is the title, then what it wants and who runs it, filterable by source
+	("Lead", "company_name", "in_list_view", "0", "Check"),
+	("Lead", "job_title", "in_list_view", "0", "Check"),
+	("Lead", "job_title", "in_standard_filter", "0", "Check"),
+	("Lead", "territory", "in_list_view", "0", "Check"),
+	("Lead", "request_type", "in_list_view", "1", "Check"),
+	("Lead", "request_type", "in_standard_filter", "1", "Check"),
+	("Lead", "lead_owner", "in_list_view", "1", "Check"),
+	("Lead", "lead_owner", "in_standard_filter", "1", "Check"),
+	("Lead", "utm_source", "in_standard_filter", "1", "Check"),
 )
 
 
