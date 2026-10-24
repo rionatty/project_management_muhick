@@ -60,6 +60,7 @@ _approval_events = {"on_update": _track, "on_submit": _track, "on_cancel": _trac
 _boq = "project_management_muhick.muhick_projects.doctype.project_boq.project_boq.refresh_from_document"
 
 doc_events = {
+	"Lead": {"validate": "project_management_muhick.overrides.lead.validate"},
 	"Project": {
 		"validate": "project_management_muhick.overrides.project.validate",
 		"after_insert": "project_management_muhick.overrides.project.after_insert",

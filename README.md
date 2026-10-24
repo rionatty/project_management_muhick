@@ -48,7 +48,8 @@ and certificates, retention, payments and the controls around them.
 - A lead screen laid out for the business, where every lead is an organisation: the organisation,
   lead type (client, main contractor or consultant), sector, type of work, source and the sales
   engineer who runs it come first, then what the client needs, the contact person and the go / no-go
-  decision. Create > Bid carries the lead
+  decision: the submission deadline, any site visit and the money needed, then Qualified or Not
+  Pursued with the reason. Only the Head of Sales decides, and the lead records who decided and when. Create > Bid carries the lead
   into the bid register, and leads and bids share one list of sources.
 - A bid register from opportunity to outcome: documents required, bid security, site visit,
   follow-ups, the award notice, and reminders ahead of submission deadlines.

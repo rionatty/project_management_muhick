@@ -236,6 +236,17 @@ CUSTOM_FIELDS = {
 			_sec("muhick_requirement_section"),
 			dict(fieldname="muhick_requirement", label="Requirement", fieldtype="Small Text", description="What the client needs: the scope in the advert, BOQ or enquiry"),
 		],
+	)
+	# what the go / no-go rests on; Create > Bid carries it into the bid
+	+ _chain(
+		"qualified_on",
+		[
+			dict(fieldname="muhick_submission_deadline", label="Submission Deadline", fieldtype="Datetime"),
+			dict(fieldname="muhick_site_visit_required", label="Site Visit Required", fieldtype="Check"),
+			dict(fieldname="muhick_site_visit_date", label="Site Visit Date", fieldtype="Date", depends_on="eval:doc.muhick_site_visit_required"),
+			dict(fieldname="muhick_financial_requirement", label="Financial Requirement", fieldtype="Small Text", description="For example a bid security or the cost of the bid documents"),
+			dict(fieldname="muhick_qualification_notes", label="Why Pursue / Not Pursue", fieldtype="Small Text", mandatory_depends_on="eval:doc.qualification_status=='Not Pursued'"),
+		],
 	),
 }
 
@@ -250,7 +261,9 @@ LEAD_ORDER = [
 	"contact_info_tab", "salutation", "first_name", "middle_name", "last_name", "job_title", "gender",
 	"column_break_20", "mobile_no", "whatsapp_no", "phone", "phone_ext",
 	"column_break_16", "email_id", "website", "lead_name",
-	"qualification_tab", "qualification_status", "column_break_64", "qualified_by", "qualified_on",
+	"qualification_tab", "muhick_submission_deadline", "muhick_site_visit_required", "muhick_site_visit_date",
+	"muhick_financial_requirement", "column_break_64", "qualification_status", "muhick_qualification_notes",
+	"qualified_by", "qualified_on",
 	"address_section", "address_html", "column_break_38", "city", "state", "country", "territory", "column_break2", "contact_html",
 	"organization_section", "no_of_employees", "column_break_28", "annual_revenue", "industry", "column_break_31", "fax",
 	"utm_analytics_section", "utm_medium", "column_break_gkxo", "utm_campaign", "utm_content",
@@ -291,7 +304,14 @@ PROPERTY_SETTERS = (
 	("Lead", "job_title", "label", "Position", "Data"),
 	("Lead", "qualification_tab", "label", "Qualification (Go / No-Go)", "Data"),
 	("Lead", "qualification_tab", "collapsible", "0", "Check"),
-	("Lead", "qualification_status", "description", "Whether to pursue it, given the deadline, the timeline, the money needed and any site visit", "Text"),
+	("Lead", "qualification_status", "options", "Unqualified\nIn Process\nQualified\nNot Pursued", "Text"),
+	("Lead", "qualification_status", "description", "The Head of Sales' decision: Qualified to pursue it, Not Pursued to drop it", "Text"),
+	("Lead", "qualification_status", "in_standard_filter", "1", "Check"),
+	# filled in when the decision is made
+	("Lead", "qualified_by", "label", "Decided By", "Data"),
+	("Lead", "qualified_by", "read_only", "1", "Check"),
+	("Lead", "qualified_on", "label", "Decided On", "Data"),
+	("Lead", "qualified_on", "read_only", "1", "Check"),
 	*(("Lead", f, "hidden", "1", "Check") for f in LEAD_HIDDEN),
 	# the list: the organisation is the title, then what it wants and who runs it, filterable by source
 	("Lead", "company_name", "in_list_view", "0", "Check"),
