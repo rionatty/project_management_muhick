@@ -16,6 +16,7 @@ STANDARD_PROJECTS_ICON = "Projects"
 CRM_SIDEBAR = "CRM"
 CRM_ITEMS = (
 	("Opportunity", "Sales Requisition", "DocType", "Sales Requisition", 0),
+	("Sales Requisition", "Bid Security Request", "DocType", "Bid Security Request", 0),
 	("Opportunity Summary by Sales Stage", "Bid Register", "Report", "Bid Register", 1),
 )
 # taken out of the CRM menu while the app is installed (a lead is already one organisation), put back

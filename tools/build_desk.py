@@ -74,6 +74,7 @@ CARDS = [
 	]),
 	("Sales and Bids", [
 		("Lead", "Lead", D), ("Opportunity (Bid)", "Opportunity", D), ("Sales Requisition", "Sales Requisition", D),
+		("Bid Security Request", "Bid Security Request", D),
 		("Bid Register", "Bid Register", R), ("Financial Requirement Types", "Financial Requirement Type", D),
 	]),
 	("Administration", [

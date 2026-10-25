@@ -151,6 +151,7 @@ doc_events = {
 	"Reimbursement Claim": _approval_events,
 	"Project Fund Transfer": _approval_events,
 	"Sales Requisition": _approval_events,
+	"Bid Security Request": _approval_events,
 	"Fuel Requisition": _approval_events,
 	"Vehicle Service Request": _approval_events,
 }

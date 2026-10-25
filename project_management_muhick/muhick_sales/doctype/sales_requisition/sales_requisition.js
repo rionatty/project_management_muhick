@@ -3,19 +3,28 @@
 
 frappe.ui.form.on("Sales Requisition", {
 	setup(frm) {
-		// a bid security request holds the bid security; any other requisition, the bid costs
-		frm.set_query("expense_type", "items", () => ({
-			filters: { kind: frm.doc.purpose === "Bid Security" ? "Bid Security" : "Cost" },
-		}));
+		// a requisition pays for costs; the securities are bank guarantees
+		frm.set_query("expense_type", "items", () => ({ filters: { kind: "Cost" } }));
 	},
 
 	// the lines and the date come from the opportunity's financial requirements
 	opportunity(frm) {
-		fill_from_opportunity(frm, false);
-	},
-
-	purpose(frm) {
-		fill_from_opportunity(frm, true);
+		if (!frm.doc.opportunity || frm.doc.docstatus !== 0) {
+			return;
+		}
+		frappe.xcall("project_management_muhick.overrides.crm.get_bid_costs", { opportunity: frm.doc.opportunity }).then((costs) => {
+			if (!(frm.doc.items || []).some((row) => row.expense_type)) {
+				frm.clear_table("items");
+				costs.items.forEach((line) => frm.add_child("items", line));
+				frm.refresh_field("items");
+			}
+			if (costs.required_by && !frm.doc.required_by) {
+				frm.set_value("required_by", costs.required_by);
+			}
+			if (!costs.items.length) {
+				frappe.show_alert({ message: costs.note, indicator: "orange" }, 15);
+			}
+		});
 	},
 
 	refresh(frm) {
@@ -65,26 +74,3 @@ frappe.ui.form.on("Sales Requisition", {
 		}
 	},
 });
-
-// the lines (and the date) for what the requisition is for, from the opportunity's financial
-// requirements; a change of purpose replaces the lines
-function fill_from_opportunity(frm, replace) {
-	if (!frm.doc.opportunity || frm.doc.docstatus !== 0) {
-		return;
-	}
-	frappe
-		.xcall("project_management_muhick.overrides.crm.get_bid_costs", { opportunity: frm.doc.opportunity, purpose: frm.doc.purpose })
-		.then((costs) => {
-			if (replace || !(frm.doc.items || []).some((row) => row.expense_type)) {
-				frm.clear_table("items");
-				costs.items.forEach((line) => frm.add_child("items", line));
-				frm.refresh_field("items");
-			}
-			if (costs.required_by && (replace || !frm.doc.required_by)) {
-				frm.set_value("required_by", costs.required_by);
-			}
-			if (!costs.items.length) {
-				frappe.show_alert({ message: costs.note, indicator: "orange" }, 15);
-			}
-		});
-}

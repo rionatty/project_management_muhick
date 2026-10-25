@@ -75,6 +75,13 @@ class BankInstrument(Document):
 				frappe.db.set_value(
 					"Opportunity", self.opportunity, {"muhick_bid_security": self.name, "muhick_bid_security_required": 1}
 				)
+			# the approved request it was obtained for
+			frappe.db.set_value(
+				"Bid Security Request",
+				{"opportunity": self.opportunity, "docstatus": 1, "bank_instrument": ("is", "not set")},
+				"bank_instrument",
+				self.name,
+			)
 
 	def after_delete(self):
 		update_utilisation(self.bank_facility)

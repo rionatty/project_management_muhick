@@ -89,28 +89,6 @@ def _chain(originators, approvers, post_approval_editors=(), pending_editors=(),
 FULL_CHAIN = [(P_COO, COO), (P_FM, FM), (P_GM, GM)]
 
 
-def _sales_requisition():
-	"""Sales Requisition: bid costs go Head of Sales -> General Manager; a bid security request goes to
-	the Finance Manager. A rejected one is amended and sent again, or left as it is."""
-	security, costs = 'doc.purpose == "Bid Security"', 'doc.purpose != "Bid Security"'
-	states = (
-		_state(DRAFT, 0, SE)
-		+ _state(P_HOS, 0, HOS)
-		+ _state(P_GM, 0, GM)
-		+ _state(P_FM, 0, FM)
-		+ _state(APPROVED, 1, GM, FM, FO, SE)
-		+ _state(REJECTED, 0, SE)
-		+ _state(CANCELLED, 2, GM, FM)
-	)
-	transitions = []
-	for start in (DRAFT, REJECTED):
-		transitions += _t(start, SUBMIT, P_HOS, SE, costs) + _t(start, SUBMIT, P_FM, SE, security)
-	for pending, role, next_state in ((P_HOS, HOS, P_GM), (P_GM, GM, APPROVED), (P_FM, FM, APPROVED)):
-		transitions += _t(pending, APPROVE, next_state, role) + _t(pending, REJECT, REJECTED, role)
-	transitions += _t(APPROVED, CANCEL, CANCELLED, [GM, FM])
-	return states, transitions
-
-
 def _requisition():
 	"""Project Requisition: PM -> COO -> Finance -> GM, shortened by the approval thresholds.
 	An unbudgeted (exception) claim goes COO -> GM."""
@@ -430,7 +408,9 @@ def get_workflows():
 		"Reimbursement Claim": _reimbursement_claim(),
 		"Project Fund Transfer": _chain([FO, FM], [(P_FM, FM), (P_GM, GM)], post_approval_editors=[FO, FM]),
 		# sales: funds for a bid
-		"Sales Requisition": _sales_requisition(),
+		"Sales Requisition": _chain([SE], [(P_HOS, HOS), (P_GM, GM)], post_approval_editors=[FM, FO, SE]),
+		# a rejected request is amended and sent again, or left closed while the bid goes on
+		"Bid Security Request": _chain([SE], [(P_FM, FM)], post_approval_editors=[FO]),
 		# administration
 		"Fuel Requisition": _fleet(final_step_gm=False),
 		"Vehicle Service Request": _fleet(final_step_gm=True),

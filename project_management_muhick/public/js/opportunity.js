@@ -36,11 +36,8 @@ frappe.ui.form.on("Opportunity", {
 		};
 		create(__("Sales Requisition"), "project_management_muhick.overrides.crm.make_sales_requisition");
 		if (frm.doc.muhick_bid_security_required && !frm.doc.muhick_bid_security) {
-			// the request goes to the Finance Manager; once it is funded, Finance records the instrument
+			// approved by the Finance Manager, after which Finance issues the funds for it
 			create(__("Bid Security Request"), "project_management_muhick.overrides.crm.make_bid_security_request");
-			if (frappe.user.has_role(["Finance Manager", "Finance Officer"])) {
-				create(__("Bid Security"), "project_management_muhick.overrides.crm.make_bid_security");
-			}
 		}
 		const submitted = ["Submitted", "Under Evaluation", "Awarded"].includes(frm.doc.sales_stage);
 		if (frm.doc.muhick_submission_deadline && !submitted) {

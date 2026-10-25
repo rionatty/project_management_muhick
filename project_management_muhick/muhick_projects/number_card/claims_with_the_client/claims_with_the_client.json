@@ -1,6 +1,6 @@
 {
  "aggregate_function_based_on": "",
- "creation": "2026-10-25 10:24:24.615319",
+ "creation": "2026-10-25 11:14:48.323298",
  "currency": "",
  "docstatus": 0,
  "doctype": "Number Card",
@@ -12,7 +12,7 @@
  "is_public": 1,
  "is_standard": 1,
  "label": "Claims With the Client",
- "modified": "2026-10-25 10:24:24.615319",
+ "modified": "2026-10-25 11:14:48.323298",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Claims With the Client",

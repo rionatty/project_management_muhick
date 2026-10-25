@@ -122,27 +122,13 @@ def make_sales_requisition(source_name: str):
 	"""Funds for preparing the bid on an opportunity, filled in from its financial requirements."""
 	opportunity = frappe.get_doc("Opportunity", source_name)
 	opportunity.check_permission("read")
-	return new_requisition(opportunity, "Bid Costs")
-
-
-@frappe.whitelist()
-def make_bid_security_request(source_name: str):
-	"""The request for the bid security, from the Bid Security line of the financial requirements.
-	It goes to the Finance Manager for approval."""
-	opportunity = frappe.get_doc("Opportunity", source_name)
-	opportunity.check_permission("read")
-	return new_requisition(opportunity, "Bid Security")
-
-
-def new_requisition(opportunity, purpose):
-	costs = bid_costs(opportunity, purpose)
+	costs = bid_costs(opportunity)
 	if not costs["items"]:
 		frappe.msgprint(costs["note"], alert=True, indicator="orange")
 	doc = frappe.new_doc("Sales Requisition")
 	doc.update(
 		{
 			"opportunity": opportunity.name,
-			"purpose": purpose,
 			"organisation": opportunity.customer_name,
 			"company": opportunity.company,
 			"required_by": costs["required_by"],
@@ -154,52 +140,60 @@ def new_requisition(opportunity, purpose):
 
 
 @frappe.whitelist()
-def get_bid_costs(opportunity: str, purpose: str = "Bid Costs") -> dict:
-	"""For a new sales requisition where the opportunity is picked: its lines and date."""
+def get_bid_costs(opportunity: str) -> dict:
+	"""For a new sales requisition where the opportunity is picked: its cost lines and date."""
 	doc = frappe.get_doc("Opportunity", opportunity)
 	doc.check_permission("read")
-	return bid_costs(doc, purpose)
+	return bid_costs(doc)
 
 
-def bid_costs(opportunity, purpose="Bid Costs") -> dict:
-	"""The lines of an opportunity's financial requirements for a sales requisition: the bid security
-	for a bid security request, the costs for any other. The money is needed by the submission
-	deadline for the bid security, and by the site visit or the deadline for the costs."""
-	security = purpose == "Bid Security"
+def bid_costs(opportunity) -> dict:
+	"""The cost lines of an opportunity's financial requirements, which a sales requisition pays,
+	and the date the money is needed by: the site visit or, failing that, the submission deadline."""
 	rows = opportunity.get("muhick_financial_requirements") or []
 	kinds = requirement_kinds(rows)
-	deadline = opportunity.get("muhick_submission_deadline")
-	needed_by = deadline if security else opportunity.get("muhick_site_visit_date") or deadline
+	needed_by = opportunity.get("muhick_site_visit_date") or opportunity.get("muhick_submission_deadline")
 	return {
 		"items": [
 			{"expense_type": r.requirement_type, "description": r.description, "amount": r.amount}
 			for r in rows
-			if (kinds.get(r.requirement_type) == "Bid Security") == security and kinds.get(r.requirement_type) != "Contract Security"
+			if kinds.get(r.requirement_type) == "Cost"
 		],
 		"required_by": getdate(needed_by) if needed_by else None,
-		"note": (
-			_("Opportunity {0} has no Bid Security line in its financial requirements.")
-			if security
-			else _("Opportunity {0} has no cost lines in its financial requirements. The bid security has a request of its own: Create > Bid Security Request on the opportunity.")
+		"note": _(
+			"Opportunity {0} has no cost lines in its financial requirements. The bid security has a request of its own: "
+			"Create > Bid Security Request on the opportunity."
 		).format(opportunity.name),
 	}
 
 
 @frappe.whitelist()
-def make_bid_security(source_name: str):
+def make_bid_security_request(source_name: str):
+	"""The request for the bid security, from the Bid Security lines of the financial requirements,
+	needed by the submission deadline. It goes to the Finance Manager for approval."""
 	opportunity = frappe.get_doc("Opportunity", source_name)
 	opportunity.check_permission("read")
-	if opportunity.get("muhick_bid_security"):
-		frappe.throw(_("Bid security {0} already exists for this bid.").format(opportunity.muhick_bid_security))
-	doc = frappe.new_doc("Bank Instrument")
+	raised = frappe.db.get_value(
+		"Bid Security Request", {"opportunity": opportunity.name, "docstatus": ("<", 2), "status": ("!=", "Rejected")}, "name"
+	)
+	if raised:
+		frappe.throw(_("Bid security request {0} is already raised for this bid.").format(raised))
+	rows = opportunity.get("muhick_financial_requirements") or []
+	kinds = requirement_kinds(rows)
+	securities = [r for r in rows if kinds.get(r.requirement_type) == "Bid Security"]
+	amount = sum(flt(r.amount) for r in securities)
+	deadline = opportunity.get("muhick_submission_deadline")
+	doc = frappe.new_doc("Bid Security Request")
 	doc.update(
 		{
-			"title": _("Bid security: {0}").format(opportunity.customer_name),
-			"instrument_type": "Bid Security",
 			"opportunity": opportunity.name,
+			"organisation": opportunity.customer_name,
 			"company": opportunity.company,
 			"beneficiary": opportunity.customer_name,
-			"amount": opportunity.get("muhick_bid_security_amount"),
+			"amount": amount,
+			"funds_required": amount,
+			"required_by": getdate(deadline) if deadline else None,
+			"security_terms": "\n".join(r.description for r in securities if r.description) or None,
 		}
 	)
 	return doc

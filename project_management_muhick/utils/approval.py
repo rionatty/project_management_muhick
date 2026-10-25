@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_to_date, flt, get_datetime, now_datetime
 
-from project_management_muhick.setup.workflows import P_FM, PENDING_STATES, WORKFLOW_DOCTYPES
+from project_management_muhick.setup.workflows import PENDING_STATES, WORKFLOW_DOCTYPES
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import (
 	COO, FM, FO, GM, PM, PRM, PRO, SE, SK, get_settings, notify, notify_roles, project_manager_of, users_with_roles,
@@ -29,6 +29,7 @@ NOTIFY_ON_APPROVAL = {
 	"Reimbursement Claim": [FM, FO],
 	"Project Fund Transfer": [FM, FO],
 	"Sales Requisition": [FM, FO],
+	"Bid Security Request": [FM, FO],
 	"Fuel Requisition": [FO],
 	"Vehicle Service Request": [FO],
 	"Project Budget": [PRM, FO],
@@ -43,14 +44,12 @@ NOTIFY_ON_APPROVAL = {
 }
 
 
-# told as soon as the document is sent for approval, as well as the approver; a {state: roles} entry
-# only for that step
+# told as soon as the document is sent for approval, as well as the approver
 NOTIFY_ON_PENDING = {
 	"Purchase Receipt": [PRO, FM, FO],
 	"Delivery Note": [PRO],
 	"Procurement Requisition": [PRM],
-	# a bid security request: the General Manager is told as well as the Finance Manager
-	"Sales Requisition": {P_FM: [GM]},
+	"Bid Security Request": [GM],
 }
 
 # documents whose Project Manager is kept informed
@@ -115,9 +114,8 @@ def _on_state_change(doc, state, previous=None):
 		).insert(ignore_permissions=True)
 		subject = _("{0}{1} is waiting for your approval").format(_("URGENT: ") if _is_urgent(doc) else "", label)
 		notify_roles(get_approver_roles(doc.doctype, state), subject, doc=doc)
-		watchers = NOTIFY_ON_PENDING.get(doc.doctype, [])
 		notify_roles(
-			watchers.get(state, []) if isinstance(watchers, dict) else watchers,
+			NOTIFY_ON_PENDING.get(doc.doctype, []),
 			_("{0} has been raised and is awaiting approval").format(label),
 			doc=doc,
 			extra_users=_project_managers(doc),
