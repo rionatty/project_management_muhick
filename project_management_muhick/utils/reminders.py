@@ -5,7 +5,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, getdate, nowdate
+from frappe.utils import add_days, formatdate, getdate, nowdate
 
 from project_management_muhick.utils.common import FINANCE_ROLES, PRM, PRO, get_settings, notify, notify_roles, project_manager_of
 
@@ -180,7 +180,8 @@ def _alert_due(doctype, name, last_alert_on, today, every_days=7) -> bool:
 
 
 def bids_needing_attention():
-	"""Bid submission deadlines coming up. Follow-ups are the opportunity's own activities."""
+	"""Bid submission deadlines coming up, and bids still under evaluation after their expected award
+	date: the sales engineer follows them up."""
 	today = getdate(nowdate())
 	days = get_settings().bid_deadline_alert_days or 3
 	for o in frappe.get_all(
@@ -200,6 +201,18 @@ def bids_needing_attention():
 				doc=frappe._dict(doctype="Opportunity", name=o.name),
 				extra_users=[o.opportunity_owner],
 			)
+	for o in frappe.get_all(
+		"Opportunity",
+		filters={"sales_stage": "Under Evaluation", "expected_closing": ("<", today)},
+		fields=["name", "customer_name", "opportunity_owner", "expected_closing"],
+	):
+		notify(
+			[o.opportunity_owner],
+			_("Follow up bid {0} ({1}): its award was expected on {2}. Report the outcome, or move the Expected Award Date to the next follow-up.").format(
+				o.name, o.customer_name, formatdate(o.expected_closing)
+			),
+			doc=frappe._dict(doctype="Opportunity", name=o.name),
+		)
 
 
 def bank_instruments_needing_attention():

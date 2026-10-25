@@ -4,7 +4,8 @@
 """Sales to Project handover.
 
 A won bid becomes an active project only after the Project Manager accepts a complete
-handover pack. Every mandatory item must be provided, or waived with a reason.
+handover pack. Every mandatory item must be provided, or waived with a reason. What winning the bid
+cost goes to the project's cost.
 """
 
 import frappe
@@ -12,7 +13,9 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import fmt_money, now_datetime
 
+from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.muhick_projects.utils import validate_dates
+from project_management_muhick.muhick_sales.bids import bid_spent
 from project_management_muhick.overrides.crm import requirement_kinds
 from project_management_muhick.utils.common import get_settings
 
@@ -37,6 +40,7 @@ class ProjectHandover(Document):
 		if not self.checklist:
 			self.load_checklist()
 		validate_dates(self.contract_start, self.contract_end, _("Contract Start"), _("Contract End"))
+		self.bid_costs = bid_spent([self.opportunity]).get(self.opportunity, 0) if self.opportunity else 0
 		for row in self.checklist:
 			if row.waived and not (row.waive_reason or "").strip():
 				frappe.throw(_("Handover Checklist row {0}: give the reason {1} is waived.").format(row.idx, row.checklist_item))
@@ -67,6 +71,7 @@ class ProjectHandover(Document):
 	def on_submit(self):
 		project = frappe.get_doc("Project", self.project) if self.project else self.make_project()
 		self.update_project(project)
+		budget_engine.refresh_projects([project.name])
 
 	def make_project(self):
 		project = frappe.new_doc("Project")

@@ -58,8 +58,14 @@ and certificates, retention, payments and the controls around them.
   decision: the submission deadline, any site visit and the money needed, then Qualified or Not
   Pursued with the reason. Only the Head of Sales decides, and the lead records who decided and when.
 - Only a qualified lead becomes an opportunity. The opportunity reads the same way and takes over the
-  lead's details; its type of work and stages are the business's own (Qualified, In Preparation,
-  Submitted, Under Evaluation, Awarded) in place of ERPNext's sample lists.
+  lead's details; its type of work is the business's own in place of ERPNext's sample list.
+- The Bid Status (ERPNext's Sales Stage) moves by itself with what is recorded on the bid: Qualified, In
+  Preparation (a sales requisition, a bid security request or a document), Submitted (the submission
+  with its acknowledgement), Under Evaluation (its deadline has passed), Outcome Pending Approval, then
+  Won, Lost, Not Pursued or Cancelled (closed before or after it was submitted). The opportunity list
+  is coloured by it, ERPNext's own status keeps in step out of sight (without "Replied", which would
+  close a bid by itself after a few days), every change is on the timeline, and the sales engineer is
+  reminded daily to follow up a bid still under evaluation after its expected award date.
 - The opportunity is the bid, built on the standard Opportunity: its Bid tab holds the tender, the
   client's requirements with a compliance answer for each (the technical bid check), the financial
   requirements, the three parts of the bid with their documents (each part ready once every document
@@ -71,11 +77,25 @@ and certificates, retention, payments and the controls around them.
   kind decides where its lines go: costs fill in the sales requisition (with the date the money is
   needed by), whether it is started from the opportunity or the opportunity is picked on it, the bid security line sets the bid security, and contract securities go to the
   handover; the project handover takes the requirements with
-  any agreed deviations, the type of work and the securities the tender asks for. Follow-ups are the opportunity's own activities and comments; a lost
-  bid is recorded with ERPNext's lost reasons and competitors, and Finance is asked to cancel its bid
-  security. Create > Sales Requisition raises the funds for the bid. The Bid Register reports every
-  bid with what was spent on it and why it was won or lost, and deadlines are reminded ahead of time.
-  ERPNext's CRM menu lists the sales requisitions and the bid register.
+  any agreed deviations, the type of work and the securities the tender asks for. Create > Sales
+  Requisition raises the funds for the bid. The Bid Register reports every bid with its status and
+  how long it has been in it, its margin at bid and at award, what was spent on it, the project it
+  became and why it was won or lost, and deadlines are reminded ahead of time. ERPNext's CRM menu
+  lists the sales requisitions, bid security requests, outcome reports, the bid register and the bid
+  margin comparison.
+- Won and lost are reported with an outcome report (Outcome > Won or Lost on the opportunity), which
+  the Head of Sales and then the General Manager approve; only then is the bid marked won or lost,
+  and cancelling an approved outcome reopens it. A won bid's report reviews the margin: its BOQ priced
+  at the suppliers' latest quotations for the bid (asked for from the opportunity with ERPNext's
+  request for quotation), the lowest by default and any other on a line, or the last purchase price
+  where no supplier has quoted, less what was spent on the bid, set against the margin at bid; the
+  Bid Margin Comparison report puts every supplier's price for each BOQ line side by side. A lost bid's
+  report gives ERPNext's lost reasons and competitors and who won it at what price, and Finance is
+  asked to cancel its bid security.
+- What winning a bid cost (its sales requisitions, the funds for its bid security and that security's
+  later quarterly fees) goes to the cost of the project made from it: the project budget counts it
+  under the cost code set in Muhick Settings (ADM-600, Cost of Winning the Bid), and the handover
+  shows the amount.
 - Sales requisitions for the cost of preparing a bid, paid through the payment plan: Issue Funds on the
   plan line (or on the requisition) records the money issued on both, with the date it must be
   accounted for by. As for project requisitions, a new one is refused only while an earlier one of
@@ -88,8 +108,9 @@ and certificates, retention, payments and the controls around them.
   running on it and those approved but not yet issued). Once it is approved, Finance issues the funds
   from the payment plan or the request itself (the one-off
   expenses and the first payment of the recurring ones), then each security once the bank or insurer
-  has issued it, with the recurring expenses as its quarterly fee. All of a lost bid's securities are
-  put up for cancellation.
+  has issued it, with the recurring expenses as its quarterly fee. A request with no expenses needs no
+  funds: its securities are recorded straight after approval. All of a lost bid's securities are put
+  up for cancellation.
 - Sale type on the Sales Order (Stock, Project, Additions): project and additions orders notify the
   Project Manager and start the handover.
 

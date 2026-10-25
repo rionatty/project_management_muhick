@@ -1,6 +1,6 @@
 {
  "aggregate_function_based_on": "",
- "creation": "2026-10-25 21:12:42.821798",
+ "creation": "2026-10-25 22:20:20.291590",
  "currency": "",
  "docstatus": 0,
  "doctype": "Number Card",
@@ -12,7 +12,7 @@
  "is_public": 1,
  "is_standard": 1,
  "label": "Open Defects",
- "modified": "2026-10-25 21:12:42.821798",
+ "modified": "2026-10-25 22:20:20.291590",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Open Defects",

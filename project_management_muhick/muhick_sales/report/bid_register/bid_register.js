@@ -10,13 +10,7 @@ frappe.query_reports["Bid Register"] = {
 			options: "Company",
 			default: frappe.defaults.get_user_default("Company"),
 		},
-		{
-			fieldname: "status",
-			label: __("Status"),
-			fieldtype: "Select",
-			options: ["", "Open", "Quotation", "Converted", "Lost", "Closed"],
-		},
-		{ fieldname: "sales_stage", label: __("Stage"), fieldtype: "Link", options: "Sales Stage" },
+		{ fieldname: "sales_stage", label: __("Bid Status"), fieldtype: "Link", options: "Sales Stage" },
 		{ fieldname: "opportunity_owner", label: __("Sales Engineer"), fieldtype: "Link", options: "User" },
 		{
 			fieldname: "from_date",

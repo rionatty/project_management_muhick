@@ -7,10 +7,10 @@ Definitions:
 
 Committed   Every approved obligation, at full value, from the moment it is approved:
             purchase order lines, supplier invoices raised without an order, subcontract
-            agreements, cash requisitions, casual sheets, expense claims and stock charged from
-            the stores.
+            agreements, cash requisitions, casual sheets, expense claims, stock charged from
+            the stores and what winning the bid cost.
 Actual      Cost incurred: supplier invoices, accounted requisitions, casual sheets, expense
-            claims and stock charged from the stores.
+            claims, stock charged from the stores and what was spent winning the bid.
 Paid        The part of the above that has been settled.
 Available   Current budget less committed.
 """
@@ -21,6 +21,7 @@ import frappe
 from frappe import _
 from frappe.utils import date_diff, flt, getdate, now_datetime, nowdate
 
+from project_management_muhick.muhick_sales.bids import bid_costs_position, project_bid
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import setting, user_has_any_role
 
@@ -101,6 +102,7 @@ def get_position(project) -> dict:
 	_reimbursement_claims(project, pos)
 	_equipment_hire(project, pos)
 	_store_charges(project, pos)
+	_bid_costs(project, pos)
 
 	return {k or UNALLOCATED: v for k, v in pos.items()}
 
@@ -316,6 +318,17 @@ def _store_charges(project, pos):
 		bucket["committed"] += flt(r.amount)
 		bucket["actual"] += flt(r.amount)
 		bucket["paid"] += flt(r.amount)
+
+
+def _bid_costs(project, pos):
+	"""What winning the bid cost (its sales requisitions and bid security charges) is the project's own
+	cost once the project starts, under the cost code chosen in Muhick Settings."""
+	opportunity = project_bid(project)
+	if not opportunity:
+		return
+	bucket = pos[setting("bid_cost_code") or UNALLOCATED]
+	for key, amount in bid_costs_position([opportunity])[opportunity].items():
+		bucket[key] += amount
 
 
 # ------------------------------------------------------------------ persist

@@ -276,7 +276,10 @@ CUSTOM_FIELDS = {
 	),
 	# the bid itself, from the tender to the outcome. The tender details come over from the lead,
 	# whose fields have the same names; a loss is recorded with ERPNext's lost reasons and competitors.
-	"Opportunity": _chain(
+	"Opportunity": [
+		_ro("muhick_stage_since", "In This Status Since", "Date", insert_after="sales_stage"),
+	]
+	+ _chain(
 		"competitors",
 		[
 			dict(fieldname="muhick_bid_tab", fieldtype="Tab Break", label="Bid"),
@@ -327,14 +330,17 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_bid_security_amount", label="Bid Security Amount", fieldtype="Currency", options="currency", read_only=1, depends_on="eval:doc.muhick_bid_security_required"),
 			_col("muhick_security_column"),
 			dict(fieldname="muhick_bid_security", label="Bid Security", fieldtype="Link", options="Bank Instrument", depends_on="eval:doc.muhick_bid_security_required"),
-			_sec("muhick_outcome_section", "Outcome"),
-			dict(fieldname="muhick_award_notice", label="Best Evaluated Bidder Notice", fieldtype="Attach"),
-			dict(fieldname="muhick_outcome_date", label="Outcome Date", fieldtype="Date"),
+			_sec(
+				"muhick_outcome_section", "Outcome",
+				description="Won or lost: from the outcome report, once the Head of Sales and the General Manager have approved it",
+			),
+			_ro("muhick_bid_outcome", "Outcome Report", "Link", options="Bid Outcome"),
+			_ro("muhick_award_notice", "Best Evaluated Bidder Notice", "Attach"),
+			_ro("muhick_outcome_date", "Outcome Date", "Date"),
 			_col("muhick_outcome_column"),
-			dict(
-				fieldname="muhick_outcome_notes", label="Why It Was Won or Closed, and Lessons", fieldtype="Small Text",
-				mandatory_depends_on="eval:doc.sales_stage=='Awarded' || doc.status=='Closed'",
-				description="",
+			_ro(
+				"muhick_outcome_notes", "Why It Was Won, Lost or Closed, and the Lessons", "Small Text",
+				mandatory_depends_on="", description="",
 			),
 		],
 	),
@@ -364,11 +370,11 @@ LEAD_ORDER = [
 	"dashboard_tab",
 ]
 # the opportunity reads like its lead: the organisation, what it wants, where it came from and who
-# runs it, then how far it has gone; the bid's own stages are its sales stages
+# runs it, then how far it has gone; the bid's status is its sales stage
 OPPORTUNITY_ORDER = [
 	"naming_series", "opportunity_from", "party_name", "customer_name", "status",
 	"column_break0", "opportunity_type", "utm_source", "opportunity_owner",
-	"column_break_10", "sales_stage", "expected_closing", "transaction_date", "probability",
+	"column_break_10", "sales_stage", "muhick_stage_since", "expected_closing", "transaction_date", "probability",
 	"organization_details_section", "no_of_employees", "annual_revenue", "customer_group",
 	"column_break_23", "industry", "market_segment", "website",
 	"column_break_31", "city", "state", "country", "territory",
@@ -388,7 +394,8 @@ OPPORTUNITY_ORDER = [
 	"muhick_delivered_by", "muhick_received_by", "muhick_acknowledgement",
 	"muhick_security_section", "muhick_bid_security_required", "muhick_bid_security_amount", "muhick_security_column",
 	"muhick_bid_security",
-	"muhick_outcome_section", "muhick_award_notice", "muhick_outcome_date", "muhick_outcome_column", "muhick_outcome_notes",
+	"muhick_outcome_section", "muhick_bid_outcome", "muhick_award_notice", "muhick_outcome_date", "muhick_outcome_column",
+	"muhick_outcome_notes",
 	"contact_info", "primary_contact_section", "contact_person", "job_title", "column_break_54", "contact_email",
 	"contact_mobile", "column_break_22", "whatsapp", "phone", "phone_ext",
 	"address_contact_section", "address_html", "customer_address", "address_display", "column_break3", "contact_html",
@@ -463,6 +470,18 @@ PROPERTY_SETTERS = (
 	("Opportunity", "opportunity_type", "reqd", "1", "Check"),
 	("Opportunity", "opportunity_owner", "label", "Sales Engineer", "Data"),
 	("Opportunity", "sales_stage", "default", "Qualified", "Text"),
+	# the bid status moves by itself with what is recorded on the bid; the standard status keeps in
+	# step underneath, out of sight
+	("Opportunity", "sales_stage", "label", "Bid Status", "Data"),
+	("Opportunity", "sales_stage", "read_only", "1", "Check"),
+	("Opportunity", "sales_stage", "description", "Moves by itself as the bid is prepared, submitted, evaluated and decided", "Text"),
+	("Opportunity", "status", "hidden", "1", "Check"),
+	("Opportunity", "status", "in_list_view", "0", "Check"),
+	("Opportunity", "status", "in_standard_filter", "0", "Check"),
+	# no "Replied": a replied opportunity closes itself after some days, in the middle of an evaluation
+	("Opportunity", "status", "options", "Open\nQuotation\nConverted\nLost\nClosed", "Text"),
+	# every change, the bid status's included, on the timeline
+	("Opportunity", None, "track_changes", "1", "Check"),
 	("Opportunity", "expected_closing", "label", "Expected Award Date", "Data"),
 	("Opportunity", "expected_closing", "description", "When the client is expected to decide", "Text"),
 	("Opportunity", "section_break_14", "label", "Bid Value", "Data"),

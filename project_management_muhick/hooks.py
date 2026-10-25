@@ -46,6 +46,9 @@ doctype_js = {
 	"Opportunity": "public/js/opportunity.js",
 }
 
+# the opportunity list shows each bid's status
+doctype_list_js = {"Opportunity": "public/js/opportunity_list.js"}
+
 override_doctype_dashboards = {
 	"Project": "project_management_muhick.overrides.dashboards.get_project_dashboard",
 	"Task": "project_management_muhick.overrides.dashboards.get_task_dashboard",
@@ -152,6 +155,7 @@ doc_events = {
 	"Project Fund Transfer": _approval_events,
 	"Sales Requisition": _approval_events,
 	"Bid Security Request": _approval_events,
+	"Bid Outcome": _approval_events,
 	"Fuel Requisition": _approval_events,
 	"Vehicle Service Request": _approval_events,
 }
@@ -167,5 +171,6 @@ scheduler_events = {
 		"project_management_muhick.overrides.project.send_dlp_reminders",
 		"project_management_muhick.muhick_projects.budget_engine.refresh_all_budgets",
 		"project_management_muhick.utils.reminders.send_daily_reminders",
+		"project_management_muhick.overrides.crm.refresh_bid_statuses",
 	],
 }

@@ -6,7 +6,8 @@ Finance Manager and the General Manager are told, and the Finance Manager approv
 with the reason: a rejected request is amended and sent again, or left closed while the bid goes on.
 Once it is approved, Finance issues the funds needed to obtain the securities (the one-off expenses and
 the first payment of the recurring ones) and records each security when the bank or insurer has issued
-it; a recurring expense becomes that security's quarterly fee."""
+it; a recurring expense becomes that security's quarterly fee. A request with no expenses needs no
+funds: its securities are recorded as soon as it is approved."""
 
 import frappe
 from frappe import _
@@ -16,6 +17,7 @@ from frappe.utils import flt, nowdate, today
 from project_management_muhick.muhick_finance.doctype.bank_facility.bank_facility import get_utilised
 from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import settle_plan_line
 from project_management_muhick.muhick_projects.utils import draft_status, validate_dates
+from project_management_muhick.overrides.crm import refresh_bid_status
 from project_management_muhick.utils.common import FINANCE_ROLES, notify, require_roles
 
 # how many times a year a recurring expense falls due
@@ -35,6 +37,10 @@ class BidSecurityRequest(Document):
 		self.status = draft_status(self)
 		if self.has_value_changed("workflow_state") and self.workflow_state == "Rejected" and not (self.rejection_reason or "").strip():
 			frappe.throw(_("Give the reason for the rejection, and say whether the request can be amended and sent again."))
+
+	def after_insert(self):
+		# the bid security asked for: the bid's preparation has started
+		refresh_bid_status(self.opportunity)
 
 	def before_submit(self):
 		self.check_facility()
@@ -69,8 +75,10 @@ class BidSecurityRequest(Document):
 		require_roles(*FINANCE_ROLES)
 		if self.docstatus != 1 or self.status != "Approved":
 			frappe.throw(_("Funds are issued once the request is approved."))
-		if flt(amount_issued) <= 0:
-			frappe.throw(_("Enter the amount issued."))
+		if not flt(self.funds_required):
+			frappe.throw(_("This request needs no funds. Record each security once the bank or insurer has issued it."))
+		if flt(amount_issued) <= 0 or flt(amount_issued) > flt(self.funds_required) + 0.005:
+			frappe.throw(_("The amount issued must be more than zero and not more than the funds required."))
 		self.db_set(
 			{
 				"amount_issued": flt(amount_issued),
@@ -81,6 +89,13 @@ class BidSecurityRequest(Document):
 		)
 		settle_plan_line(self.doctype, self.name, amount_issued)
 		notify([self.requested_by], _("Funds for bid security request {0} have been issued.").format(self.name), doc=self)
+
+
+def ready_to_record(request) -> bool:
+	"""Approved, with its funds issued or none needed."""
+	return request.docstatus == 1 and (
+		request.status == "Funds Issued" or (request.status == "Approved" and not flt(request.funds_required))
+	)
 
 
 @frappe.whitelist()
@@ -112,6 +127,8 @@ def make_bank_instrument(source_name: str):
 	quarterly fee is its share of the recurring expenses."""
 	request = frappe.get_doc("Bid Security Request", source_name)
 	request.check_permission("read")
+	if not ready_to_record(request):
+		frappe.throw(_("A security is recorded once the request is approved and its funds are issued."))
 	line = next((r for r in request.securities if not r.bank_instrument), None)
 	if not line:
 		frappe.throw(_("Every security on {0} is already recorded as issued.").format(request.name))

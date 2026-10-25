@@ -40,7 +40,8 @@ STANDARD_DOCTYPE_PERMISSIONS = {
 	"Material Request": {
 		PM: RAISE, SK: RAISE, SSK: RAISE, ADMIN_MANAGER: RAISE, COO: APPROVE, FM: APPROVE, GM: APPROVE, PRM: APPROVE,
 	},
-	"Supplier Quotation": {PRO: RAISE, PRM: APPROVE},
+	# sales engineers and the General Manager read the quotations that price a bid's BOQ
+	"Supplier Quotation": {PRO: RAISE, PRM: APPROVE, SE: READ, GM: READ},
 	# Project Managers are added to this by Muhick Settings when they are allowed to see supplier prices
 	"Purchase Order": {PRO: RAISE, PRM: RAISE, GM: APPROVE, COO: READ, FM: READ, FO: READ},
 	"Vehicle": {ADMIN_MANAGER: RAISE, FLEET_OFFICER: READ, FM: READ, FO: READ},
@@ -55,8 +56,9 @@ STANDARD_DOCTYPE_PERMISSIONS = {
 	# the Sector and Sales Stage lists; the Head of Sales maintains them as Sales Manager
 	"Market Segment": {SE: READ},
 	"Sales Stage": {SE: READ},
-	# bids are opportunities: management, finance and projects follow them
-	"Opportunity": {GM: READ, COO: READ, FM: READ, FO: READ, PM: READ, PRM: READ},
+	# bids are opportunities: management, finance, projects and procurement (who ask suppliers to price
+	# them) follow them
+	"Opportunity": {GM: READ, COO: READ, FM: READ, FO: READ, PM: READ, PRM: READ, PRO: READ},
 }
 
 

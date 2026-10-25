@@ -161,5 +161,20 @@ class TestBoqProgress(unittest.TestCase):
 		self.assertEqual(calc.allocate_to_lines(lines, totals), {"a": 10, "c": 25})
 
 
+
+class TestBids(unittest.TestCase):
+	def test_margin_is_a_share_of_the_price(self):
+		self.assertEqual(calc.margin_percent(100, 80), 20)
+		self.assertEqual(calc.margin_percent(100, 125), -25)
+
+	def test_no_margin_without_a_price(self):
+		self.assertEqual(calc.margin_percent(0, 50), 0)
+
+	def test_price_gap_to_the_winner(self):
+		# we bid 110 against a winning 100: 10% above; 90 against 100: 10% below
+		self.assertEqual(calc.price_gap_percent(110, 100), 10)
+		self.assertEqual(calc.price_gap_percent(90, 100), -10)
+		self.assertEqual(calc.price_gap_percent(110, 0), 0)
+
 if __name__ == "__main__":
 	unittest.main()

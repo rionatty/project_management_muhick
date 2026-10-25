@@ -39,6 +39,8 @@ COST_CODES = [
 	("ADM-300", "PPE and Site Safety", "Administrative", "Site Expenses"),
 	("ADM-400", "Cost of Financing (Guarantees, LC and Bank Charges)", "Administrative", "Financing"),
 	("ADM-500", "Commissions", "Administrative", "Other"),
+	# a won bid's sales requisitions and bid security charges, carried to its project
+	("ADM-600", "Cost of Winning the Bid", "Administrative", "Other"),
 	("ADM-900", "Other Site Expenses", "Administrative", "Site Expenses"),
 ]
 
@@ -73,8 +75,6 @@ FINANCIAL_REQUIREMENT_TYPES = [
 	("Bid Security Charges", "Bid Security Expense"), ("Bank Charges", "Cost"), ("Site Visit", "Cost"), ("Transport", "Cost"),
 	("Printing and Binding", "Cost"), ("Other", "Cost"),
 ]
-# the stages of a bid (an opportunity); once awarded, the sales process follows, and a lost or
-# dropped bid is closed with ERPNext's Lost or Close
 # documents a bid can contain, and the part each belongs to
 BID_DOCUMENT_TYPES = [
 	("Trading Licence", "Administrative"), ("Certificate of Registration", "Administrative"),
@@ -82,7 +82,12 @@ BID_DOCUMENT_TYPES = [
 	("Technical Proposal", "Technical"), ("Technical Data Sheets", "Technical"), ("Financial Proposal", "Financial"),
 	("Priced BOQ", "Financial"), ("Other", "Administrative"),
 ]
-SALES_STAGES = ["Qualified", "In Preparation", "Submitted", "Under Evaluation", "Awarded"]
+# the bid statuses (an opportunity's sales stages), which move by themselves: a bid still going, then
+# its outcomes
+SALES_STAGES = [
+	"Qualified", "In Preparation", "Submitted", "Under Evaluation", "Outcome Pending Approval", "Won", "Lost", "Not Pursued",
+	"Cancelled",
+]
 # ERPNext's sample values that do not fit the business; removed while nothing uses them. Opportunity
 # Type "Sales" stays: ERPNext falls back to it.
 SAMPLE_VALUES = {

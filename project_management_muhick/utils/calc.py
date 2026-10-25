@@ -213,3 +213,16 @@ def _spread(lines, qty, result):
 		share = qty if i == len(lines) - 1 else min(qty, max(_f(line["qty"]), 0.0))
 		result[line["name"]] += share
 		qty -= share
+
+
+# ------------------------------------------------------------------ bids
+def margin_percent(price, cost) -> float:
+	"""Margin as a share of the price: price 100, cost 80 -> 20.0. Without a price there is none."""
+	price = _f(price)
+	return (price - _f(cost)) / price * 100 if price else 0.0
+
+
+def price_gap_percent(ours, theirs) -> float:
+	"""How much higher our price was than the winning one; negative when ours was lower."""
+	ours, theirs = _f(ours), _f(theirs)
+	return (ours - theirs) / theirs * 100 if ours and theirs else 0.0

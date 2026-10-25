@@ -13,6 +13,7 @@ from frappe.utils import add_days, flt, now_datetime, nowdate
 
 from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import settle_plan_line
 from project_management_muhick.muhick_projects.utils import check_overdue_accountability, draft_status, leaving_draft, validate_dates
+from project_management_muhick.overrides.crm import refresh_bid_status
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import FINANCE_ROLES, notify, notify_roles, require_roles, setting
 
@@ -33,6 +34,10 @@ class SalesRequisition(Document):
 
 	def check_pending_accountability(self):
 		check_overdue_accountability(self)
+
+	def after_insert(self):
+		# money asked for the bid: its preparation has started
+		refresh_bid_status(self.opportunity)
 
 	def before_submit(self):
 		self.status = "Approved"

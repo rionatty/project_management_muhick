@@ -11,13 +11,16 @@ from project_management_muhick.setup.workflows import setup_workflows
 # ERPNext's own desk icon for its Projects workspace
 STANDARD_PROJECTS_ICON = "Projects"
 
-# ERPNext's CRM menu, where the sales team works, also lists the bid, the sales requisition and the
-# bid register: (placed after the item linking to, label, link type, link to, inside a section)
+# ERPNext's CRM menu, where the sales team works, also lists the sales requisitions, bid security
+# requests and outcome reports, the bid register and the margin comparison: (placed after the item
+# linking to, label, link type, link to, inside a section)
 CRM_SIDEBAR = "CRM"
 CRM_ITEMS = (
 	("Opportunity", "Sales Requisition", "DocType", "Sales Requisition", 0),
 	("Sales Requisition", "Bid Security Request", "DocType", "Bid Security Request", 0),
+	("Bid Security Request", "Bid Outcome", "DocType", "Bid Outcome", 0),
 	("Opportunity Summary by Sales Stage", "Bid Register", "Report", "Bid Register", 1),
+	("Bid Register", "Bid Margin Comparison", "Report", "Bid Margin Comparison", 1),
 )
 # taken out of the CRM menu while the app is installed (a lead is already one organisation), put back
 # on uninstall

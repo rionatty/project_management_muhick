@@ -18,6 +18,7 @@
   "source_documents_section",
   "opportunity",
   "quotation",
+  "bid_costs",
   "column_break_2",
   "sales_order",
   "project_category",
@@ -152,6 +153,14 @@
    "fieldtype": "Link",
    "label": "Approved Quotation",
    "options": "Quotation"
+  },
+  {
+   "description": "Its sales requisitions and bid security charges, which the project carries as its own cost",
+   "fieldname": "bid_costs",
+   "fieldtype": "Currency",
+   "label": "Spent Winning the Bid",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "fieldname": "column_break_2",
@@ -359,7 +368,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-25 10:04:19.966965",
+ "modified": "2026-10-25 22:18:41.847298",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Handover",

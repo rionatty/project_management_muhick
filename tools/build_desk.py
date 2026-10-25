@@ -74,8 +74,9 @@ CARDS = [
 	]),
 	("Sales and Bids", [
 		("Lead", "Lead", D), ("Opportunity (Bid)", "Opportunity", D), ("Sales Requisition", "Sales Requisition", D),
-		("Bid Security Request", "Bid Security Request", D),
-		("Bid Register", "Bid Register", R), ("Financial Requirement Types", "Financial Requirement Type", D),
+		("Bid Security Request", "Bid Security Request", D), ("Bid Outcome", "Bid Outcome", D),
+		("Bid Register", "Bid Register", R), ("Bid Margin Comparison", "Bid Margin Comparison", R),
+		("Financial Requirement Types", "Financial Requirement Type", D),
 		("Bid Document Types", "Bid Document Type", D),
 	]),
 	("Administration", [
@@ -134,7 +135,9 @@ NUMBER_CARDS = [
 	("Certificates to Invoice", "muhick_projects", "Muhick Projects", "Project Claim", [["Project Claim", "status", "=", "Certified"]]),
 	("Open Defects", "muhick_projects", "Muhick Projects", "Project Defect", [["Project Defect", "status", "in", ["Open", "In Progress"]]]),
 	("Requisitions to Account For", "muhick_projects", "Muhick Projects", "Project Requisition", [["Project Requisition", "status", "in", ["Paid", "Accountability Submitted"]]]),
-	("Bids in Progress", "muhick_sales", "Muhick Sales", "Opportunity", [["Opportunity", "status", "=", "Open"]]),
+	("Bids in Progress", "muhick_sales", "Muhick Sales", "Opportunity", [["Opportunity", "sales_stage", "in", [
+		"Qualified", "In Preparation", "Submitted", "Under Evaluation", "Outcome Pending Approval",
+	]]]),
 ]
 for name, mdir, module, doctype, filters in NUMBER_CARDS:
 	dump(f"project_management_muhick/{mdir}/number_card/{scrub(name)}/{scrub(name)}.json", {
@@ -158,7 +161,7 @@ CHARTS = [
 		"filters_json": json.dumps([["Project Claim", "status", "in", ["Certified", "Invoiced", "Paid"]]], separators=(",", ":")),
 	}),
 	("Bids by Status", "muhick_sales", {
-		"module": "Muhick Sales", "document_type": "Opportunity", "chart_type": "Group By", "group_by_based_on": "status",
+		"module": "Muhick Sales", "document_type": "Opportunity", "chart_type": "Group By", "group_by_based_on": "sales_stage",
 		"group_by_type": "Count", "timeseries": 0, "type": "Donut", "filters_json": "[]", "value_based_on": "",
 	}),
 ]

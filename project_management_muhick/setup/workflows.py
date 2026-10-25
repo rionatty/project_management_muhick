@@ -411,6 +411,8 @@ def get_workflows():
 		"Sales Requisition": _chain([SE], [(P_HOS, HOS), (P_GM, GM)], post_approval_editors=[FM, FO, SE]),
 		# a rejected request is amended and sent again, or left closed while the bid goes on
 		"Bid Security Request": _chain([SE], [(P_FM, FM)], post_approval_editors=[FO]),
+		# the outcome of a bid, won or lost: the Head of Sales, then the General Manager
+		"Bid Outcome": _chain([SE], [(P_HOS, HOS), (P_GM, GM)]),
 		# administration
 		"Fuel Requisition": _fleet(final_step_gm=False),
 		"Vehicle Service Request": _fleet(final_step_gm=True),

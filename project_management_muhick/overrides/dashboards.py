@@ -36,8 +36,9 @@ def get_task_dashboard(data):
 
 
 def get_opportunity_dashboard(data):
-	"""On an opportunity (a bid), its sales requisitions, its bid security request and the security."""
+	"""On an opportunity (a bid), its sales requisitions, its bid security request, the security and its
+	outcome report."""
 	data.setdefault("transactions", []).append(
-		{"label": _("Bid"), "items": ["Sales Requisition", "Bid Security Request", "Bank Instrument"]}
+		{"label": _("Bid"), "items": ["Sales Requisition", "Bid Security Request", "Bank Instrument", "Bid Outcome"]}
 	)
 	return data

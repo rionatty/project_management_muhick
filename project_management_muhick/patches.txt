@@ -14,3 +14,4 @@ project_management_muhick.patches.financial_requirement_types
 project_management_muhick.patches.sales_requisition_route
 project_management_muhick.patches.bid_security_expenses
 project_management_muhick.patches.bid_submission
+project_management_muhick.patches.bid_status

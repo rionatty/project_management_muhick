@@ -5,28 +5,29 @@
 decision, recorded with who made it and when, and only a qualified lead becomes an opportunity.
 
 The opportunity is the bid: its tender, the three parts of the bid, the submission, the bid
-security and the outcome. A bid is complete with all three parts before it is submitted. When it
-is lost or closed, Finance is asked to cancel its bid security, because the bank charges for it
-until it is cancelled."""
+security and the outcome. A bid is complete with all three parts before it is submitted. Its status
+(the Sales Stage) moves by itself with what is recorded on it, from Qualified to Won, Lost, Not
+Pursued or Cancelled; won and lost come only from an outcome report approved by the Head of Sales
+and the General Manager. When a bid is lost or closed, Finance is asked to cancel its bid security,
+because the bank charges for it until it is cancelled."""
 
 import frappe
 from frappe import _
 from frappe.utils import flt, format_datetime, get_datetime, getdate, now_datetime, today
 
+from project_management_muhick.setup.workflows import PENDING_STATES
 from project_management_muhick.utils.common import FINANCE_ROLES, GM, notify_roles
 
 DECIDED = ("Qualified", "Not Pursued")
 DECIDERS = {"Head of Sales", "Sales Manager"}
 HOS = "Head of Sales"
-# stages at which the bid has gone in
-SUBMITTED = ("Submitted", "Under Evaluation", "Awarded")
 BID_PARTS = (
 	("muhick_administrative_bid_ready", "Administrative"),
 	("muhick_technical_bid_ready", "Technical"),
 	("muhick_financial_bid_ready", "Financial"),
 )
-# stages before the bid goes in
-PREPARING = (None, "", "Qualified", "In Preparation")
+# the bid statuses of a bid still going; it ends Won, Lost, Not Pursued or Cancelled
+IN_PROGRESS = ("Qualified", "In Preparation", "Submitted", "Under Evaluation", "Outcome Pending Approval")
 SECURITY_RUNNING = ("Requested", "Active")
 
 
@@ -70,11 +71,13 @@ def validate_opportunity(doc, method=None):
 			)
 	check_parts_ready(doc)
 	record_submission(doc)
-	if doc.sales_stage in SUBMITTED:
-		missing = [_(part).lower() for field, part in BID_PARTS if not doc.get(field)]
-		if missing:
-			frappe.throw(_("A bid is complete only with all three parts. Still to be marked ready: {0}.").format(", ".join(missing)))
-	if (doc.sales_stage == "Awarded" or doc.status in ("Lost", "Closed")) and not doc.get("muhick_outcome_date"):
+	check_outcome_changes(doc)
+	if doc.status == "Closed" and doc.has_value_changed("status") and not (doc.get("muhick_outcome_notes") or "").strip():
+		frappe.throw(_("Give the reason the bid is being closed."))
+	set_bid_status(doc)
+	if doc.sales_stage in IN_PROGRESS:
+		doc.set("muhick_outcome_date", None)
+	elif doc.status in ("Lost", "Closed") and not doc.get("muhick_outcome_date"):
 		doc.set("muhick_outcome_date", today())
 
 
@@ -92,15 +95,22 @@ def check_parts_ready(doc):
 
 
 def record_submission(doc):
-	"""The submission with its acknowledgement marks the bid Submitted, and a bid only goes in with
-	its acknowledgement. A submission after the deadline is flagged."""
-	if doc.get("muhick_submitted_at") and doc.get("muhick_acknowledgement") and doc.sales_stage in PREPARING:
-		doc.sales_stage = "Submitted"
-	if doc.sales_stage in SUBMITTED and doc.has_value_changed("sales_stage"):
-		if not doc.get("muhick_acknowledgement"):
-			frappe.throw(_("Attach the acknowledgement of the submission: the stamped receipt, the e-GP confirmation or the email."))
-		if not doc.get("muhick_submitted_at"):
-			doc.set("muhick_submitted_at", now_datetime())
+	"""A bid is submitted once its submission is recorded with the acknowledgement, and only a complete
+	bid goes in. A submission after the deadline is flagged."""
+	if doc.get("muhick_acknowledgement") and not doc.get("muhick_submitted_at"):
+		doc.set("muhick_submitted_at", now_datetime())
+	if not (doc.has_value_changed("muhick_submitted_at") or doc.has_value_changed("muhick_acknowledgement")):
+		return
+	if doc.get("muhick_submitted_at") and not doc.get("muhick_acknowledgement"):
+		frappe.msgprint(
+			_("The bid counts as submitted once the acknowledgement is attached: the stamped receipt, the e-GP confirmation or the email."),
+			indicator="orange",
+			alert=True,
+		)
+	if is_submitted(doc):
+		missing = [_(part).lower() for field, part in BID_PARTS if not doc.get(field)]
+		if missing:
+			frappe.throw(_("A bid is complete only with all three parts. Still to be marked ready: {0}.").format(", ".join(missing)))
 	deadline, submitted = doc.get("muhick_submission_deadline"), doc.get("muhick_submitted_at")
 	if deadline and submitted and doc.has_value_changed("muhick_submitted_at") and get_datetime(submitted) > get_datetime(deadline):
 		frappe.msgprint(
@@ -108,6 +118,83 @@ def record_submission(doc):
 			title=_("Submitted Late"),
 			indicator="orange",
 		)
+
+
+def check_outcome_changes(doc):
+	"""Won and lost come only from an approved outcome report, and only cancelling it reopens the bid."""
+	if doc.is_new() or doc.flags.get("muhick_outcome"):
+		return
+	before = doc.get_doc_before_save()
+	if not before:
+		return
+	if (doc.get("muhick_bid_outcome") or None) != (before.get("muhick_bid_outcome") or None):
+		frappe.throw(_("The outcome report of a bid is set by its approval."))
+	if doc.status == "Lost" and before.status != "Lost":
+		frappe.throw(
+			_("A lost bid is reported with Outcome > Lost on the opportunity, for the Head of Sales and the General Manager to approve."),
+			title=_("Outcome Needs Approval"),
+		)
+	if before.status == "Lost" and doc.status != "Lost" and doc.get("muhick_bid_outcome"):
+		frappe.throw(_("The loss of this bid was approved in {0}. Cancel that outcome report to reopen the bid.").format(doc.muhick_bid_outcome))
+
+
+def is_submitted(doc) -> bool:
+	return bool(doc.get("muhick_submitted_at") and doc.get("muhick_acknowledgement"))
+
+
+def is_preparing(doc) -> bool:
+	"""Work on the bid has started: its documents, a part ready, or money requested for it."""
+	if doc.get("muhick_documents") or any(doc.get(field) for field, _part in BID_PARTS):
+		return True
+	return not doc.is_new() and any(
+		frappe.db.exists(doctype, {"opportunity": doc.name, "docstatus": ("<", 2)})
+		for doctype in ("Sales Requisition", "Bid Security Request")
+	)
+
+
+def bid_status(doc) -> str:
+	"""Where a bid stands, from what is recorded on it and its outcome report."""
+	if doc.status == "Lost":
+		return "Lost"
+	if doc.status == "Closed":
+		return "Cancelled" if is_submitted(doc) else "Not Pursued"
+	outcome = doc.get("muhick_bid_outcome")
+	if outcome and frappe.db.get_value("Bid Outcome", outcome, "outcome") == "Won":
+		return "Won"
+	if not doc.is_new() and frappe.db.exists(
+		"Bid Outcome", {"opportunity": doc.name, "docstatus": 0, "workflow_state": ("in", PENDING_STATES)}
+	):
+		return "Outcome Pending Approval"
+	if is_submitted(doc):
+		deadline = doc.get("muhick_submission_deadline")
+		return "Under Evaluation" if deadline and get_datetime(deadline) < now_datetime() else "Submitted"
+	return "In Preparation" if is_preparing(doc) else "Qualified"
+
+
+def set_bid_status(doc):
+	doc.sales_stage = bid_status(doc)
+	if doc.has_value_changed("sales_stage") or not doc.get("muhick_stage_since"):
+		doc.set("muhick_stage_since", today())
+
+
+def refresh_bid_status(opportunity):
+	"""A bid's status after something recorded elsewhere: a requisition, a bid security request, its
+	outcome report, or the submission deadline passing."""
+	if not opportunity:
+		return
+	doc = frappe.get_doc("Opportunity", opportunity)
+	stage = bid_status(doc)
+	if stage != doc.sales_stage:
+		doc.db_set({"sales_stage": stage, "muhick_stage_since": today()}, notify=True)
+		doc.add_comment("Info", _("Bid status: {0}").format(_(stage)))
+
+
+def refresh_bid_statuses():
+	"""Daily: a submitted bid goes under evaluation once its submission deadline has passed."""
+	for name in frappe.get_all(
+		"Opportunity", filters={"sales_stage": "Submitted", "muhick_submission_deadline": ("<", now_datetime())}, pluck="name"
+	):
+		refresh_bid_status(name)
 
 
 def requirement_kinds(rows, field="requirement_type") -> dict:
@@ -119,7 +206,8 @@ def requirement_kinds(rows, field="requirement_type") -> dict:
 
 
 def on_update_opportunity(doc, method=None):
-	if doc.has_value_changed("sales_stage") and doc.sales_stage == "Submitted":
+	before = doc.get_doc_before_save()
+	if is_submitted(doc) and not (before and is_submitted(before)):
 		notify_roles(
 			[HOS, GM],
 			_("Bid {0} ({1}) was submitted on {2}{3}.").format(
@@ -131,19 +219,8 @@ def on_update_opportunity(doc, method=None):
 			doc=doc,
 			extra_users=[doc.opportunity_owner],
 		)
-	status_changed = doc.has_value_changed("status")
-	if status_changed and doc.status in ("Lost", "Closed"):
+	if doc.has_value_changed("status") and doc.status in ("Lost", "Closed"):
 		request_security_cancellation(doc)
-	if (doc.has_value_changed("sales_stage") and doc.sales_stage == "Awarded") or (status_changed and doc.status == "Lost"):
-		outcome = _("lost") if doc.status == "Lost" else _("awarded")
-		notify_roles(
-			[HOS, GM],
-			_("Bid {0} ({1}) was {2}: {3}").format(
-				doc.name, doc.customer_name, outcome, doc.get("muhick_outcome_notes") or doc.order_lost_reason or ""
-			),
-			doc=doc,
-			extra_users=[doc.opportunity_owner],
-		)
 
 
 def request_security_cancellation(doc):
@@ -163,6 +240,20 @@ def request_security_cancellation(doc):
 			),
 			doc=frappe._dict(doctype="Bank Instrument", name=security),
 		)
+
+
+@frappe.whitelist()
+def make_bid_outcome(source_name: str):
+	"""The outcome report of a submitted bid, won or lost, for the Head of Sales and then the General
+	Manager to approve. A won bid's BOQ comes priced at the lowest of its supplier quotations."""
+	opportunity = frappe.get_doc("Opportunity", source_name)
+	opportunity.check_permission("read")
+	outcome = (frappe.flags.args or {}).get("outcome")
+	doc = frappe.new_doc("Bid Outcome")
+	doc.update({"opportunity": opportunity.name, "outcome": outcome if outcome in ("Won", "Lost") else None})
+	doc.check_bid(opportunity)
+	doc.prepare(opportunity)
+	return doc
 
 
 @frappe.whitelist()

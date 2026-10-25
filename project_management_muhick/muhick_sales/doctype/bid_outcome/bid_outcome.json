@@ -1,0 +1,390 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-25 22:12:02.193373",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "opportunity",
+  "organisation",
+  "company",
+  "column_break_1",
+  "outcome",
+  "outcome_date",
+  "notice",
+  "column_break_2",
+  "status",
+  "workflow_state",
+  "prepared_by",
+  "rejection_reason",
+  "bid_section",
+  "bid_price",
+  "estimated_cost",
+  "margin_at_bid",
+  "column_break_3",
+  "bid_costs",
+  "margin_section",
+  "lines",
+  "totals_section",
+  "cost_of_works",
+  "total_cost",
+  "lines_without_quotation",
+  "column_break_4",
+  "gross_profit",
+  "gross_margin",
+  "lost_section",
+  "lost_reasons",
+  "competitors",
+  "column_break_5",
+  "best_evaluated_bidder",
+  "winning_price",
+  "price_gap",
+  "report_section",
+  "explanation",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "BOC-.YYYY.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "BOC-.YYYY.-.#####",
+   "print_hide": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Opportunity (Bid)",
+   "options": "Opportunity",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "opportunity.customer_name",
+   "fieldname": "organisation",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Organisation",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "opportunity.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "outcome",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Outcome",
+   "options": "\nWon\nLost",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "description": "The date of the client's notice or decision",
+   "fieldname": "outcome_date",
+   "fieldtype": "Date",
+   "label": "Decision Date",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.outcome",
+   "fieldname": "notice",
+   "fieldtype": "Attach",
+   "label": "Best Evaluated Bidder Notice",
+   "mandatory_depends_on": "eval:doc.outcome=='Won'"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Draft\nPending Approval\nApproved\nRejected\nCancelled",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Approval Status",
+   "no_copy": 1,
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "prepared_by",
+   "fieldtype": "Link",
+   "label": "Prepared By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:in_list([\"Pending Head of Sales\", \"Pending General Manager\", \"Rejected\"], doc.workflow_state)",
+   "description": "Given by the Head of Sales or the General Manager when returning it",
+   "fieldname": "rejection_reason",
+   "fieldtype": "Small Text",
+   "label": "Reason for Rejection",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "bid_section",
+   "fieldtype": "Section Break",
+   "label": "The Bid"
+  },
+  {
+   "description": "In the company currency",
+   "fieldname": "bid_price",
+   "fieldtype": "Currency",
+   "label": "Bid Price",
+   "read_only": 1
+  },
+  {
+   "fieldname": "estimated_cost",
+   "fieldtype": "Currency",
+   "label": "Estimated Cost at Bid",
+   "read_only": 1
+  },
+  {
+   "fieldname": "margin_at_bid",
+   "fieldtype": "Percent",
+   "label": "Margin at Bid %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Its sales requisitions and bid security charges. Once the bid is won, the project carries them as its own cost.",
+   "fieldname": "bid_costs",
+   "fieldtype": "Currency",
+   "label": "Spent on the Bid",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.outcome=='Won'",
+   "description": "The BOQ priced at the suppliers' latest quotations for this bid, the lowest by default. A line no supplier has quoted takes the last purchase price, or an estimate.",
+   "fieldname": "margin_section",
+   "fieldtype": "Section Break",
+   "label": "Margin Review"
+  },
+  {
+   "fieldname": "lines",
+   "fieldtype": "Table",
+   "label": "BOQ at Supplier Prices",
+   "options": "Bid Outcome Line"
+  },
+  {
+   "depends_on": "eval:doc.outcome=='Won'",
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cost_of_works",
+   "fieldtype": "Currency",
+   "label": "Cost at Supplier Prices",
+   "read_only": 1
+  },
+  {
+   "description": "The cost at supplier prices and what was spent on the bid",
+   "fieldname": "total_cost",
+   "fieldtype": "Currency",
+   "label": "Total Cost",
+   "read_only": 1
+  },
+  {
+   "fieldname": "lines_without_quotation",
+   "fieldtype": "Int",
+   "label": "Lines Without a Supplier Quotation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "bold": 1,
+   "fieldname": "gross_profit",
+   "fieldtype": "Currency",
+   "label": "Gross Profit",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "gross_margin",
+   "fieldtype": "Percent",
+   "label": "Gross Profit Margin %",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.outcome=='Lost'",
+   "fieldname": "lost_section",
+   "fieldtype": "Section Break",
+   "label": "Why It Was Lost"
+  },
+  {
+   "fieldname": "lost_reasons",
+   "fieldtype": "Table MultiSelect",
+   "label": "Lost Reasons",
+   "mandatory_depends_on": "eval:doc.outcome=='Lost'",
+   "options": "Opportunity Lost Reason Detail"
+  },
+  {
+   "fieldname": "competitors",
+   "fieldtype": "Table MultiSelect",
+   "label": "Competitors",
+   "options": "Competitor Detail"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "best_evaluated_bidder",
+   "fieldtype": "Link",
+   "label": "Won By",
+   "options": "Competitor"
+  },
+  {
+   "depends_on": "eval:doc.best_evaluated_bidder",
+   "fieldname": "winning_price",
+   "fieldtype": "Currency",
+   "label": "Their Price"
+  },
+  {
+   "depends_on": "eval:doc.winning_price",
+   "description": "How much higher our price was; negative when it was lower",
+   "fieldname": "price_gap",
+   "fieldtype": "Percent",
+   "label": "Our Price Against Theirs %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "report_section",
+   "fieldtype": "Section Break",
+   "label": "Outcome Report"
+  },
+  {
+   "fieldname": "explanation",
+   "fieldtype": "Text Editor",
+   "label": "Why It Was Won or Lost, and the Lessons",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Bid Outcome",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-10-25 22:12:02.193373",
+ "modified_by": "Administrator",
+ "module": "Muhick Sales",
+ "name": "Bid Outcome",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Engineer",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Head of Sales",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "General Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Chief Operating Officer",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "opportunity,organisation,outcome",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "organisation",
+ "track_changes": 1
+}

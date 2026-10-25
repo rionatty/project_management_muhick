@@ -34,7 +34,7 @@ frappe.ui.form.on("Bid Security Request", {
 			return;
 		}
 		const finance = frappe.user.has_role(["Finance Manager", "Finance Officer", "System Manager"]);
-		if (frm.doc.status === "Approved" && finance) {
+		if (frm.doc.status === "Approved" && finance && flt(frm.doc.funds_required) > 0) {
 			frm.add_custom_button(__("Issue Funds"), () => {
 				muhick.prompt_and_run(
 					frm,
@@ -48,7 +48,9 @@ frappe.ui.form.on("Bid Security Request", {
 				);
 			}).addClass("btn-primary");
 		}
-		if (frm.doc.status === "Funds Issued" && finance && (frm.doc.securities || []).some((r) => !r.bank_instrument)) {
+		// once its funds are issued, or right after approval when it needs none
+		const ready = frm.doc.status === "Funds Issued" || (frm.doc.status === "Approved" && !flt(frm.doc.funds_required));
+		if (ready && finance && (frm.doc.securities || []).some((r) => !r.bank_instrument)) {
 			frm.add_custom_button(
 				__("Bid Security Issued"),
 				() =>
