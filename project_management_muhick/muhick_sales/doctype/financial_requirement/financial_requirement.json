@@ -13,10 +13,10 @@
   {
    "columns": 3,
    "fieldname": "requirement_type",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Type",
-   "options": "Bid Security\nPerformance Bond\nAdvance Payment Guarantee\nBid Document Purchase\nBid Security Charges\nBank Charges\nSite Visit\nTransport\nPrinting and Binding\nOther",
+   "options": "Financial Requirement Type",
    "reqd": 1
   },
   {
@@ -38,7 +38,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-25 10:04:19.966965",
+ "modified": "2026-10-25 10:21:48.978119",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Financial Requirement",

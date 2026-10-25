@@ -2,6 +2,11 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Sales Requisition", {
+	setup(frm) {
+		// a requisition pays for costs; the securities are bank guarantees
+		frm.set_query("expense_type", "items", () => ({ filters: { kind: "Cost" } }));
+	},
+
 	refresh(frm) {
 		if (frm.doc.docstatus !== 1) {
 			return;

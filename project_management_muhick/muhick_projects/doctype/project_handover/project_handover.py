@@ -13,6 +13,7 @@ from frappe.model.document import Document
 from frappe.utils import fmt_money, now_datetime
 
 from project_management_muhick.muhick_projects.utils import validate_dates
+from project_management_muhick.overrides.crm import requirement_kinds
 from project_management_muhick.utils.common import get_settings
 
 # handover field -> Project field
@@ -141,10 +142,11 @@ def take_from_bid(doc, bid):
 		doc.project_category = bid.opportunity_type
 	for row in bid.get("muhick_requirements") or []:
 		doc.append("requirements", {"requirement": row.requirement, "compliance": row.compliance, "remarks": row.remarks})
+	kinds = requirement_kinds(bid.get("muhick_financial_requirements"))
 	notes = [
 		" ".join(filter(None, (f"{r.requirement_type}:", r.description, fmt_money(r.amount) if r.amount else None)))
 		for r in bid.get("muhick_financial_requirements") or []
-		if r.requirement_type in ("Bid Security", "Performance Bond", "Advance Payment Guarantee")
+		if kinds.get(r.requirement_type) in ("Bid Security", "Contract Security")
 	]
 	if bid.get("muhick_bid_security"):
 		notes.append(_("Bid security issued: {0}").format(bid.muhick_bid_security))

@@ -66,6 +66,13 @@ LEAD_SOURCES = [
 	("Other", None),
 ]
 SECTORS = ["Public Sector", "Private Sector"]
+# what a bid can need in money, and the kind that decides where such a line goes
+FINANCIAL_REQUIREMENT_TYPES = [
+	("Bid Security", "Bid Security"), ("Performance Bond", "Contract Security"),
+	("Advance Payment Guarantee", "Contract Security"), ("Bid Document Purchase", "Cost"),
+	("Bid Security Charges", "Cost"), ("Bank Charges", "Cost"), ("Site Visit", "Cost"), ("Transport", "Cost"),
+	("Printing and Binding", "Cost"), ("Other", "Cost"),
+]
 # the stages of a bid (an opportunity); once awarded, the sales process follows, and a lost or
 # dropped bid is closed with ERPNext's Lost or Close
 SALES_STAGES = ["Qualified", "In Preparation", "Submitted", "Under Evaluation", "Awarded"]
@@ -119,6 +126,9 @@ def setup_crm_lists():
 	for name in SALES_STAGES:
 		if not frappe.db.exists("Sales Stage", name):
 			frappe.get_doc(doctype="Sales Stage", stage_name=name).insert(ignore_permissions=True)
+	for name, kind in FINANCIAL_REQUIREMENT_TYPES:
+		if not frappe.db.exists("Financial Requirement Type", name):
+			frappe.get_doc(doctype="Financial Requirement Type", type_name=name, kind=kind).insert(ignore_permissions=True)
 	for doctype, names in SAMPLE_VALUES.items():
 		for name in names:
 			if frappe.db.exists(doctype, name):

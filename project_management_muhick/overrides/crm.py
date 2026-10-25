@@ -53,7 +53,8 @@ def validate_opportunity(doc, method=None):
 			)
 	price, cost = flt(doc.opportunity_amount), flt(doc.get("muhick_estimated_cost"))
 	doc.set("muhick_margin_percent", (price - cost) / price * 100 if price and cost else 0)
-	securities = [r for r in doc.get("muhick_financial_requirements") or [] if r.requirement_type == "Bid Security"]
+	kinds = requirement_kinds(doc.get("muhick_financial_requirements"))
+	securities = [r for r in doc.get("muhick_financial_requirements") or [] if kinds.get(r.requirement_type) == "Bid Security"]
 	doc.set("muhick_bid_security_required", 1 if securities else 0)
 	doc.set("muhick_bid_security_amount", sum(flt(r.amount) for r in securities))
 	if doc.get("muhick_technical_bid_ready"):
@@ -70,6 +71,14 @@ def validate_opportunity(doc, method=None):
 			doc.set("muhick_submitted_on", today())
 	if (doc.sales_stage == "Awarded" or doc.status in ("Lost", "Closed")) and not doc.get("muhick_outcome_date"):
 		doc.set("muhick_outcome_date", today())
+
+
+def requirement_kinds(rows) -> dict:
+	"""{financial requirement type: its kind} for the types on these lines."""
+	types = list({r.requirement_type for r in rows or [] if r.requirement_type})
+	if not types:
+		return {}
+	return dict(frappe.get_all("Financial Requirement Type", filters={"name": ("in", types)}, fields=["name", "kind"], as_list=True))
 
 
 def on_update_opportunity(doc, method=None):
@@ -121,9 +130,9 @@ def make_sales_requisition(source_name: str):
 			"required_by": getdate(needed_by) if needed_by else None,
 		}
 	)
-	costs = (frappe.get_meta("Sales Requisition Item").get_field("expense_type").options or "").split("\n")
+	kinds = requirement_kinds(opportunity.get("muhick_financial_requirements"))
 	for row in opportunity.get("muhick_financial_requirements") or []:
-		if row.requirement_type in costs:
+		if kinds.get(row.requirement_type) == "Cost":
 			doc.append("items", {"expense_type": row.requirement_type, "description": row.description, "amount": row.amount})
 	return doc
 
