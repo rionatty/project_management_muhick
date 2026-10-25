@@ -48,6 +48,8 @@
   "checklist",
   "client_approved_brands_and_specifications_section",
   "approved_brands",
+  "client_requirements_section",
+  "requirements",
   "acceptance_section",
   "accepted_by",
   "column_break_6",
@@ -308,6 +310,18 @@
    "options": "Project Approved Brand"
   },
   {
+   "description": "From the bid: what the client asked for, and any deviation agreed at bid stage",
+   "fieldname": "client_requirements_section",
+   "fieldtype": "Section Break",
+   "label": "Client Requirements"
+  },
+  {
+   "fieldname": "requirements",
+   "fieldtype": "Table",
+   "label": "Requirements",
+   "options": "Client Requirement"
+  },
+  {
    "fieldname": "acceptance_section",
    "fieldtype": "Section Break",
    "label": "Acceptance"
@@ -345,7 +359,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-21 23:25:10.082524",
+ "modified": "2026-10-25 10:04:19.966965",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Handover",

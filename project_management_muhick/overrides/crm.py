@@ -11,7 +11,7 @@ until it is cancelled."""
 
 import frappe
 from frappe import _
-from frappe.utils import flt, today
+from frappe.utils import flt, getdate, today
 
 from project_management_muhick.utils.common import FINANCE_ROLES, GM, notify_roles
 
@@ -42,6 +42,8 @@ def validate_lead(doc, method=None):
 
 
 def validate_opportunity(doc, method=None):
+	if doc.is_new() and doc.opportunity_from not in ("Lead", "Customer"):
+		frappe.throw(_("An opportunity comes from a qualified lead or from an existing customer."))
 	if doc.is_new() and doc.opportunity_from == "Lead" and doc.party_name:
 		if frappe.db.get_value("Lead", doc.party_name, "qualification_status") != "Qualified":
 			frappe.throw(
@@ -51,6 +53,15 @@ def validate_opportunity(doc, method=None):
 			)
 	price, cost = flt(doc.opportunity_amount), flt(doc.get("muhick_estimated_cost"))
 	doc.set("muhick_margin_percent", (price - cost) / price * 100 if price and cost else 0)
+	securities = [r for r in doc.get("muhick_financial_requirements") or [] if r.requirement_type == "Bid Security"]
+	doc.set("muhick_bid_security_required", 1 if securities else 0)
+	doc.set("muhick_bid_security_amount", sum(flt(r.amount) for r in securities))
+	if doc.get("muhick_technical_bid_ready"):
+		still_open = [str(r.idx) for r in doc.get("muhick_requirements") or [] if r.compliance in (None, "", "Clarification Needed")]
+		if still_open:
+			frappe.throw(
+				_("The technical bid is ready only when every requirement is answered. Still open: row {0}.").format(", ".join(still_open))
+			)
 	if doc.sales_stage in SUBMITTED:
 		missing = [_(label) for field, label in BID_PARTS if not doc.get(field)]
 		if missing:
@@ -96,11 +107,24 @@ def request_security_cancellation(doc):
 
 @frappe.whitelist()
 def make_sales_requisition(source_name: str):
-	"""Funds for preparing the bid on an opportunity."""
+	"""Funds for preparing the bid on an opportunity, filled in from its financial requirements and
+	needed by the site visit or, failing that, the submission deadline."""
 	opportunity = frappe.get_doc("Opportunity", source_name)
 	opportunity.check_permission("read")
 	doc = frappe.new_doc("Sales Requisition")
-	doc.update({"opportunity": opportunity.name, "organisation": opportunity.customer_name, "company": opportunity.company})
+	needed_by = opportunity.get("muhick_site_visit_date") or opportunity.get("muhick_submission_deadline")
+	doc.update(
+		{
+			"opportunity": opportunity.name,
+			"organisation": opportunity.customer_name,
+			"company": opportunity.company,
+			"required_by": getdate(needed_by) if needed_by else None,
+		}
+	)
+	costs = (frappe.get_meta("Sales Requisition Item").get_field("expense_type").options or "").split("\n")
+	for row in opportunity.get("muhick_financial_requirements") or []:
+		if row.requirement_type in costs:
+			doc.append("items", {"expense_type": row.requirement_type, "description": row.description, "amount": row.amount})
 	return doc
 
 

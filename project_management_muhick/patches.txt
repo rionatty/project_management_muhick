@@ -9,3 +9,4 @@ project_management_muhick.patches.milestone_list
 project_management_muhick.patches.lead_lists
 project_management_muhick.patches.crm_lists
 project_management_muhick.patches.bids_to_opportunities
+project_management_muhick.patches.requirement_lines

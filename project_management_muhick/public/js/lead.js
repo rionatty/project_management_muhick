@@ -5,9 +5,21 @@ frappe.ui.form.on("Lead", {
 	refresh(frm) {
 		// the organisation is what is mandatory; its contact person may not be known yet
 		frm.set_df_property("first_name", "reqd", 0);
+		// requirements are answered on the opportunity, while the technical bid is prepared
+		const grid = frm.fields_dict.muhick_requirements && frm.fields_dict.muhick_requirements.grid;
+		if (grid) {
+			grid.toggle_display("compliance", false);
+			grid.toggle_display("remarks", false);
+		}
 		if (frm.doc.qualification_status === "Qualified" && !["Opportunity", "Quotation", "Converted"].includes(frm.doc.status)) {
 			frm.set_intro(__("Qualified. The next step is Create > Opportunity."), "blue");
 		}
+		// a lead is already one organisation, so prospects are not used; ERPNext adds these buttons
+		// after this script has run
+		setTimeout(() => {
+			frm.remove_custom_button("Prospect", "Create");
+			frm.remove_custom_button("Add to Prospect", "Action");
+		});
 	},
 
 	company_name(frm) {

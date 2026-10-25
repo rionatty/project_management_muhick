@@ -10,7 +10,7 @@ handover pack. Every mandatory item must be provided, or waived with a reason.
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import now_datetime
+from frappe.utils import fmt_money, now_datetime
 
 from project_management_muhick.muhick_projects.utils import validate_dates
 from project_management_muhick.utils.common import get_settings
@@ -110,19 +110,43 @@ def get_checklist_template():
 
 @frappe.whitelist()
 def make_from_sales_order(source_name: str):
-	"""Start a handover from a confirmed Sales Order. The project name is left for the user to type."""
+	"""Start a handover from a confirmed Sales Order. The project name is left for the user to type.
+	What the bid recorded comes with it: the client's requirements with any agreed deviations, the
+	type of work and the securities the tender asks for."""
 	so = frappe.get_doc("Sales Order", source_name)
 	so.check_permission("read")
+	quotation = next((i.prevdoc_docname for i in so.items if i.prevdoc_docname), None)
+	opportunity = frappe.db.get_value("Quotation", quotation, "opportunity") if quotation else None
 	doc = frappe.new_doc("Project Handover")
 	doc.update(
 		{
 			"customer": so.customer,
 			"company": so.company,
 			"sales_order": so.name,
+			"quotation": quotation,
+			"opportunity": opportunity,
 			"project": so.project,
 			"contract_value": so.base_net_total,
 			"sales_engineer": frappe.session.user,
 		}
 	)
+	if opportunity:
+		take_from_bid(doc, frappe.get_doc("Opportunity", opportunity))
 	doc.load_checklist()
 	return doc
+
+
+def take_from_bid(doc, bid):
+	if bid.opportunity_type in (doc.meta.get_field("project_category").options or "").split("\n"):
+		doc.project_category = bid.opportunity_type
+	for row in bid.get("muhick_requirements") or []:
+		doc.append("requirements", {"requirement": row.requirement, "compliance": row.compliance, "remarks": row.remarks})
+	notes = [
+		" ".join(filter(None, (f"{r.requirement_type}:", r.description, fmt_money(r.amount) if r.amount else None)))
+		for r in bid.get("muhick_financial_requirements") or []
+		if r.requirement_type in ("Bid Security", "Performance Bond", "Advance Payment Guarantee")
+	]
+	if bid.get("muhick_bid_security"):
+		notes.append(_("Bid security issued: {0}").format(bid.muhick_bid_security))
+	if notes:
+		doc.securities_notes = "\n".join(notes)

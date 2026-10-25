@@ -5,6 +5,8 @@ frappe.ui.form.on("Opportunity", {
 	setup(frm) {
 		// "Sales" stays only as ERPNext's fallback; the types of work are the business's own
 		frm.set_query("opportunity_type", () => ({ filters: { name: ["!=", "Sales"] } }));
+		// from a qualified lead or an existing customer, not from a prospect
+		frm.set_query("opportunity_from", () => ({ filters: { name: ["in", ["Lead", "Customer"]] } }));
 	},
 
 	onload(frm) {

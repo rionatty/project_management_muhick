@@ -48,7 +48,11 @@ def execute():
 
 def move(bid):
 	opportunity = bid.opportunity if bid.opportunity and frappe.db.exists("Opportunity", bid.opportunity) else new_opportunity(bid)
-	values = {field: bid.get(column) for column, field in FIELDS.items() if bid.get(column) not in (None, "")}
+	values = {
+		field: bid.get(column)
+		for column, field in FIELDS.items()
+		if bid.get(column) not in (None, "") and frappe.db.has_column("Opportunity", field)
+	}
 	values["muhick_outcome_notes"] = "\n\n".join(filter(None, (bid.outcome_reason, bid.lessons))) or None
 	if bid.bid_price and not frappe.db.get_value("Opportunity", opportunity, "opportunity_amount"):
 		values["opportunity_amount"] = bid.bid_price

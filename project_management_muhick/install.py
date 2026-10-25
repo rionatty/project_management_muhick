@@ -18,6 +18,9 @@ CRM_ITEMS = (
 	("Opportunity", "Sales Requisition", "DocType", "Sales Requisition", 0),
 	("Opportunity Summary by Sales Stage", "Bid Register", "Report", "Bid Register", 1),
 )
+# taken out of the CRM menu while the app is installed (a lead is already one organisation), put back
+# on uninstall
+CRM_HIDDEN = (("Contact", "Prospect", "DocType", "Prospect", 1),)
 
 
 def after_install():
@@ -31,7 +34,10 @@ def after_migrate():
 
 def before_uninstall():
 	show_standard_projects_icon(True)
-	frappe.db.delete("Workspace Sidebar Item", {"parent": CRM_SIDEBAR, "link_to": ("in", [i[3] for i in CRM_ITEMS])})
+	if frappe.db.exists("Workspace Sidebar", CRM_SIDEBAR):
+		frappe.db.delete("Workspace Sidebar Item", {"parent": CRM_SIDEBAR, "link_to": ("in", [i[3] for i in CRM_ITEMS])})
+		for item in CRM_HIDDEN:
+			add_crm_item(*item)
 
 
 def setup():
@@ -63,32 +69,36 @@ def add_sales_to_crm_menu():
 	if not frappe.db.exists("Workspace Sidebar", CRM_SIDEBAR):
 		return
 	# bids used to be a separate document
-	frappe.db.delete("Workspace Sidebar Item", {"parent": CRM_SIDEBAR, "link_to": "Bid"})
-	for after, label, link_type, link_to, child in CRM_ITEMS:
-		items = frappe.get_all(
-			"Workspace Sidebar Item",
-			filters={"parent": CRM_SIDEBAR, "parenttype": "Workspace Sidebar"},
-			fields=["name", "idx", "link_to"],
-			order_by="idx asc",
-		)
-		if any(i.link_to == link_to for i in items):
-			continue
-		anchor = next((i for i in items if i.link_to == after), None)
-		idx = anchor.idx + 1 if anchor else len(items) + 1
-		for i in items:
-			if i.idx >= idx:
-				frappe.db.set_value("Workspace Sidebar Item", i.name, "idx", i.idx + 1, update_modified=False)
-		frappe.get_doc(
-			{
-				"doctype": "Workspace Sidebar Item",
-				"parent": CRM_SIDEBAR,
-				"parenttype": "Workspace Sidebar",
-				"parentfield": "items",
-				"idx": idx,
-				"type": "Link",
-				"label": label,
-				"link_type": link_type,
-				"link_to": link_to,
-				"child": child,
-			}
-		).db_insert()
+	frappe.db.delete("Workspace Sidebar Item", {"parent": CRM_SIDEBAR, "link_to": ("in", ["Bid", *(i[3] for i in CRM_HIDDEN)])})
+	for item in CRM_ITEMS:
+		add_crm_item(*item)
+
+
+def add_crm_item(after, label, link_type, link_to, child):
+	items = frappe.get_all(
+		"Workspace Sidebar Item",
+		filters={"parent": CRM_SIDEBAR, "parenttype": "Workspace Sidebar"},
+		fields=["name", "idx", "link_to"],
+		order_by="idx asc",
+	)
+	if any(i.link_to == link_to for i in items):
+		return
+	anchor = next((i for i in items if i.link_to == after), None)
+	idx = anchor.idx + 1 if anchor else len(items) + 1
+	for i in items:
+		if i.idx >= idx:
+			frappe.db.set_value("Workspace Sidebar Item", i.name, "idx", i.idx + 1, update_modified=False)
+	frappe.get_doc(
+		{
+			"doctype": "Workspace Sidebar Item",
+			"parent": CRM_SIDEBAR,
+			"parenttype": "Workspace Sidebar",
+			"parentfield": "items",
+			"idx": idx,
+			"type": "Link",
+			"label": label,
+			"link_type": link_type,
+			"link_to": link_to,
+			"child": child,
+		}
+	).db_insert()

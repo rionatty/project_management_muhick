@@ -12,8 +12,16 @@ from frappe.custom.doctype.property_setter.property_setter import make_property_
 BUDGET_STATUS = "\nWithin Budget\nExceeds Budget\nNot Budgeted\nNot Applicable"
 # the kinds of work the business takes on: Type of Work on leads, opportunities and bids
 TYPES_OF_WORK = ["Works", "Supply and Install", "Supply Only", "Maintenance / Service", "Consultancy", "Car Hire"]
-# on the lead and the opportunity under the same name, so ERPNext copies it from one to the other
-REQUIREMENT = dict(fieldname="muhick_requirement", label="Requirement", fieldtype="Small Text", description="What the client needs: the scope in the advert, BOQ or enquiry")
+# tables on the lead and the opportunity under the same names, so ERPNext copies their lines from one
+# to the other
+REQUIREMENTS = dict(
+	fieldname="muhick_requirements", label="Requirements", fieldtype="Table", options="Client Requirement",
+	description="What the client needs, one line each: the scope in the advert, BOQ or enquiry",
+)
+FINANCIAL_REQUIREMENTS = dict(
+	fieldname="muhick_financial_requirements", label="Financial Requirements", fieldtype="Table", options="Financial Requirement",
+	description="What the bid needs in money, one line each. The bid security and the sales requisition are filled in from these lines.",
+)
 COST_CODE = dict(fieldname="muhick_cost_code", label="Cost Code", fieldtype="Link", options="Cost Code", insert_after="project")
 
 
@@ -242,7 +250,9 @@ CUSTOM_FIELDS = {
 		"request_type",
 		[
 			_sec("muhick_requirement_section"),
-			dict(REQUIREMENT),
+			dict(REQUIREMENTS),
+			_sec("muhick_financial_section"),
+			dict(FINANCIAL_REQUIREMENTS),
 		],
 	)
 	# what the go / no-go rests on; the opportunity takes it over under the same field names
@@ -252,14 +262,12 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_submission_deadline", label="Submission Deadline", fieldtype="Datetime"),
 			dict(fieldname="muhick_site_visit_required", label="Site Visit Required", fieldtype="Check"),
 			dict(fieldname="muhick_site_visit_date", label="Site Visit Date", fieldtype="Date", depends_on="eval:doc.muhick_site_visit_required"),
-			dict(fieldname="muhick_financial_requirement", label="Financial Requirement", fieldtype="Small Text", description="For example a bid security or the cost of the bid documents"),
 			dict(fieldname="muhick_qualification_notes", label="Why Pursue / Not Pursue", fieldtype="Small Text", mandatory_depends_on="eval:doc.qualification_status=='Not Pursued'"),
 		],
 	),
-	"Opportunity": _chain("probability", [_sec("muhick_requirement_section"), dict(REQUIREMENT)])
 	# the bid itself, from the tender to the outcome. The tender details come over from the lead,
 	# whose fields have the same names; a loss is recorded with ERPNext's lost reasons and competitors.
-	+ _chain(
+	"Opportunity": _chain(
 		"competitors",
 		[
 			dict(fieldname="muhick_bid_tab", fieldtype="Tab Break", label="Bid"),
@@ -271,8 +279,14 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_site_visit_required", label="Site Visit Required", fieldtype="Check"),
 			dict(fieldname="muhick_site_visit_date", label="Site Visit Date", fieldtype="Date", depends_on="eval:doc.muhick_site_visit_required"),
 			_col("muhick_tender_column_2"),
-			dict(fieldname="muhick_financial_requirement", label="Financial Requirement", fieldtype="Small Text"),
 			dict(fieldname="muhick_qualification_notes", label="Why Pursue", fieldtype="Small Text"),
+			_sec("muhick_compliance_section"),
+			dict(
+				REQUIREMENTS, label="Requirements and Compliance",
+				description="From the lead. Answer each line while preparing the technical bid; it is ready once none is left open.",
+			),
+			_sec("muhick_financial_section"),
+			dict(FINANCIAL_REQUIREMENTS),
 			_sec("muhick_preparation_section", "Bid Preparation", description="A bid is complete with all three parts, and only a complete bid is submitted"),
 			dict(fieldname="muhick_estimated_cost", label="Estimated Cost", fieldtype="Currency", options="currency"),
 			_ro("muhick_margin_percent", "Margin %", "Percent"),
@@ -285,8 +299,8 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_submitted_on", label="Submitted On", fieldtype="Date"),
 			dict(fieldname="muhick_bid_documents", label="Bid Documents", fieldtype="Attach"),
 			_sec("muhick_security_section", "Bid Security"),
-			dict(fieldname="muhick_bid_security_required", label="Bid Security Required", fieldtype="Check"),
-			dict(fieldname="muhick_bid_security_amount", label="Bid Security Amount", fieldtype="Currency", options="currency", depends_on="eval:doc.muhick_bid_security_required"),
+			dict(fieldname="muhick_bid_security_required", label="Bid Security Required", fieldtype="Check", read_only=1, description="From a Bid Security line in the financial requirements"),
+			dict(fieldname="muhick_bid_security_amount", label="Bid Security Amount", fieldtype="Currency", options="currency", read_only=1, depends_on="eval:doc.muhick_bid_security_required"),
 			_col("muhick_security_column"),
 			dict(fieldname="muhick_bid_security", label="Bid Security", fieldtype="Link", options="Bank Instrument", depends_on="eval:doc.muhick_bid_security_required"),
 			_sec("muhick_outcome_section", "Outcome"),
@@ -309,12 +323,12 @@ LEAD_ORDER = [
 	"naming_series", "company_name", "type", "market_segment",
 	"column_break_1", "muhick_company_email", "phone", "website", "city",
 	"col_break123", "request_type", "utm_source", "customer", "lead_owner", "status",
-	"muhick_requirement_section", "muhick_requirement",
+	"muhick_requirement_section", "muhick_requirements", "muhick_financial_section", "muhick_financial_requirements",
 	"contact_info_tab", "salutation", "first_name", "middle_name", "last_name", "job_title", "gender",
 	"column_break_20", "mobile_no", "whatsapp_no", "phone_ext",
 	"column_break_16", "email_id", "lead_name",
 	"qualification_tab", "muhick_submission_deadline", "muhick_site_visit_required", "muhick_site_visit_date",
-	"muhick_financial_requirement", "column_break_64", "qualification_status", "muhick_qualification_notes",
+	"column_break_64", "qualification_status", "muhick_qualification_notes",
 	"qualified_by", "qualified_on",
 	"address_section", "address_html", "column_break_38", "state", "country", "territory", "column_break2", "contact_html",
 	"organization_section", "no_of_employees", "column_break_28", "annual_revenue", "industry", "column_break_31", "fax",
@@ -331,7 +345,6 @@ OPPORTUNITY_ORDER = [
 	"naming_series", "opportunity_from", "party_name", "customer_name", "status",
 	"column_break0", "opportunity_type", "utm_source", "opportunity_owner",
 	"column_break_10", "sales_stage", "expected_closing", "transaction_date", "probability",
-	"muhick_requirement_section", "muhick_requirement",
 	"organization_details_section", "no_of_employees", "annual_revenue", "customer_group",
 	"column_break_23", "industry", "market_segment", "website",
 	"column_break_31", "city", "state", "country", "territory",
@@ -342,7 +355,8 @@ OPPORTUNITY_ORDER = [
 	"lost_detail_section", "lost_reasons", "order_lost_reason", "column_break_56", "competitors",
 	"muhick_bid_tab", "muhick_tender_section", "muhick_tender_reference", "muhick_advert", "muhick_tender_column",
 	"muhick_submission_deadline", "muhick_site_visit_required", "muhick_site_visit_date", "muhick_tender_column_2",
-	"muhick_financial_requirement", "muhick_qualification_notes",
+	"muhick_qualification_notes", "muhick_compliance_section", "muhick_requirements", "muhick_financial_section",
+	"muhick_financial_requirements",
 	"muhick_preparation_section", "muhick_estimated_cost", "muhick_margin_percent", "muhick_preparation_column",
 	"muhick_administrative_bid_ready", "muhick_technical_bid_ready", "muhick_financial_bid_ready",
 	"muhick_preparation_column_2", "muhick_submission_mode", "muhick_submitted_on", "muhick_bid_documents",

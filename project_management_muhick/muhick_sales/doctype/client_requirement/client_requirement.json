@@ -1,0 +1,53 @@
+{
+ "actions": [],
+ "creation": "2026-10-25 10:04:19.966965",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "requirement",
+  "compliance",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "columns": 6,
+   "fieldname": "requirement",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Requirement",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "description": "Answered while preparing the technical bid, against the client's specification and the manufacturer's data sheet",
+   "fieldname": "compliance",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Compliance",
+   "options": "\nComplies\nDeviation\nClarification Needed"
+  },
+  {
+   "columns": 2,
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Deviation / Clarification",
+   "mandatory_depends_on": "eval:in_list(['Deviation', 'Clarification Needed'], doc.compliance)"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-25 10:04:19.966965",
+ "modified_by": "Administrator",
+ "module": "Muhick Sales",
+ "name": "Client Requirement",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

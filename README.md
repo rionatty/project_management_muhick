@@ -48,15 +48,21 @@ and certificates, retention, payments and the controls around them.
 
 - A lead screen laid out for the business, where every lead is an organisation: the organisation,
   lead type (client, main contractor or consultant), sector, type of work, source and the sales
-  engineer who runs it come first, then what the client needs, the contact person and the go / no-go
+  engineer who runs it come first, then the client's requirements and the bid's financial
+  requirements (bid security, bid documents, site visit and the like) as lines, the contact person
+  and the go / no-go
   decision: the submission deadline, any site visit and the money needed, then Qualified or Not
   Pursued with the reason. Only the Head of Sales decides, and the lead records who decided and when.
 - Only a qualified lead becomes an opportunity. The opportunity reads the same way and takes over the
   lead's details; its type of work and stages are the business's own (Qualified, In Preparation,
   Submitted, Under Evaluation, Awarded) in place of ERPNext's sample lists.
 - The opportunity is the bid, built on the standard Opportunity: its Bid tab holds the tender, the
-  three parts of the bid, the submission, the bid security and the outcome. A bid is submitted only
-  when all three parts are ready. Follow-ups are the opportunity's own activities and comments; a lost
+  client's requirements with a compliance answer for each (the technical bid check), the financial
+  requirements, the three parts of the bid, the submission, the bid security and the outcome. The
+  technical bid is ready only when every requirement is answered, and a bid is submitted only when
+  all three parts are ready. The financial requirements fill in the sales requisition (with the date
+  the money is needed by) and the bid security; the project handover takes the requirements with
+  any agreed deviations, the type of work and the securities the tender asks for. Follow-ups are the opportunity's own activities and comments; a lost
   bid is recorded with ERPNext's lost reasons and competitors, and Finance is asked to cancel its bid
   security. Create > Sales Requisition raises the funds for the bid. The Bid Register reports every
   bid with what was spent on it and why it was won or lost, and deadlines are reminded ahead of time.
