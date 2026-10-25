@@ -76,9 +76,9 @@ def validate_opportunity(doc, method=None):
 		doc.set("muhick_outcome_date", today())
 
 
-def requirement_kinds(rows) -> dict:
+def requirement_kinds(rows, field="requirement_type") -> dict:
 	"""{financial requirement type: its kind} for the types on these lines."""
-	types = list({r.requirement_type for r in rows or [] if r.requirement_type})
+	types = list({r.get(field) for r in rows or [] if r.get(field)})
 	if not types:
 		return {}
 	return dict(frappe.get_all("Financial Requirement Type", filters={"name": ("in", types)}, fields=["name", "kind"], as_list=True))
@@ -122,13 +122,27 @@ def make_sales_requisition(source_name: str):
 	"""Funds for preparing the bid on an opportunity, filled in from its financial requirements."""
 	opportunity = frappe.get_doc("Opportunity", source_name)
 	opportunity.check_permission("read")
-	costs = bid_costs(opportunity)
+	return new_requisition(opportunity, "Bid Costs")
+
+
+@frappe.whitelist()
+def make_bid_security_request(source_name: str):
+	"""The request for the bid security, from the Bid Security line of the financial requirements.
+	It goes to the Finance Manager for approval."""
+	opportunity = frappe.get_doc("Opportunity", source_name)
+	opportunity.check_permission("read")
+	return new_requisition(opportunity, "Bid Security")
+
+
+def new_requisition(opportunity, purpose):
+	costs = bid_costs(opportunity, purpose)
 	if not costs["items"]:
 		frappe.msgprint(costs["note"], alert=True, indicator="orange")
 	doc = frappe.new_doc("Sales Requisition")
 	doc.update(
 		{
 			"opportunity": opportunity.name,
+			"purpose": purpose,
 			"organisation": opportunity.customer_name,
 			"company": opportunity.company,
 			"required_by": costs["required_by"],
@@ -140,30 +154,33 @@ def make_sales_requisition(source_name: str):
 
 
 @frappe.whitelist()
-def get_bid_costs(opportunity: str) -> dict:
-	"""For a new sales requisition where the opportunity is picked: its cost lines and date."""
+def get_bid_costs(opportunity: str, purpose: str = "Bid Costs") -> dict:
+	"""For a new sales requisition where the opportunity is picked: its lines and date."""
 	doc = frappe.get_doc("Opportunity", opportunity)
 	doc.check_permission("read")
-	return bid_costs(doc)
+	return bid_costs(doc, purpose)
 
 
-def bid_costs(opportunity) -> dict:
-	"""The cost lines of an opportunity's financial requirements, which a sales requisition pays,
-	and the date the money is needed by: the site visit or, failing that, the submission deadline.
-	The securities are bank guarantees, arranged by Finance, so they are not among the lines."""
+def bid_costs(opportunity, purpose="Bid Costs") -> dict:
+	"""The lines of an opportunity's financial requirements for a sales requisition: the bid security
+	for a bid security request, the costs for any other. The money is needed by the submission
+	deadline for the bid security, and by the site visit or the deadline for the costs."""
+	security = purpose == "Bid Security"
 	rows = opportunity.get("muhick_financial_requirements") or []
 	kinds = requirement_kinds(rows)
-	needed_by = opportunity.get("muhick_site_visit_date") or opportunity.get("muhick_submission_deadline")
+	deadline = opportunity.get("muhick_submission_deadline")
+	needed_by = deadline if security else opportunity.get("muhick_site_visit_date") or deadline
 	return {
 		"items": [
 			{"expense_type": r.requirement_type, "description": r.description, "amount": r.amount}
 			for r in rows
-			if kinds.get(r.requirement_type) == "Cost"
+			if (kinds.get(r.requirement_type) == "Bid Security") == security and kinds.get(r.requirement_type) != "Contract Security"
 		],
 		"required_by": getdate(needed_by) if needed_by else None,
-		"note": _(
-			"Opportunity {0} has no cost lines in its financial requirements. A bid security is a bank guarantee, "
-			"raised with Create > Bid Security on the opportunity; the bank's fee for it is a Bid Security Charges line."
+		"note": (
+			_("Opportunity {0} has no Bid Security line in its financial requirements.")
+			if security
+			else _("Opportunity {0} has no cost lines in its financial requirements. The bid security has a request of its own: Create > Bid Security Request on the opportunity.")
 		).format(opportunity.name),
 	}
 

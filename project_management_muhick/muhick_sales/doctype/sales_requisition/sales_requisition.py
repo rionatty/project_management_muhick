@@ -3,6 +3,8 @@
 
 """Funds for a bid: the bid document, bank charges, site visit and similar costs. Prepared by the
 Sales Engineer, approved by the Head of Sales and the General Manager, then paid by Finance.
+A bid security request is a requisition for the bid security: the Finance Manager approves it (the
+General Manager is told), and a rejected request is amended and sent again, or left closed.
 The engineer accounts for the money afterwards: an unspent balance is returned, an overspend is
 reimbursed."""
 
@@ -12,6 +14,7 @@ from frappe.model.document import Document
 from frappe.utils import add_days, flt, now_datetime, nowdate
 
 from project_management_muhick.muhick_projects.utils import draft_status, leaving_draft, validate_dates
+from project_management_muhick.overrides.crm import requirement_kinds
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import FINANCE_ROLES, notify, notify_roles, require_roles, setting
 
@@ -27,8 +30,23 @@ class SalesRequisition(Document):
 		if self.total_amount <= 0:
 			frappe.throw(_("Enter the amount being requested."))
 		self.status = draft_status(self)
+		self.check_lines_match_purpose()
+		if self.has_value_changed("workflow_state") and self.workflow_state == "Rejected" and not (self.rejection_reason or "").strip():
+			frappe.throw(_("Give the reason for the rejection, and say whether the request can be amended and sent again."))
 		if self.docstatus == 0 and leaving_draft(self):
 			self.check_pending_accountability()
+
+	def check_lines_match_purpose(self):
+		"""A bid security request holds the bid security; any other requisition holds the bid costs."""
+		security = self.purpose == "Bid Security"
+		kinds = requirement_kinds(self.items, "expense_type")
+		wrong = [str(r.idx) for r in self.items if (kinds.get(r.expense_type) == "Bid Security") != security]
+		if wrong:
+			frappe.throw(
+				_("Row {0}: a bid security request holds only bid security lines.").format(", ".join(wrong))
+				if security
+				else _("Row {0}: a bid security goes on its own request (For: Bid Security).").format(", ".join(wrong))
+			)
 
 	def check_pending_accountability(self):
 		if not setting("block_requisition_if_pending_accountability", 1):

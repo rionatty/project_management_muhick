@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_to_date, flt, get_datetime, now_datetime
 
-from project_management_muhick.setup.workflows import PENDING_STATES, WORKFLOW_DOCTYPES
+from project_management_muhick.setup.workflows import P_FM, PENDING_STATES, WORKFLOW_DOCTYPES
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import (
 	COO, FM, FO, GM, PM, PRM, PRO, SE, SK, get_settings, notify, notify_roles, project_manager_of, users_with_roles,
@@ -43,11 +43,14 @@ NOTIFY_ON_APPROVAL = {
 }
 
 
-# told as soon as the document is sent for approval, as well as the approver
+# told as soon as the document is sent for approval, as well as the approver; a {state: roles} entry
+# only for that step
 NOTIFY_ON_PENDING = {
 	"Purchase Receipt": [PRO, FM, FO],
 	"Delivery Note": [PRO],
 	"Procurement Requisition": [PRM],
+	# a bid security request: the General Manager is told as well as the Finance Manager
+	"Sales Requisition": {P_FM: [GM]},
 }
 
 # documents whose Project Manager is kept informed
@@ -112,14 +115,16 @@ def _on_state_change(doc, state, previous=None):
 		).insert(ignore_permissions=True)
 		subject = _("{0}{1} is waiting for your approval").format(_("URGENT: ") if _is_urgent(doc) else "", label)
 		notify_roles(get_approver_roles(doc.doctype, state), subject, doc=doc)
+		watchers = NOTIFY_ON_PENDING.get(doc.doctype, [])
 		notify_roles(
-			NOTIFY_ON_PENDING.get(doc.doctype, []),
+			watchers.get(state, []) if isinstance(watchers, dict) else watchers,
 			_("{0} has been raised and is awaiting approval").format(label),
 			doc=doc,
 			extra_users=_project_managers(doc),
 		)
 	elif state in RETURNED_STATES:
-		notify([doc.owner], _("{0} was returned: {1}").format(label, _(state)), doc=doc)
+		reason = (doc.get("rejection_reason") or "").strip()
+		notify([doc.owner], _("{0} was returned: {1}").format(label, f"{_(state)}. {reason}" if reason else _(state)), doc=doc)
 	elif state in APPROVED_STATES:
 		if doc.doctype == "Stock Entry" and previous not in PENDING_STATES:
 			# submitted directly with no approval step: only an issue to a project is announced

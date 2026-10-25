@@ -7,6 +7,7 @@
  "field_order": [
   "naming_series",
   "opportunity",
+  "purpose",
   "organisation",
   "company",
   "column_break_1",
@@ -16,6 +17,7 @@
   "column_break_2",
   "status",
   "workflow_state",
+  "rejection_reason",
   "amount_requested_section",
   "items",
   "section_break_1",
@@ -58,6 +60,17 @@
    "in_standard_filter": 1,
    "label": "Opportunity (Bid)",
    "options": "Opportunity",
+   "reqd": 1
+  },
+  {
+   "default": "Bid Costs",
+   "description": "Bid Costs go to the Head of Sales and the General Manager; a Bid Security request goes to the Finance Manager",
+   "fieldname": "purpose",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "For",
+   "options": "Bid Costs\nBid Security",
    "reqd": 1
   },
   {
@@ -125,6 +138,14 @@
    "no_copy": 1,
    "options": "Workflow State",
    "read_only": 1
+  },
+  {
+   "depends_on": "eval:in_list([\"Pending Head of Sales\", \"Pending General Manager\", \"Pending Finance Manager\", \"Rejected\"], doc.workflow_state)",
+   "description": "Given by the approver who rejects it, saying whether it can be amended and sent again",
+   "fieldname": "rejection_reason",
+   "fieldtype": "Small Text",
+   "label": "Reason for Rejection",
+   "no_copy": 1
   },
   {
    "fieldname": "amount_requested_section",
@@ -287,7 +308,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-24 12:29:05.510250",
+ "modified": "2026-10-25 11:03:05.200651",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Sales Requisition",
@@ -346,6 +367,7 @@
    "write": 1
   },
   {
+   "cancel": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -353,6 +375,7 @@
    "report": 1,
    "role": "Finance Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   },
   {
