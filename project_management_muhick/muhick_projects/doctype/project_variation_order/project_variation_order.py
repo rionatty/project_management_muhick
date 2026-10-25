@@ -28,6 +28,10 @@ class ProjectVariationOrder(Document):
 		if leaving_draft(self) and not self.client_approval:
 			frappe.throw(_("Attach the client's approval of this variation before sending it for approval."))
 
+	def before_update_after_submit(self):
+		# the lines stay as approved, including any entered before the item was mandatory
+		self.flags.ignore_mandatory = True
+
 	def on_submit(self):
 		project_api.update_position(self.project)
 		self.make_budget_revision()

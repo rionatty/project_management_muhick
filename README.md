@@ -9,8 +9,9 @@ and certificates, retention, payments and the controls around them.
 **Projects**
 
 - Sales-to-project handover with a mandatory handover pack the Project Manager accepts or returns.
-- Bill of Quantities, each line with its item, milestone and the quantities requested, purchased and
-  consumed so far, kept current as requests, orders and issues are submitted.
+- Bill of Quantities as a list of items from the Item master (stock or non-stock), each with its
+  milestone and the quantities requested, purchased and consumed so far in the item's stock unit,
+  kept current as requests, orders and issues are submitted. Variation order lines are items too.
 - A project budget built by phase and cost code from Item-master items,
   taken from the activity plan's items or typed in.
 - Commitments: approved purchase orders, subcontracts, requisitions and labour reduce the available

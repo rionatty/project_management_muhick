@@ -29,7 +29,9 @@ class ProjectBOQ(Document):
 		set_quantities(self.project, self.items)
 
 	def before_update_after_submit(self):
-		# milestones can be set on an approved BOQ; the quantities follow
+		# milestones can be set on an approved BOQ; the quantities follow. Its lines stay as approved,
+		# including any entered before the item was mandatory.
+		self.flags.ignore_mandatory = True
 		set_quantities(self.project, self.items)
 
 	def before_submit(self):
