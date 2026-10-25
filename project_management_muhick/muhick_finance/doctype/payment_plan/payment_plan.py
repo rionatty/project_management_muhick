@@ -225,7 +225,9 @@ class PaymentPlan(Document):
 		return entry.name
 
 	@frappe.whitelist()
-	def issue_funds(self, line: str, issued_on: str | None = None, payment_reference: str | None = None):
+	def issue_funds(
+		self, line: str, issued_on: str | None = None, payment_reference: str | None = None, accountability_due_date: str | None = None
+	):
 		"""Pay an approved sales requisition or bid security request line: the document records the
 		funds issued, and its line here is marked paid."""
 		require_roles(*FINANCE_ROLES)
@@ -238,7 +240,9 @@ class PaymentPlan(Document):
 		if not method:
 			frappe.throw(_("Funds for {0} {1} are not issued from the plan.").format(_(row.reference_doctype), row.reference_name))
 		doc = frappe.get_doc(row.reference_doctype, row.reference_name)
-		getattr(doc, method)(flt(row.approved_amount), issued_on or nowdate(), payment_reference)
+		# a requisition is accounted for by a date; a bid security request is not
+		extra = {"accountability_due_date": accountability_due_date} if method == "mark_paid" else {}
+		getattr(doc, method)(flt(row.approved_amount), issued_on or nowdate(), payment_reference, **extra)
 
 	@frappe.whitelist()
 	def refresh_lines(self):

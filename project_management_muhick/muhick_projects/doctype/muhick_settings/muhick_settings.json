@@ -308,9 +308,10 @@
   },
   {
    "default": "1",
+   "description": "Overdue: past the date it had to be accounted for by, with the accountability not yet submitted",
    "fieldname": "block_requisition_if_pending_accountability",
    "fieldtype": "Check",
-   "label": "Block New Requisition While Accountability Is Pending"
+   "label": "Block a New Requisition While an Accountability Is Overdue"
   },
   {
    "fieldname": "column_break_6",
@@ -318,6 +319,7 @@
   },
   {
    "default": "7",
+   "description": "Used when no Account By date is given as the funds are issued",
    "fieldname": "accountability_due_days",
    "fieldtype": "Int",
    "label": "Accountability Due (Days After Payment)"
@@ -581,7 +583,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-10-25 21:02:05.365862",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Settings",

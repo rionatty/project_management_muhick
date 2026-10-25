@@ -42,6 +42,12 @@ frappe.ui.form.on("Sales Requisition", {
 						{ fieldname: "amount_issued", fieldtype: "Currency", label: __("Amount Issued"), reqd: 1, default: frm.doc.total_amount },
 						{ fieldname: "issued_on", fieldtype: "Date", label: __("Issued On"), reqd: 1, default: frappe.datetime.get_today() },
 						{ fieldname: "payment_reference", fieldtype: "Data", label: __("Payment Reference") },
+						{
+							fieldname: "accountability_due_date",
+							fieldtype: "Date",
+							label: __("Account By"),
+							description: __("Leave empty for the usual number of days after payment."),
+						},
 					],
 					"mark_paid"
 				);

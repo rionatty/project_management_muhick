@@ -74,7 +74,9 @@ and certificates, retention, payments and the controls around them.
   bid with what was spent on it and why it was won or lost, and deadlines are reminded ahead of time.
   ERPNext's CRM menu lists the sales requisitions and the bid register.
 - Sales requisitions for the cost of preparing a bid, paid through the payment plan: Issue Funds on the
-  plan line (or on the requisition) records the money issued on both.
+  plan line (or on the requisition) records the money issued on both, with the date it must be
+  accounted for by. As for project requisitions, a new one is refused only while an earlier one of
+  the same person is past that date and still not accounted for.
 - Bid security requests, raised from the opportunity with their securities and the expenses of
   obtaining them (one-off or recurring) as lines: the Finance Manager approves one (the General
   Manager is told) or rejects it with the reason, after which it is amended and sent again or left

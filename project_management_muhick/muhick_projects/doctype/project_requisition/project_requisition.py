@@ -20,7 +20,7 @@ from frappe.model.document import Document
 from frappe.utils import add_days, flt, now_datetime, nowdate
 
 from project_management_muhick.muhick_projects import budget_engine
-from project_management_muhick.muhick_projects.utils import draft_status, leaving_draft, set_amounts, validate_dates
+from project_management_muhick.muhick_projects.utils import check_overdue_accountability, draft_status, leaving_draft, set_amounts, validate_dates
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.approval import get_route
 from project_management_muhick.utils.common import FINANCE_ROLES, GM, notify, notify_roles, require_roles, setting
@@ -61,26 +61,8 @@ class ProjectRequisition(Document):
 		return amounts
 
 	def check_pending_accountability(self):
-		"""No new cash while an earlier advance is unaccounted."""
-		if not setting("block_requisition_if_pending_accountability", 1):
-			return
-		pending = frappe.get_all(
-			"Project Requisition",
-			filters={
-				"requested_by": self.requested_by,
-				"docstatus": 1,
-				"status": ("in", OPEN_ACCOUNTABILITY),
-				"name": ("!=", self.name or ""),
-			},
-			pluck="name",
-		)
-		if pending:
-			frappe.throw(
-				_("{0} still has to account for: {1}. Clear that accountability before requesting more funds.").format(
-					self.requested_by, ", ".join(pending)
-				),
-				title=_("Accountability Pending"),
-			)
+		"""No new cash while an earlier advance is overdue for accountability."""
+		check_overdue_accountability(self)
 
 	def before_submit(self):
 		if not self.is_unbudgeted:
@@ -118,7 +100,13 @@ class ProjectRequisition(Document):
 			frappe.throw(_("This is not possible while the requisition is {0}.").format(_(self.status)))
 
 	@frappe.whitelist()
-	def mark_paid(self, amount_issued: float, issued_on: str | None = None, payment_reference: str | None = None):
+	def mark_paid(
+		self,
+		amount_issued: float,
+		issued_on: str | None = None,
+		payment_reference: str | None = None,
+		accountability_due_date: str | None = None,
+	):
 		"""Finance records the money issued (outgoing payment process)."""
 		require_roles(*FINANCE_ROLES)
 		self._require_status("Approved")
@@ -126,12 +114,14 @@ class ProjectRequisition(Document):
 		if amount_issued <= 0 or amount_issued > flt(self.total_amount) + 0.005:
 			frappe.throw(_("The amount issued must be more than zero and not more than the approved amount."))
 		issued_on = issued_on or nowdate()
+		due = accountability_due_date or add_days(issued_on, setting("accountability_due_days", 7))
+		validate_dates(issued_on, due, _("Issued On"), _("Account By"))
 		self.db_set(
 			{
 				"amount_issued": amount_issued,
 				"issued_on": issued_on,
 				"payment_reference": payment_reference,
-				"accountability_due_date": add_days(issued_on, setting("accountability_due_days", 7)),
+				"accountability_due_date": due,
 				"status": "Paid",
 			}
 		)

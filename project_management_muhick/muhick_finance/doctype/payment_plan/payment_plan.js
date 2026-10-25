@@ -62,6 +62,12 @@ function issue_funds(frm, lines) {
 			},
 			{ fieldname: "issued_on", fieldtype: "Date", label: __("Issued On"), reqd: 1, default: frappe.datetime.get_today() },
 			{ fieldname: "payment_reference", fieldtype: "Data", label: __("Payment Reference") },
+			{
+				fieldname: "accountability_due_date",
+				fieldtype: "Date",
+				label: __("Account By"),
+				description: __("For a sales requisition. Leave empty for the usual number of days after payment."),
+			},
 		],
 		(values) => muhick.run(frm, "issue_funds", values),
 		__("Issue Funds")

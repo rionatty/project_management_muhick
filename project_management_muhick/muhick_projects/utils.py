@@ -7,9 +7,10 @@ import re
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import flt, formatdate, nowdate
 
 from project_management_muhick.muhick_projects import budget_engine
+from project_management_muhick.utils.common import setting
 
 DRAFT_STATES = (None, "", "Draft")
 RETURNED_STATES = ("Rejected", "Evaluation Returned", "Returned")
@@ -80,6 +81,33 @@ def ensure_milestone(name):
 		return existing
 	frappe.get_doc({"doctype": "Task Type", "description": _("Milestone")}).insert(set_name=name, ignore_permissions=True)
 	return name
+
+
+def check_overdue_accountability(doc):
+	"""No new cash request while one of the requester's earlier ones is past its accountability date
+	and the accountability has still not been submitted."""
+	if not setting("block_requisition_if_pending_accountability", 1):
+		return
+	overdue = frappe.get_all(
+		doc.doctype,
+		filters={
+			"requested_by": doc.requested_by,
+			"docstatus": 1,
+			"status": "Paid",
+			"accountability_due_date": ("<", nowdate()),
+			"name": ("!=", doc.name or ""),
+		},
+		fields=["name", "accountability_due_date"],
+		order_by="accountability_due_date asc",
+	)
+	if overdue:
+		frappe.throw(
+			_("{0} has not accounted for {1}. Submit that accountability before requesting more funds.").format(
+				doc.requested_by,
+				", ".join(_("{0} (due {1})").format(r.name, formatdate(r.accountability_due_date)) for r in overdue),
+			),
+			title=_("Accountability Overdue"),
+		)
 
 
 def validate_dates(start, end, start_label, end_label):

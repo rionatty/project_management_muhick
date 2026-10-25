@@ -29,16 +29,19 @@ def send_daily_reminders():
 
 def overdue_accountability():
 	today = nowdate()
-	rows = frappe.get_all(
-		"Project Requisition",
-		filters={"docstatus": 1, "status": "Paid", "accountability_due_date": ("<", today)},
-		fields=["name", "requested_by", "accountability_due_date"],
-	)
-	for r in rows:
-		doc = frappe._dict(doctype="Project Requisition", name=r.name)
-		notify([r.requested_by], _("Accountability for {0} was due on {1}.").format(r.name, r.accountability_due_date), doc=doc)
-	if rows:
-		notify_roles(FINANCE_ROLES, _("{0} requisition(s) have overdue accountability.").format(len(rows)))
+	overdue = 0
+	for doctype in ("Project Requisition", "Sales Requisition"):
+		rows = frappe.get_all(
+			doctype,
+			filters={"docstatus": 1, "status": "Paid", "accountability_due_date": ("<", today)},
+			fields=["name", "requested_by", "accountability_due_date"],
+		)
+		for r in rows:
+			doc = frappe._dict(doctype=doctype, name=r.name)
+			notify([r.requested_by], _("Accountability for {0} was due on {1}.").format(r.name, r.accountability_due_date), doc=doc)
+		overdue += len(rows)
+	if overdue:
+		notify_roles(FINANCE_ROLES, _("{0} requisition(s) have overdue accountability.").format(overdue))
 
 
 def missing_weekly_reports():
