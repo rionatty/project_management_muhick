@@ -18,6 +18,8 @@ DONE = ("Paid", "Held", "Not Executed")
 OPEN_PLAN = ("Draft", "Pending Approval", "Approved")
 # documents paid with a Payment Entry; the others are paid from their own form
 PAID_BY_PAYMENT_ENTRY = ("Purchase Invoice", "Purchase Order", "Payment Request")
+# documents whose funds can also be issued from the plan: the method that records them on the document
+ISSUED_FROM_PLAN = {"Sales Requisition": "mark_paid", "Bid Security Request": "issue_funds"}
 
 
 class PaymentPlan(Document):
@@ -72,6 +74,9 @@ class PaymentPlan(Document):
 			details = (source.payee or source.requested_by, source.project, outstanding, source.required_by)
 		elif dt == "Sales Requisition":
 			outstanding = flt(source.total_amount) - flt(source.amount_issued)
+			details = (source.requested_by, None, outstanding, source.required_by)
+		elif dt == "Bid Security Request":
+			outstanding = flt(source.funds_required) - flt(source.amount_issued)
 			details = (source.requested_by, None, outstanding, source.required_by)
 		elif dt == "Casual Sheet":
 			outstanding = 0 if source.status == "Paid" else source.total_amount
@@ -175,18 +180,20 @@ class PaymentPlan(Document):
 
 	@frappe.whitelist()
 	def get_project_payables(self):
-		"""Approved cash requisitions, casual sheets and expense claims waiting to be paid."""
+		"""Approved cash requisitions, bid security requests, casual sheets and expense claims waiting
+		to be paid."""
 		sources = (
-			("Project Requisition", "purpose_title"), ("Casual Sheet", "project_name"),
-			("Reimbursement Claim", "purpose"), ("Sales Requisition", "organisation"),
+			("Project Requisition", "purpose_title", "total_amount"), ("Casual Sheet", "project_name", "total_amount"),
+			("Reimbursement Claim", "purpose", "total_amount"), ("Sales Requisition", "organisation", "total_amount"),
+			("Bid Security Request", "organisation", "funds_required"),
 		)
-		for doctype, title in sources:
+		for doctype, title, amount in sources:
 			for doc in frappe.get_all(
 				doctype,
 				filters={"company": self.company, "docstatus": 1, "status": "Approved"},
-				fields=["name", "total_amount", f"{title} as title"],
+				fields=["name", f"{amount} as amount", f"{title} as title"],
 			):
-				self.add_line(doctype, doc.name, doc.total_amount, doc.title)
+				self.add_line(doctype, doc.name, doc.amount, doc.title)
 
 	@frappe.whitelist()
 	def make_payment(self, line: str):
@@ -202,7 +209,7 @@ class PaymentPlan(Document):
 		if row.payment_entry:
 			return row.payment_entry
 		if row.reference_doctype not in PAID_BY_PAYMENT_ENTRY:
-			frappe.throw(_("Use Record Payment on {0} {1} itself.").format(_(row.reference_doctype), row.reference_name))
+			frappe.throw(_("{0} {1} is paid from its own form or with Issue Funds.").format(_(row.reference_doctype), row.reference_name))
 		doctype, name = row.reference_doctype, row.reference_name
 		if doctype == "Payment Request":
 			doctype, name = frappe.db.get_value("Payment Request", name, ["reference_doctype", "reference_name"])
@@ -218,6 +225,22 @@ class PaymentPlan(Document):
 		return entry.name
 
 	@frappe.whitelist()
+	def issue_funds(self, line: str, issued_on: str | None = None, payment_reference: str | None = None):
+		"""Pay an approved sales requisition or bid security request line: the document records the
+		funds issued, and its line here is marked paid."""
+		require_roles(*FINANCE_ROLES)
+		if self.docstatus != 1 or self.status != "Approved":
+			frappe.throw(_("Funds can only be issued from an approved plan."))
+		row = next((l for l in self.lines if l.name == line), None)
+		if not row or row.line_status != "Approved":
+			frappe.throw(_("This line is not approved for payment."))
+		method = ISSUED_FROM_PLAN.get(row.reference_doctype)
+		if not method:
+			frappe.throw(_("Funds for {0} {1} are not issued from the plan.").format(_(row.reference_doctype), row.reference_name))
+		doc = frappe.get_doc(row.reference_doctype, row.reference_name)
+		getattr(doc, method)(flt(row.approved_amount), issued_on or nowdate(), payment_reference)
+
+	@frappe.whitelist()
 	def refresh_lines(self):
 		"""Pick up lines paid from their own form (requisitions, casual sheets, expense claims)."""
 		if self.docstatus != 1:
@@ -226,7 +249,7 @@ class PaymentPlan(Document):
 			if row.reference_doctype in PAID_BY_PAYMENT_ENTRY or row.line_status != "Approved":
 				continue
 			status = frappe.db.get_value(row.reference_doctype, row.reference_name, "status")
-			if status in ("Paid", "Accountability Submitted", "Accounted", "Closed"):
+			if status in ("Paid", "Funds Issued", "Accountability Submitted", "Accounted", "Closed"):
 				frappe.db.set_value(
 					"Payment Plan Line",
 					row.name,
@@ -244,6 +267,20 @@ def update_progress(plan):
 	if status in ("Approved", "Closed"):
 		values["status"] = "Closed" if lines and all(l.line_status in DONE for l in lines) else "Approved"
 	frappe.db.set_value("Payment Plan", plan, values, update_modified=False)
+
+
+def settle_plan_line(doctype, name, amount):
+	"""Funds issued for a document on its own form: its line on an approved plan is paid too."""
+	for line, plan in frappe.db.sql(
+		"""
+		select l.name, l.parent from `tabPayment Plan Line` l inner join `tabPayment Plan` p on p.name = l.parent
+		where l.reference_doctype = %s and l.reference_name = %s and l.line_status = 'Approved'
+			and p.docstatus = 1 and p.status = 'Approved'
+		""",
+		(doctype, name),
+	):
+		frappe.db.set_value("Payment Plan Line", line, {"line_status": "Paid", "paid_amount": flt(amount)}, update_modified=False)
+		update_progress(plan)
 
 
 def on_payment(entry, cancelled=False):

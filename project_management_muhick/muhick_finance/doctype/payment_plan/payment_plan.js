@@ -30,6 +30,12 @@ frappe.ui.form.on("Payment Plan", {
 		if (frm.doc.docstatus === 1 && frm.doc.status === "Approved") {
 			frm.add_custom_button(__("Raise Payments"), () => raise_payments(frm)).addClass("btn-primary");
 			frm.add_custom_button(__("Refresh Lines"), () => muhick.run(frm, "refresh_lines"));
+			const issuable = (frm.doc.lines || []).filter(
+				(l) => l.line_status === "Approved" && ["Sales Requisition", "Bid Security Request"].includes(l.reference_doctype)
+			);
+			if (issuable.length) {
+				frm.add_custom_button(__("Issue Funds"), () => issue_funds(frm, issuable));
+			}
 		}
 	},
 });
@@ -39,6 +45,28 @@ frappe.ui.form.on("Payment Plan Line", {
 		frappe.model.set_value(cdt, cdn, "approved_amount", locals[cdt][cdn].proposed_amount);
 	},
 });
+
+// pay one sales requisition or bid security request line: the document records the funds issued
+function issue_funds(frm, lines) {
+	frappe.prompt(
+		[
+			{
+				fieldname: "line",
+				fieldtype: "Select",
+				label: __("Line"),
+				reqd: 1,
+				options: lines.map((l) => ({
+					value: l.name,
+					label: `${l.reference_name}: ${l.party || ""} ${format_currency(l.approved_amount, frm.doc.currency)}`,
+				})),
+			},
+			{ fieldname: "issued_on", fieldtype: "Date", label: __("Issued On"), reqd: 1, default: frappe.datetime.get_today() },
+			{ fieldname: "payment_reference", fieldtype: "Data", label: __("Payment Reference") },
+		],
+		(values) => muhick.run(frm, "issue_funds", values),
+		__("Issue Funds")
+	);
+}
 
 // one draft Payment Entry per approved line that is paid with a payment entry
 async function raise_payments(frm) {

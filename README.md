@@ -73,14 +73,15 @@ and certificates, retention, payments and the controls around them.
   security. Create > Sales Requisition raises the funds for the bid. The Bid Register reports every
   bid with what was spent on it and why it was won or lost, and deadlines are reminded ahead of time.
   ERPNext's CRM menu lists the sales requisitions and the bid register.
-- Sales requisitions for the cost of preparing a bid, paid through the payment plan.
+- Sales requisitions for the cost of preparing a bid, paid through the payment plan: Issue Funds on the
+  plan line (or on the requisition) records the money issued on both.
 - Bid security requests, raised from the opportunity with their securities and the expenses of
   obtaining them (one-off or recurring) as lines: the Finance Manager approves one (the General
   Manager is told) or rejects it with the reason, after which it is amended and sent again or left
   closed while the bid goes on. The Finance Manager chooses the bank facility the securities are drawn
   on and cannot approve them if they do not fit in what it has left (its limit, less the securities
-  running on it and those approved but not yet issued). Once it is approved, Finance records the funds
-  issued (the one-off
+  running on it and those approved but not yet issued). Once it is approved, Finance issues the funds
+  from the payment plan or the request itself (the one-off
   expenses and the first payment of the recurring ones), then each security once the bank or insurer
   has issued it, with the recurring expenses as its quarterly fee. All of a lost bid's securities are
   put up for cancellation.

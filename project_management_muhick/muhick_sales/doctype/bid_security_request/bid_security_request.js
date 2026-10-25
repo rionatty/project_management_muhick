@@ -35,16 +35,16 @@ frappe.ui.form.on("Bid Security Request", {
 		}
 		const finance = frappe.user.has_role(["Finance Manager", "Finance Officer", "System Manager"]);
 		if (frm.doc.status === "Approved" && finance) {
-			frm.add_custom_button(__("Record Funds Issued"), () => {
+			frm.add_custom_button(__("Issue Funds"), () => {
 				muhick.prompt_and_run(
 					frm,
-					__("Funds Issued"),
+					__("Issue Funds"),
 					[
 						{ fieldname: "amount_issued", fieldtype: "Currency", label: __("Amount Issued"), reqd: 1, default: frm.doc.funds_required },
 						{ fieldname: "issued_on", fieldtype: "Date", label: __("Issued On"), reqd: 1, default: frappe.datetime.get_today() },
 						{ fieldname: "payment_reference", fieldtype: "Data", label: __("Payment Reference") },
 					],
-					"record_funds_issued"
+					"issue_funds"
 				);
 			}).addClass("btn-primary");
 		}

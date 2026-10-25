@@ -34,10 +34,10 @@ frappe.ui.form.on("Sales Requisition", {
 		const status = frm.doc.status;
 		const finance = frappe.user.has_role(["Finance Manager", "Finance Officer", "System Manager"]);
 		if (status === "Approved" && finance) {
-			frm.add_custom_button(__("Record Payment"), () => {
+			frm.add_custom_button(__("Issue Funds"), () => {
 				muhick.prompt_and_run(
 					frm,
-					__("Money Issued"),
+					__("Issue Funds"),
 					[
 						{ fieldname: "amount_issued", fieldtype: "Currency", label: __("Amount Issued"), reqd: 1, default: frm.doc.total_amount },
 						{ fieldname: "issued_on", fieldtype: "Date", label: __("Issued On"), reqd: 1, default: frappe.datetime.get_today() },

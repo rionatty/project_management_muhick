@@ -14,6 +14,7 @@ from frappe.model.document import Document
 from frappe.utils import flt, nowdate, today
 
 from project_management_muhick.muhick_finance.doctype.bank_facility.bank_facility import get_utilised
+from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import settle_plan_line
 from project_management_muhick.muhick_projects.utils import draft_status, validate_dates
 from project_management_muhick.utils.common import FINANCE_ROLES, notify, require_roles
 
@@ -64,7 +65,7 @@ class BidSecurityRequest(Document):
 		self.db_set("status", "Cancelled")
 
 	@frappe.whitelist()
-	def record_funds_issued(self, amount_issued: float, issued_on: str | None = None, payment_reference: str | None = None):
+	def issue_funds(self, amount_issued: float, issued_on: str | None = None, payment_reference: str | None = None):
 		require_roles(*FINANCE_ROLES)
 		if self.docstatus != 1 or self.status != "Approved":
 			frappe.throw(_("Funds are issued once the request is approved."))
@@ -78,6 +79,7 @@ class BidSecurityRequest(Document):
 				"status": "Funds Issued",
 			}
 		)
+		settle_plan_line(self.doctype, self.name, amount_issued)
 		notify([self.requested_by], _("Funds for bid security request {0} have been issued.").format(self.name), doc=self)
 
 

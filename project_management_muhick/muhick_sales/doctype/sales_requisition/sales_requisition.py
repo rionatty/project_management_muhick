@@ -11,6 +11,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, flt, now_datetime, nowdate
 
+from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import settle_plan_line
 from project_management_muhick.muhick_projects.utils import draft_status, leaving_draft, validate_dates
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import FINANCE_ROLES, notify, notify_roles, require_roles, setting
@@ -93,6 +94,7 @@ class SalesRequisition(Document):
 				"status": "Paid",
 			}
 		)
+		settle_plan_line(self.doctype, self.name, amount_issued)
 		notify([self.requested_by], _("{0} has been paid. Account for it by {1}.").format(self.name, self.accountability_due_date), doc=self)
 
 	@frappe.whitelist()
