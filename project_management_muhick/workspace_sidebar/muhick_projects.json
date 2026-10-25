@@ -1,6 +1,6 @@
 {
  "app": "project_management_muhick",
- "creation": "2026-10-25 10:22:18.559956",
+ "creation": "2026-10-25 10:24:24.615319",
  "docstatus": 0,
  "doctype": "Workspace Sidebar",
  "header_icon": "project",
@@ -36,7 +36,7 @@
    "icon": "project",
    "indent": 0,
    "keep_closed": 0,
-   "label": "ERPNext Projects Page",
+   "label": "Projects Workspace",
    "link_to": "Projects",
    "link_type": "Workspace",
    "show_arrow": 0,
@@ -1179,7 +1179,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-25 10:22:18.559956",
+ "modified": "2026-10-25 10:24:24.615319",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",

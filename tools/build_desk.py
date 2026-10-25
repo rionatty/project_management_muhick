@@ -225,7 +225,7 @@ items = [
 	link("Home", WS, "Workspace", icon="home"),
 	# ERPNext's Project dashboard and its own Projects page stay one click away
 	link("Projects Dashboard", "Project", "Dashboard", icon="dashboard"),
-	link("ERPNext Projects Page", "Projects", "Workspace", icon="project"),
+	link("Projects Workspace", "Projects", "Workspace", icon="project"),
 	link("Project", "Project", icon="projects"),
 ]
 for card, entries in CARDS:

@@ -310,7 +310,7 @@ CUSTOM_FIELDS = {
 			dict(
 				fieldname="muhick_outcome_notes", label="Why It Was Won or Closed, and Lessons", fieldtype="Small Text",
 				mandatory_depends_on="eval:doc.sales_stage=='Awarded' || doc.status=='Closed'",
-				description="For a lost bid, ERPNext asks for the lost reasons and the competitors",
+				description="",
 			),
 		],
 	),
