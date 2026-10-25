@@ -75,6 +75,13 @@ FINANCIAL_REQUIREMENT_TYPES = [
 ]
 # the stages of a bid (an opportunity); once awarded, the sales process follows, and a lost or
 # dropped bid is closed with ERPNext's Lost or Close
+# documents a bid can contain, and the part each belongs to
+BID_DOCUMENT_TYPES = [
+	("Trading Licence", "Administrative"), ("Certificate of Registration", "Administrative"),
+	("Tax Clearance Certificate", "Administrative"), ("Books of Accounts", "Administrative"), ("Bid Security", "Administrative"),
+	("Technical Proposal", "Technical"), ("Technical Data Sheets", "Technical"), ("Financial Proposal", "Financial"),
+	("Priced BOQ", "Financial"), ("Other", "Administrative"),
+]
 SALES_STAGES = ["Qualified", "In Preparation", "Submitted", "Under Evaluation", "Awarded"]
 # ERPNext's sample values that do not fit the business; removed while nothing uses them. Opportunity
 # Type "Sales" stays: ERPNext falls back to it.
@@ -129,6 +136,9 @@ def setup_crm_lists():
 	for name, kind in FINANCIAL_REQUIREMENT_TYPES:
 		if not frappe.db.exists("Financial Requirement Type", name):
 			frappe.get_doc(doctype="Financial Requirement Type", type_name=name, kind=kind).insert(ignore_permissions=True)
+	for name, part in BID_DOCUMENT_TYPES:
+		if not frappe.db.exists("Bid Document Type", name):
+			frappe.get_doc(doctype="Bid Document Type", document_name=name, part=part).insert(ignore_permissions=True)
 	for doctype, names in SAMPLE_VALUES.items():
 		for name in names:
 			if frappe.db.exists(doctype, name):

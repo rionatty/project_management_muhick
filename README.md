@@ -62,7 +62,10 @@ and certificates, retention, payments and the controls around them.
   Submitted, Under Evaluation, Awarded) in place of ERPNext's sample lists.
 - The opportunity is the bid, built on the standard Opportunity: its Bid tab holds the tender, the
   client's requirements with a compliance answer for each (the technical bid check), the financial
-  requirements, the three parts of the bid, the submission, the bid security and the outcome. The
+  requirements, the three parts of the bid with their documents (each part ready once every document
+  listed under it has its file), the submission record (date and time, mode, copies, who delivered it,
+  who received it and the acknowledgement, which marks the bid Submitted and is flagged if late), the
+  bid security and the outcome. The
   technical bid is ready only when every requirement is answered, and a bid is submitted only when
   all three parts are ready. Financial requirement types are a list sales can add to; each type's
   kind decides where its lines go: costs fill in the sales requisition (with the date the money is

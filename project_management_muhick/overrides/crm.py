@@ -11,7 +11,7 @@ until it is cancelled."""
 
 import frappe
 from frappe import _
-from frappe.utils import flt, getdate, today
+from frappe.utils import flt, format_datetime, get_datetime, getdate, now_datetime, today
 
 from project_management_muhick.utils.common import FINANCE_ROLES, GM, notify_roles
 
@@ -21,10 +21,12 @@ HOS = "Head of Sales"
 # stages at which the bid has gone in
 SUBMITTED = ("Submitted", "Under Evaluation", "Awarded")
 BID_PARTS = (
-	("muhick_administrative_bid_ready", "administrative"),
-	("muhick_technical_bid_ready", "technical"),
-	("muhick_financial_bid_ready", "financial"),
+	("muhick_administrative_bid_ready", "Administrative"),
+	("muhick_technical_bid_ready", "Technical"),
+	("muhick_financial_bid_ready", "Financial"),
 )
+# stages before the bid goes in
+PREPARING = (None, "", "Qualified", "In Preparation")
 SECURITY_RUNNING = ("Requested", "Active")
 
 
@@ -66,14 +68,46 @@ def validate_opportunity(doc, method=None):
 			frappe.throw(
 				_("The technical bid is ready only when every requirement is answered. Still open: row {0}.").format(", ".join(still_open))
 			)
+	check_parts_ready(doc)
+	record_submission(doc)
 	if doc.sales_stage in SUBMITTED:
-		missing = [_(label) for field, label in BID_PARTS if not doc.get(field)]
+		missing = [_(part).lower() for field, part in BID_PARTS if not doc.get(field)]
 		if missing:
 			frappe.throw(_("A bid is complete only with all three parts. Still to be marked ready: {0}.").format(", ".join(missing)))
-		if not doc.get("muhick_submitted_on"):
-			doc.set("muhick_submitted_on", today())
 	if (doc.sales_stage == "Awarded" or doc.status in ("Lost", "Closed")) and not doc.get("muhick_outcome_date"):
 		doc.set("muhick_outcome_date", today())
+
+
+def check_parts_ready(doc):
+	"""A part is marked ready only once its documents are listed, each with its file."""
+	for field, part in BID_PARTS:
+		if not (doc.get(field) and doc.has_value_changed(field)):
+			continue
+		rows = [r for r in doc.get("muhick_documents") or [] if r.part == part]
+		if not rows:
+			frappe.throw(_("List the documents of the {0} bid before marking it ready.").format(_(part).lower()))
+		without_file = [r.document_type for r in rows if not r.file]
+		if without_file:
+			frappe.throw(_("{0} bid: attach the file of {1} before marking it ready.").format(_(part), ", ".join(without_file)))
+
+
+def record_submission(doc):
+	"""The submission with its acknowledgement marks the bid Submitted, and a bid only goes in with
+	its acknowledgement. A submission after the deadline is flagged."""
+	if doc.get("muhick_submitted_at") and doc.get("muhick_acknowledgement") and doc.sales_stage in PREPARING:
+		doc.sales_stage = "Submitted"
+	if doc.sales_stage in SUBMITTED and doc.has_value_changed("sales_stage"):
+		if not doc.get("muhick_acknowledgement"):
+			frappe.throw(_("Attach the acknowledgement of the submission: the stamped receipt, the e-GP confirmation or the email."))
+		if not doc.get("muhick_submitted_at"):
+			doc.set("muhick_submitted_at", now_datetime())
+	deadline, submitted = doc.get("muhick_submission_deadline"), doc.get("muhick_submitted_at")
+	if deadline and submitted and doc.has_value_changed("muhick_submitted_at") and get_datetime(submitted) > get_datetime(deadline):
+		frappe.msgprint(
+			_("This bid went in after its submission deadline of {0}.").format(format_datetime(deadline)),
+			title=_("Submitted Late"),
+			indicator="orange",
+		)
 
 
 def requirement_kinds(rows, field="requirement_type") -> dict:
@@ -85,6 +119,18 @@ def requirement_kinds(rows, field="requirement_type") -> dict:
 
 
 def on_update_opportunity(doc, method=None):
+	if doc.has_value_changed("sales_stage") and doc.sales_stage == "Submitted":
+		notify_roles(
+			[HOS, GM],
+			_("Bid {0} ({1}) was submitted on {2}{3}.").format(
+				doc.name,
+				doc.customer_name,
+				format_datetime(doc.get("muhick_submitted_at")),
+				f" ({_(doc.muhick_submission_mode)})" if doc.get("muhick_submission_mode") else "",
+			),
+			doc=doc,
+			extra_users=[doc.opportunity_owner],
+		)
 	status_changed = doc.has_value_changed("status")
 	if status_changed and doc.status in ("Lost", "Closed"):
 		request_security_cancellation(doc)

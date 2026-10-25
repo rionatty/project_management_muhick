@@ -8,7 +8,7 @@ from collections import defaultdict
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import date_diff, flt, get_datetime, getdate, nowdate
 
 WON = ("Quotation", "Converted")
 
@@ -24,7 +24,11 @@ def execute(filters=None):
 		{"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 100},
 		{"fieldname": "utm_source", "label": _("Source"), "fieldtype": "Data", "width": 150},
 		{"fieldname": "muhick_submission_deadline", "label": _("Deadline"), "fieldtype": "Datetime", "width": 150},
-		{"fieldname": "muhick_submitted_on", "label": _("Submitted On"), "fieldtype": "Date", "width": 110},
+		{"fieldname": "muhick_submitted_at", "label": _("Submitted On"), "fieldtype": "Datetime", "width": 150},
+		{"fieldname": "muhick_submission_mode", "label": _("Mode"), "fieldtype": "Data", "width": 90},
+		{"fieldname": "acknowledged", "label": _("Acknowledged"), "fieldtype": "Check", "width": 100},
+		{"fieldname": "late", "label": _("Late"), "fieldtype": "Check", "width": 60},
+		{"fieldname": "days_waiting", "label": _("Days Since Submission"), "fieldtype": "Int", "width": 110},
 		{"fieldname": "opportunity_amount", "label": _("Bid Price"), "fieldtype": "Currency", "width": 140},
 		{"fieldname": "muhick_margin_percent", "label": _("Margin %"), "fieldtype": "Percent", "width": 90},
 		{"fieldname": "bid_cost", "label": _("Spent on the Bid"), "fieldtype": "Currency", "width": 140},
@@ -39,11 +43,11 @@ def execute(filters=None):
 			conditions[field] = filters.get(field)
 	if filters.from_date and filters.to_date:
 		conditions["transaction_date"] = ("between", [filters.from_date, filters.to_date])
-	computed = ("bid_cost", "security_status", "outcome")
+	computed = ("bid_cost", "security_status", "outcome", "acknowledged", "late", "days_waiting")
 	bids = frappe.get_all(
 		"Opportunity",
 		filters=conditions,
-		fields=[c["fieldname"] for c in columns if c["fieldname"] not in computed] + ["muhick_outcome_notes", "order_lost_reason"],
+		fields=[c["fieldname"] for c in columns if c["fieldname"] not in computed] + ["muhick_outcome_notes", "order_lost_reason", "muhick_acknowledgement"],
 		order_by="transaction_date desc",
 	)
 	if not bids:
@@ -64,6 +68,12 @@ def execute(filters=None):
 		b.bid_cost = spent.get(b.name, 0)
 		b.security_status = security_status.get(b.muhick_bid_security)
 		b.outcome = b.order_lost_reason if b.status == "Lost" else b.muhick_outcome_notes
+		b.acknowledged = 1 if b.muhick_acknowledgement else 0
+		submitted, deadline = b.muhick_submitted_at, b.muhick_submission_deadline
+		b.late = 1 if submitted and deadline and get_datetime(submitted) > get_datetime(deadline) else 0
+		# still waiting for the outcome
+		if submitted and b.sales_stage in ("Submitted", "Under Evaluation") and b.status == "Open":
+			b.days_waiting = date_diff(nowdate(), getdate(submitted))
 	won = sum(1 for b in bids if b.sales_stage == "Awarded" or b.status in WON)
 	decided = won + sum(1 for b in bids if b.status == "Lost")
 	message = _("{0} bids, {1} decided, {2} won ({3}%).").format(

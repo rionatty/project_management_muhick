@@ -1,0 +1,55 @@
+{
+ "actions": [],
+ "creation": "2026-10-25 21:12:42.541493",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_type",
+  "part",
+  "file"
+ ],
+ "fields": [
+  {
+   "columns": 3,
+   "fieldname": "document_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Document",
+   "options": "Bid Document Type",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fetch_from": "document_type.part",
+   "fetch_if_empty": 1,
+   "fieldname": "part",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Part",
+   "options": "Administrative\nTechnical\nFinancial",
+   "reqd": 1
+  },
+  {
+   "columns": 5,
+   "fieldname": "file",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "File"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-25 21:12:42.541493",
+ "modified_by": "Administrator",
+ "module": "Muhick Sales",
+ "name": "Bid Document",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
