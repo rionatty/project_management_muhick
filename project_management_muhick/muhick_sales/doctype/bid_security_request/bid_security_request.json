@@ -22,6 +22,8 @@
   "amount",
   "column_break_3",
   "funds_required",
+  "bank_facility",
+  "facility_available",
   "security_terms",
   "securities_section",
   "securities",
@@ -164,6 +166,22 @@
    "reqd": 0
   },
   {
+   "description": "Chosen by the Finance Manager: the facility the securities are drawn on. Approval checks that they fit.",
+   "fieldname": "bank_facility",
+   "fieldtype": "Link",
+   "label": "Bank Facility",
+   "options": "Bank Facility"
+  },
+  {
+   "depends_on": "eval:doc.bank_facility",
+   "description": "Its limit, less the securities running on it and those of other requests approved but not yet issued",
+   "fieldname": "facility_available",
+   "fieldtype": "Currency",
+   "label": "Available on the Facility",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
    "description": "For example the form of security, who may issue it and how long it must be valid",
    "fieldname": "security_terms",
    "fieldtype": "Small Text",
@@ -241,7 +259,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-25 11:27:12.194548",
+ "modified": "2026-10-25 11:48:06.792872",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bid Security Request",

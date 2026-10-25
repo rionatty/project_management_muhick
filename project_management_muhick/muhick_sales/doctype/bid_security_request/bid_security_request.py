@@ -13,6 +13,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, nowdate, today
 
+from project_management_muhick.muhick_finance.doctype.bank_facility.bank_facility import get_utilised
 from project_management_muhick.muhick_projects.utils import draft_status, validate_dates
 from project_management_muhick.utils.common import FINANCE_ROLES, notify, require_roles
 
@@ -29,12 +30,33 @@ class BidSecurityRequest(Document):
 		if flt(self.amount) <= 0:
 			frappe.throw(_("Enter the bid securities and their amounts."))
 		self.funds_required = sum(flt(r.amount) for r in self.expenses)
+		self.facility_available = facility_headroom(self.bank_facility, self.name)["available"] if self.bank_facility else 0
 		self.status = draft_status(self)
 		if self.has_value_changed("workflow_state") and self.workflow_state == "Rejected" and not (self.rejection_reason or "").strip():
 			frappe.throw(_("Give the reason for the rejection, and say whether the request can be amended and sent again."))
 
 	def before_submit(self):
+		self.check_facility()
 		self.status = "Approved"
+
+	def check_facility(self):
+		"""The securities must fit in what the bank facility has left."""
+		if not self.bank_facility:
+			frappe.throw(_("Choose the bank facility the securities will be drawn on."))
+		room = facility_headroom(self.bank_facility, self.name)
+		if room["closed"]:
+			frappe.throw(_("Bank facility {0} is closed.").format(self.bank_facility))
+		if flt(self.amount) > room["available"] + 0.5:
+			amounts = [
+				frappe.format_value(value, "Currency")
+				for value in (self.amount, room["available"], room["limit"], room["in_use"], room["reserved"])
+			]
+			frappe.throw(
+				_("These securities ({0}) do not fit in facility {5}: {1} is available of its {2} limit, with {3} in use and {4} approved but not yet issued.").format(
+					*amounts, self.bank_facility
+				),
+				title=_("Facility Limit Exceeded"),
+			)
 
 	def on_cancel(self):
 		if flt(self.amount_issued):
@@ -60,6 +82,29 @@ class BidSecurityRequest(Document):
 
 
 @frappe.whitelist()
+def get_facility_headroom(bank_facility: str, request: str | None = None) -> dict:
+	frappe.has_permission("Bid Security Request", "read", throw=True)
+	return facility_headroom(bank_facility, request)
+
+
+def facility_headroom(bank_facility, exclude=None) -> dict:
+	"""A facility's limit, the securities running on it, those of approved requests not yet issued
+	(other than the excluded request), and what is left."""
+	limit, closed = frappe.db.get_value("Bank Facility", bank_facility, ["limit_amount", "disabled"])
+	in_use = get_utilised(bank_facility)
+	reserved = flt(
+		frappe.db.sql(
+			"""select sum(line.amount) from `tabBid Security Line` line
+			inner join `tabBid Security Request` request on request.name = line.parent
+			where request.docstatus = 1 and request.bank_facility = %s and request.name != %s
+				and ifnull(line.bank_instrument, '') = ''""",
+			(bank_facility, exclude or ""),
+		)[0][0]
+	)
+	return {"limit": flt(limit), "in_use": in_use, "reserved": reserved, "available": flt(limit) - in_use - reserved, "closed": closed}
+
+
+@frappe.whitelist()
 def make_bank_instrument(source_name: str):
 	"""The next security of the request as issued by the bank or insurer, recorded by Finance. Its
 	quarterly fee is its share of the recurring expenses."""
@@ -77,6 +122,7 @@ def make_bank_instrument(source_name: str):
 			"instrument_type": "Bid Security",
 			"opportunity": request.opportunity,
 			"bid_security_request": request.name,
+			"bank_facility": request.bank_facility,
 			"company": request.company,
 			"beneficiary": request.beneficiary,
 			"amount": line.amount,

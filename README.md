@@ -77,7 +77,10 @@ and certificates, retention, payments and the controls around them.
 - Bid security requests, raised from the opportunity with their securities and the expenses of
   obtaining them (one-off or recurring) as lines: the Finance Manager approves one (the General
   Manager is told) or rejects it with the reason, after which it is amended and sent again or left
-  closed while the bid goes on. Once it is approved, Finance records the funds issued (the one-off
+  closed while the bid goes on. The Finance Manager chooses the bank facility the securities are drawn
+  on and cannot approve them if they do not fit in what it has left (its limit, less the securities
+  running on it and those approved but not yet issued). Once it is approved, Finance records the funds
+  issued (the one-off
   expenses and the first payment of the recurring ones), then each security once the bank or insurer
   has issued it, with the recurring expenses as its quarterly fee. All of a lost bid's securities are
   put up for cancellation.
