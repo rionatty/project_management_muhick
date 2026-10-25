@@ -119,25 +119,53 @@ def request_security_cancellation(doc):
 
 @frappe.whitelist()
 def make_sales_requisition(source_name: str):
-	"""Funds for preparing the bid on an opportunity, filled in from its financial requirements and
-	needed by the site visit or, failing that, the submission deadline."""
+	"""Funds for preparing the bid on an opportunity, filled in from its financial requirements."""
 	opportunity = frappe.get_doc("Opportunity", source_name)
 	opportunity.check_permission("read")
+	costs = bid_costs(opportunity)
+	if not costs["items"]:
+		frappe.msgprint(costs["note"], alert=True, indicator="orange")
 	doc = frappe.new_doc("Sales Requisition")
-	needed_by = opportunity.get("muhick_site_visit_date") or opportunity.get("muhick_submission_deadline")
 	doc.update(
 		{
 			"opportunity": opportunity.name,
 			"organisation": opportunity.customer_name,
 			"company": opportunity.company,
-			"required_by": getdate(needed_by) if needed_by else None,
+			"required_by": costs["required_by"],
 		}
 	)
-	kinds = requirement_kinds(opportunity.get("muhick_financial_requirements"))
-	for row in opportunity.get("muhick_financial_requirements") or []:
-		if kinds.get(row.requirement_type) == "Cost":
-			doc.append("items", {"expense_type": row.requirement_type, "description": row.description, "amount": row.amount})
+	for line in costs["items"]:
+		doc.append("items", line)
 	return doc
+
+
+@frappe.whitelist()
+def get_bid_costs(opportunity: str) -> dict:
+	"""For a new sales requisition where the opportunity is picked: its cost lines and date."""
+	doc = frappe.get_doc("Opportunity", opportunity)
+	doc.check_permission("read")
+	return bid_costs(doc)
+
+
+def bid_costs(opportunity) -> dict:
+	"""The cost lines of an opportunity's financial requirements, which a sales requisition pays,
+	and the date the money is needed by: the site visit or, failing that, the submission deadline.
+	The securities are bank guarantees, arranged by Finance, so they are not among the lines."""
+	rows = opportunity.get("muhick_financial_requirements") or []
+	kinds = requirement_kinds(rows)
+	needed_by = opportunity.get("muhick_site_visit_date") or opportunity.get("muhick_submission_deadline")
+	return {
+		"items": [
+			{"expense_type": r.requirement_type, "description": r.description, "amount": r.amount}
+			for r in rows
+			if kinds.get(r.requirement_type) == "Cost"
+		],
+		"required_by": getdate(needed_by) if needed_by else None,
+		"note": _(
+			"Opportunity {0} has no cost lines in its financial requirements. A bid security is a bank guarantee, "
+			"raised with Create > Bid Security on the opportunity; the bank's fee for it is a Bid Security Charges line."
+		).format(opportunity.name),
+	}
 
 
 @frappe.whitelist()

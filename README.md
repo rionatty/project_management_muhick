@@ -66,7 +66,7 @@ and certificates, retention, payments and the controls around them.
   technical bid is ready only when every requirement is answered, and a bid is submitted only when
   all three parts are ready. Financial requirement types are a list sales can add to; each type's
   kind decides where its lines go: costs fill in the sales requisition (with the date the money is
-  needed by), the bid security line sets the bid security, and contract securities go to the
+  needed by), whether it is started from the opportunity or the opportunity is picked on it, the bid security line sets the bid security, and contract securities go to the
   handover; the project handover takes the requirements with
   any agreed deviations, the type of work and the securities the tender asks for. Follow-ups are the opportunity's own activities and comments; a lost
   bid is recorded with ERPNext's lost reasons and competitors, and Finance is asked to cancel its bid
