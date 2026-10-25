@@ -41,7 +41,16 @@ frappe.ui.form.on("Project", {
 			frm.add_custom_button(label, () => frappe.new_doc(doctype, values || project), __("Create"));
 		};
 		if (stage === "Planning") {
-			create(__("Bill of Quantities"), "Project BOQ");
+			// the BOQ starts from the sales order's lines and their stages
+			frm.add_custom_button(
+				__("Bill of Quantities"),
+				() =>
+					frappe.model.open_mapped_doc({
+						method: "project_management_muhick.muhick_projects.doctype.project_boq.project_boq.make_from_project",
+						frm: frm,
+					}),
+				__("Create")
+			);
 			create(__("Project Budget"), "Project Budget");
 			create(__("Activity Plan"), "Project Activity Plan");
 		}

@@ -18,6 +18,12 @@ REQUIREMENTS = dict(
 	fieldname="muhick_requirements", label="Requirements", fieldtype="Table", options="Client Requirement",
 	description="What the client needs, one line each: the scope in the advert, BOQ or enquiry",
 )
+# the stage (milestone) of a priced line; the same field on the opportunity, quotation and sales order
+# lines, so ERPNext carries it from one to the next, and the project's BOQ takes it as its milestone
+STAGE = dict(
+	fieldname="muhick_stage", label="Stage", fieldtype="Link", options="Task Type", insert_after="item_code",
+	description="From the shared milestone list",
+)
 FINANCIAL_REQUIREMENTS = dict(
 	fieldname="muhick_financial_requirements", label="Financial Requirements", fieldtype="Table", options="Financial Requirement",
 	description="What the bid needs in money, one line each. The bid security and the sales requisition are filled in from these lines.",
@@ -239,6 +245,9 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_payment_plan_line", label="Payment Plan Line", fieldtype="Data", hidden=1, no_copy=1),
 		],
 	),
+	"Opportunity Item": [dict(STAGE, in_list_view=1, columns=2)],
+	"Quotation Item": [dict(STAGE)],
+	"Sales Order Item": [dict(STAGE)],
 	"Journal Entry": [
 		_ro("muhick_reimbursement_claim", "Reimbursement Claim", "Link", options="Reimbursement Claim", insert_after="user_remark"),
 	],
@@ -440,6 +449,16 @@ PROPERTY_SETTERS = (
 	("Opportunity", "expected_closing", "label", "Expected Award Date", "Data"),
 	("Opportunity", "expected_closing", "description", "When the client is expected to decide", "Text"),
 	("Opportunity", "section_break_14", "label", "Bid Value", "Data"),
+	# the items are the bid's BOQ: items from the Item master, each with its stage
+	("Opportunity", "items_section", "label", "BOQ", "Data"),
+	("Opportunity", "items", "label", "BOQ Items", "Data"),
+	("Opportunity", "items", "description", "Each line goes on to the quotation, the sales order and the project's BOQ with its stage", "Text"),
+	("Opportunity", "opportunity_amount", "description", "The total of the BOQ when it has lines", "Text"),
+	("Opportunity Item", "item_code", "reqd", "1", "Check"),
+	("Opportunity Item", "item_code", "columns", "3", "Int"),
+	("Opportunity Item", "qty", "columns", "1", "Int"),
+	("Opportunity Item", "rate", "columns", "2", "Int"),
+	("Opportunity Item", "amount", "columns", "2", "Int"),
 	("Opportunity", "opportunity_amount", "label", "Bid Price", "Data"),
 	("Opportunity", "base_opportunity_amount", "label", "Bid Price (Company Currency)", "Data"),
 	("Opportunity", "organization_details_section", "label", "Organisation", "Data"),

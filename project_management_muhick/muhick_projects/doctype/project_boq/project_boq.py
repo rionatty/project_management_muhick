@@ -144,6 +144,38 @@ def refresh_from_document(doc, method=None):
 
 
 @frappe.whitelist()
+def make_from_project(source_name: str):
+	"""A BOQ for a project with its lines taken from the project's sales order: each item with its
+	stage as the milestone, the quantity in the stock unit and the net rate per stock unit."""
+	project = frappe.get_doc("Project", source_name)
+	project.check_permission("read")
+	doc = frappe.new_doc("Project BOQ")
+	doc.update(
+		{"project": project.name, "project_name": project.project_name, "customer": project.customer, "company": project.company}
+	)
+	orders = [project.sales_order] if project.sales_order else frappe.get_all(
+		"Sales Order", filters={"project": project.name, "docstatus": 1}, pluck="name"
+	)
+	if not orders:
+		return doc
+	for item in frappe.get_all(
+		"Sales Order Item",
+		filters={"parent": ("in", orders)},
+		fields=["item_code", "item_name", "muhick_stage", "stock_uom", "stock_qty", "base_net_amount"],
+		order_by="parent asc, idx asc",
+	):
+		qty = flt(item.stock_qty)
+		doc.append(
+			"items",
+			{
+				"item_code": item.item_code, "description": item.item_name, "milestone": item.muhick_stage,
+				"uom": item.stock_uom, "qty": qty, "rate": flt(item.base_net_amount) / qty if qty else 0,
+			},
+		)
+	return doc
+
+
+@frappe.whitelist()
 def refresh_quantities(boq: str):
 	doc = frappe.get_doc("Project BOQ", boq)
 	doc.check_permission("read")

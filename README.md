@@ -9,6 +9,10 @@ and certificates, retention, payments and the controls around them.
 **Projects**
 
 - Sales-to-project handover with a mandatory handover pack the Project Manager accepts or returns.
+- The bid's BOQ is the opportunity's item table, each line an item with its stage (milestone), and
+  the bid price is its total. The stage goes with the lines to the quotation and the sales order;
+  the project's BOQ is created from the sales order's lines, and the activity plan can take its
+  milestones, and the items each one needs, from the BOQ's stages.
 - Bill of Quantities as a list of items from the Item master (stock or non-stock), each with its
   milestone and the quantities requested, purchased and consumed so far in the item's stock unit,
   kept current as requests, orders and issues are submitted. Variation order lines are items too.

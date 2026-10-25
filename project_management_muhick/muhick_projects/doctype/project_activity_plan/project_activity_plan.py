@@ -288,12 +288,14 @@ def cancel_tasks(tasks):
 @frappe.whitelist()
 def load_phases(project: str, project_template: str | None = None) -> dict:
 	"""Phases and activities for a new plan: from a Project Template, or from the project's own
-	phase tasks (for example those ERPNext created from the project's template)."""
+	phase tasks (for example those ERPNext created from the project's template), or else from the
+	stages in the project's BOQ, with the items each stage needs."""
 	frappe.has_permission("Project Activity Plan", "create", throw=True)
 	frappe.get_doc("Project", project).check_permission("read")
 	if project_template:
 		return _from_template(project, project_template)
-	return _from_project(project)
+	loaded = _from_project(project)
+	return loaded if loaded["phases"] else _from_boq(project)
 
 
 def _from_template(project, template):
@@ -359,6 +361,26 @@ def _from_project(project):
 			)
 	_fit_phases(phases, activities)
 	return {"phases": phases, "activities": activities}
+
+
+def _from_boq(project):
+	"""One milestone per stage in the BOQ, in the order the stages first appear, and per stage the
+	BOQ items with their quantities added up."""
+	boq = frappe.db.get_value("Project", project, "muhick_boq") or frappe.db.get_value(
+		"Project BOQ", {"project": project, "docstatus": ("<", 2)}, "name", order_by="creation desc"
+	)
+	needs = {}
+	for row in frappe.get_all(
+		"Project BOQ Item",
+		filters={"parent": boq or "", "milestone": ("is", "set"), "item_code": ("is", "set")},
+		fields=["milestone", "item_code", "qty"],
+		order_by="idx asc",
+	):
+		needs[(row.milestone, row.item_code)] = needs.get((row.milestone, row.item_code), 0) + flt(row.qty)
+	phases = [{"phase_name": stage} for stage in dict.fromkeys(stage for stage, _item in needs)]
+	_fit_phases(phases, [])
+	items = [{"phase_name": stage, "item_code": item, "qty": qty} for (stage, item), qty in needs.items()]
+	return {"phases": phases, "activities": [], "items": items}
 
 
 def _fit_phases(phases, activities):

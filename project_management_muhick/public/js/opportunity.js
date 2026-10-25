@@ -27,6 +27,7 @@ frappe.ui.form.on("Opportunity", {
 	},
 
 	refresh(frm) {
+		toggle_bid_price(frm);
 		if (frm.is_new() || ["Lost", "Closed"].includes(frm.doc.status)) {
 			return;
 		}
@@ -46,3 +47,13 @@ frappe.ui.form.on("Opportunity", {
 		}
 	},
 });
+
+frappe.ui.form.on("Opportunity Item", {
+	items_add: toggle_bid_price,
+	items_remove: toggle_bid_price,
+});
+
+// with BOQ lines, the bid price is their total
+function toggle_bid_price(frm) {
+	frm.toggle_enable("opportunity_amount", !(frm.doc.items || []).length);
+}

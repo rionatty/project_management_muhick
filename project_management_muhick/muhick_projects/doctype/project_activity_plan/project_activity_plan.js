@@ -48,7 +48,7 @@ function get_phases(frm) {
 				fieldtype: "Link",
 				options: "Project Template",
 				label: __("Project Template"),
-				description: __("Leave empty to use the milestones (group tasks) the project already has."),
+				description: __("Leave empty to use the project's own milestones or, if it has none yet, the stages in its BOQ."),
 			},
 		],
 		(values) => {
@@ -66,6 +66,10 @@ function get_phases(frm) {
 					frm.clear_table("activities");
 					r.phases.forEach((row) => frm.add_child("phases", row));
 					r.activities.forEach((row) => frm.add_child("activities", row));
+					if ((r.items || []).length) {
+						frm.clear_table("items");
+						r.items.forEach((row) => frm.add_child("items", row));
+					}
 					frm.refresh_fields();
 					set_phase_options(frm);
 					frm.dirty();

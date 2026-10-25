@@ -51,6 +51,9 @@ def validate_opportunity(doc, method=None):
 					doc.party_name
 				)
 			)
+	if doc.get("items"):
+		doc.opportunity_amount = flt(doc.total)
+		doc.base_opportunity_amount = flt(doc.total) * flt(doc.conversion_rate or 1)
 	price, cost = flt(doc.opportunity_amount), flt(doc.get("muhick_estimated_cost"))
 	doc.set("muhick_margin_percent", (price - cost) / price * 100 if price and cost else 0)
 	kinds = requirement_kinds(doc.get("muhick_financial_requirements"))
