@@ -234,14 +234,18 @@ CUSTOM_FIELDS = {
 	"Journal Entry": [
 		_ro("muhick_reimbursement_claim", "Reimbursement Claim", "Link", options="Reimbursement Claim", insert_after="user_remark"),
 	],
-	"Lead": _chain(
+	"Lead": [
+		# the lead's own Email belongs to its contact person; the organisation has its own
+		dict(fieldname="muhick_company_email", label="Company Email", fieldtype="Data", options="Email", insert_after="company_name"),
+	]
+	+ _chain(
 		"request_type",
 		[
 			_sec("muhick_requirement_section"),
 			dict(REQUIREMENT),
 		],
 	)
-	# what the go / no-go rests on; Create > Bid carries it into the bid
+	# what the go / no-go rests on; the opportunity takes it over under the same field names
 	+ _chain(
 		"qualified_on",
 		[
@@ -303,16 +307,16 @@ CUSTOM_FIELDS = {
 # business does not use are hidden further down
 LEAD_ORDER = [
 	"naming_series", "company_name", "type", "market_segment",
-	"column_break_1", "request_type", "utm_source", "customer",
-	"col_break123", "lead_owner", "status",
+	"column_break_1", "muhick_company_email", "phone", "website", "city",
+	"col_break123", "request_type", "utm_source", "customer", "lead_owner", "status",
 	"muhick_requirement_section", "muhick_requirement",
 	"contact_info_tab", "salutation", "first_name", "middle_name", "last_name", "job_title", "gender",
-	"column_break_20", "mobile_no", "whatsapp_no", "phone", "phone_ext",
-	"column_break_16", "email_id", "website", "lead_name",
+	"column_break_20", "mobile_no", "whatsapp_no", "phone_ext",
+	"column_break_16", "email_id", "lead_name",
 	"qualification_tab", "muhick_submission_deadline", "muhick_site_visit_required", "muhick_site_visit_date",
 	"muhick_financial_requirement", "column_break_64", "qualification_status", "muhick_qualification_notes",
 	"qualified_by", "qualified_on",
-	"address_section", "address_html", "column_break_38", "city", "state", "country", "territory", "column_break2", "contact_html",
+	"address_section", "address_html", "column_break_38", "state", "country", "territory", "column_break2", "contact_html",
 	"organization_section", "no_of_employees", "column_break_28", "annual_revenue", "industry", "column_break_31", "fax",
 	"utm_analytics_section", "utm_medium", "column_break_gkxo", "utm_campaign", "utm_content",
 	"other_info_tab", "company", "column_break_22", "language", "image", "title", "column_break_50", "disabled",
@@ -387,6 +391,10 @@ PROPERTY_SETTERS = (
 	("Lead", "lead_owner", "description", "Runs the lead from qualification to the outcome", "Text"),
 	("Lead", "contact_info_tab", "label", "Contact Person", "Data"),
 	("Lead", "job_title", "label", "Position", "Data"),
+	("Lead", "phone", "label", "Office Phone", "Data"),
+	("Lead", "city", "label", "City / Town", "Data"),
+	("Lead", "mobile_no", "label", "Mobile", "Data"),
+	("Lead", "email_id", "description", "The contact person's email", "Text"),
 	("Lead", "qualification_tab", "label", "Qualification (Go / No-Go)", "Data"),
 	("Lead", "qualification_tab", "collapsible", "0", "Check"),
 	("Lead", "qualification_status", "options", "Unqualified\nIn Process\nQualified\nNot Pursued", "Text"),
