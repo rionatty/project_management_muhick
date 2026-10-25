@@ -1,0 +1,73 @@
+{
+ "actions": [],
+ "creation": "2026-10-25 11:27:12.194548",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "expense_type",
+  "description",
+  "amount",
+  "recurring",
+  "frequency"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "expense_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Expense",
+   "options": "Financial Requirement Type",
+   "reqd": 1
+  },
+  {
+   "columns": 3,
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Description"
+  },
+  {
+   "columns": 2,
+   "description": "For a recurring expense, the amount each time it falls due",
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "recurring",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Recurring"
+  },
+  {
+   "columns": 2,
+   "default": "Quarter",
+   "depends_on": "eval:doc.recurring",
+   "fieldname": "frequency",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Every",
+   "mandatory_depends_on": "eval:doc.recurring",
+   "options": "Month\nQuarter\nYear"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-25 11:27:12.194548",
+ "modified_by": "Administrator",
+ "module": "Muhick Sales",
+ "name": "Bid Security Expense",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

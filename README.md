@@ -74,10 +74,13 @@ and certificates, retention, payments and the controls around them.
   bid with what was spent on it and why it was won or lost, and deadlines are reminded ahead of time.
   ERPNext's CRM menu lists the sales requisitions and the bid register.
 - Sales requisitions for the cost of preparing a bid, paid through the payment plan.
-- Bid security requests, raised from the opportunity: the Finance Manager approves one (the General
+- Bid security requests, raised from the opportunity with their securities and the expenses of
+  obtaining them (one-off or recurring) as lines: the Finance Manager approves one (the General
   Manager is told) or rejects it with the reason, after which it is amended and sent again or left
-  closed while the bid goes on. Once it is approved, Finance records the funds issued, and then the bid
-  security itself once the bank or insurer has issued it.
+  closed while the bid goes on. Once it is approved, Finance records the funds issued (the one-off
+  expenses and the first payment of the recurring ones), then each security once the bank or insurer
+  has issued it, with the recurring expenses as its quarterly fee. All of a lost bid's securities are
+  put up for cancellation.
 - Sale type on the Sales Order (Stock, Project, Additions): project and additions orders notify the
   Project Manager and start the handover.
 

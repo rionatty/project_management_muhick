@@ -20,20 +20,20 @@
   },
   {
    "default": "Cost",
-   "description": "Cost: paid through a sales requisition. Bid Security: the bank guarantee that goes with the bid. Contract Security: needed once the contract is awarded, such as a performance bond or an advance payment guarantee.",
+   "description": "Cost: paid through a sales requisition. Bid Security: the guarantee or bond that goes with the bid. Bid Security Expense: what it costs to obtain the bid security, requested with it. Contract Security: needed once the contract is awarded, such as a performance bond or an advance payment guarantee.",
    "fieldname": "kind",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Kind",
-   "options": "Cost\nBid Security\nContract Security",
+   "options": "Cost\nBid Security\nBid Security Expense\nContract Security",
    "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-25 10:21:48.978119",
+ "modified": "2026-10-25 11:27:12.194548",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Financial Requirement Type",

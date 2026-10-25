@@ -23,12 +23,15 @@
   "column_break_3",
   "funds_required",
   "security_terms",
+  "securities_section",
+  "securities",
+  "expenses_section",
+  "expenses",
   "funds_section",
   "amount_issued",
   "issued_on",
   "column_break_4",
   "payment_reference",
-  "bank_instrument",
   "amended_from"
  ],
  "fields": [
@@ -140,28 +143,55 @@
    "reqd": 1
   },
   {
+   "description": "The total of the securities below",
    "fieldname": "amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Bid Security Amount",
-   "reqd": 1
+   "label": "Total Bid Security",
+   "read_only": 1,
+   "reqd": 0
   },
   {
    "fieldname": "column_break_3",
    "fieldtype": "Column Break"
   },
   {
-   "description": "What Finance issues to obtain it: the cash cover, or the bank's or insurer's charges",
+   "description": "What Finance issues now: the one-off expenses and the first payment of each recurring one",
    "fieldname": "funds_required",
    "fieldtype": "Currency",
    "label": "Funds Required",
-   "reqd": 1
+   "read_only": 1,
+   "reqd": 0
   },
   {
    "description": "For example the form of security, who may issue it and how long it must be valid",
    "fieldname": "security_terms",
    "fieldtype": "Small Text",
    "label": "Terms in the Tender"
+  },
+  {
+   "fieldname": "securities_section",
+   "fieldtype": "Section Break",
+   "label": "Securities"
+  },
+  {
+   "fieldname": "securities",
+   "fieldtype": "Table",
+   "label": "Bid Securities",
+   "options": "Bid Security Line",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expenses_section",
+   "fieldtype": "Section Break",
+   "label": "Expenses"
+  },
+  {
+   "description": "What it costs to obtain the securities: bank charges, insurance premium, cash cover. Some are paid once, some fall due again until the security is released.",
+   "fieldname": "expenses",
+   "fieldtype": "Table",
+   "label": "Expenses",
+   "options": "Bid Security Expense"
   },
   {
    "depends_on": "eval:doc.docstatus==1",
@@ -198,15 +228,6 @@
    "read_only": 1
   },
   {
-   "allow_on_submit": 1,
-   "fieldname": "bank_instrument",
-   "fieldtype": "Link",
-   "label": "Bid Security Issued",
-   "no_copy": 1,
-   "options": "Bank Instrument",
-   "read_only": 1
-  },
-  {
    "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
@@ -220,7 +241,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-25 11:14:38.737390",
+ "modified": "2026-10-25 11:27:12.194548",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bid Security Request",

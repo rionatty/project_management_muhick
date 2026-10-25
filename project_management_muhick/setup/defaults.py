@@ -70,7 +70,7 @@ SECTORS = ["Public Sector", "Private Sector"]
 FINANCIAL_REQUIREMENT_TYPES = [
 	("Bid Security", "Bid Security"), ("Performance Bond", "Contract Security"),
 	("Advance Payment Guarantee", "Contract Security"), ("Bid Document Purchase", "Cost"),
-	("Bid Security Charges", "Cost"), ("Bank Charges", "Cost"), ("Site Visit", "Cost"), ("Transport", "Cost"),
+	("Bid Security Charges", "Bid Security Expense"), ("Bank Charges", "Cost"), ("Site Visit", "Cost"), ("Transport", "Cost"),
 	("Printing and Binding", "Cost"), ("Other", "Cost"),
 ]
 # the stages of a bid (an opportunity); once awarded, the sales process follows, and a lost or

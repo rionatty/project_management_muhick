@@ -2,6 +2,11 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Bid Security Request", {
+	setup(frm) {
+		frm.set_query("security_type", "securities", () => ({ filters: { kind: "Bid Security" } }));
+		frm.set_query("expense_type", "expenses", () => ({ filters: { kind: "Bid Security Expense" } }));
+	},
+
 	refresh(frm) {
 		if (frm.doc.docstatus !== 1) {
 			return;
@@ -21,7 +26,7 @@ frappe.ui.form.on("Bid Security Request", {
 				);
 			}).addClass("btn-primary");
 		}
-		if (frm.doc.status === "Funds Issued" && !frm.doc.bank_instrument && finance) {
+		if (frm.doc.status === "Funds Issued" && finance && (frm.doc.securities || []).some((r) => !r.bank_instrument)) {
 			frm.add_custom_button(
 				__("Bid Security Issued"),
 				() =>

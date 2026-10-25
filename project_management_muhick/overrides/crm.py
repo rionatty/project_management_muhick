@@ -101,20 +101,22 @@ def on_update_opportunity(doc, method=None):
 
 
 def request_security_cancellation(doc):
-	security = doc.get("muhick_bid_security")
-	if not security or frappe.db.get_value("Bank Instrument", security, "status") not in SECURITY_RUNNING:
-		return
 	outcome = _(doc.status).lower()
-	frappe.db.set_value(
-		"Bank Instrument", security, {"status": "Cancellation Requested", "closing_reason": _("Bid {0} was {1}.").format(doc.name, outcome)}
-	)
-	notify_roles(
-		FINANCE_ROLES,
-		_("Cancel bid security {0}: bid {1} ({2}) was {3}. The bank charges for it until it is cancelled.").format(
-			security, doc.name, doc.customer_name, outcome
-		),
-		doc=frappe._dict(doctype="Bank Instrument", name=security),
-	)
+	for security in frappe.get_all(
+		"Bank Instrument",
+		filters={"opportunity": doc.name, "instrument_type": "Bid Security", "status": ("in", SECURITY_RUNNING)},
+		pluck="name",
+	):
+		frappe.db.set_value(
+			"Bank Instrument", security, {"status": "Cancellation Requested", "closing_reason": _("Bid {0} was {1}.").format(doc.name, outcome)}
+		)
+		notify_roles(
+			FINANCE_ROLES,
+			_("Cancel bid security {0}: bid {1} ({2}) was {3}. The bank charges for it until it is cancelled.").format(
+				security, doc.name, doc.customer_name, outcome
+			),
+			doc=frappe._dict(doctype="Bank Instrument", name=security),
+		)
 
 
 @frappe.whitelist()
@@ -180,8 +182,6 @@ def make_bid_security_request(source_name: str):
 		frappe.throw(_("Bid security request {0} is already raised for this bid.").format(raised))
 	rows = opportunity.get("muhick_financial_requirements") or []
 	kinds = requirement_kinds(rows)
-	securities = [r for r in rows if kinds.get(r.requirement_type) == "Bid Security"]
-	amount = sum(flt(r.amount) for r in securities)
 	deadline = opportunity.get("muhick_submission_deadline")
 	doc = frappe.new_doc("Bid Security Request")
 	doc.update(
@@ -190,10 +190,12 @@ def make_bid_security_request(source_name: str):
 			"organisation": opportunity.customer_name,
 			"company": opportunity.company,
 			"beneficiary": opportunity.customer_name,
-			"amount": amount,
-			"funds_required": amount,
 			"required_by": getdate(deadline) if deadline else None,
-			"security_terms": "\n".join(r.description for r in securities if r.description) or None,
 		}
 	)
+	for r in rows:
+		if kinds.get(r.requirement_type) == "Bid Security":
+			doc.append("securities", {"security_type": r.requirement_type, "description": r.description, "amount": r.amount})
+		elif kinds.get(r.requirement_type) == "Bid Security Expense":
+			doc.append("expenses", {"expense_type": r.requirement_type, "description": r.description, "amount": r.amount})
 	return doc

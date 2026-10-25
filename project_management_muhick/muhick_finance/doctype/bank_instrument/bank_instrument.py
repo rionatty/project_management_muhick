@@ -75,15 +75,16 @@ class BankInstrument(Document):
 				frappe.db.set_value(
 					"Opportunity", self.opportunity, {"muhick_bid_security": self.name, "muhick_bid_security_required": 1}
 				)
-			# the approved request it was obtained for
-			frappe.db.set_value(
-				"Bid Security Request",
-				{"opportunity": self.opportunity, "docstatus": 1, "bank_instrument": ("is", "not set")},
-				"bank_instrument",
-				self.name,
+		# the line of the request it was issued for: the next one not yet issued
+		if self.bid_security_request and not frappe.db.exists("Bid Security Line", {"parent": self.bid_security_request, "bank_instrument": self.name}):
+			line = frappe.db.get_value(
+				"Bid Security Line", {"parent": self.bid_security_request, "bank_instrument": ("is", "not set")}, "name", order_by="idx asc"
 			)
+			if line:
+				frappe.db.set_value("Bid Security Line", line, "bank_instrument", self.name, update_modified=False)
 
 	def after_delete(self):
 		update_utilisation(self.bank_facility)
 		if self.opportunity and frappe.db.get_value("Opportunity", self.opportunity, "muhick_bid_security") == self.name:
 			frappe.db.set_value("Opportunity", self.opportunity, "muhick_bid_security", None)
+		frappe.db.set_value("Bid Security Line", {"bank_instrument": self.name}, "bank_instrument", None, update_modified=False)
