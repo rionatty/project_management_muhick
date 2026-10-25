@@ -303,14 +303,26 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_estimated_cost", label="Estimated Cost", fieldtype="Currency", options="currency"),
 			_ro("muhick_margin_percent", "Margin %", "Percent"),
 			_col("muhick_preparation_column"),
-			dict(fieldname="muhick_administrative_bid_ready", label="Administrative Bid Ready", fieldtype="Check"),
-			dict(fieldname="muhick_technical_bid_ready", label="Technical Bid Ready", fieldtype="Check"),
-			dict(fieldname="muhick_financial_bid_ready", label="Financial Bid Ready", fieldtype="Check"),
+			_ro(
+				"muhick_administrative_bid_ready", "Administrative Bid Ready", "Check",
+				description="Ticks itself once every administrative document on the checklist is ready",
+			),
+			_ro(
+				"muhick_technical_bid_ready", "Technical Bid Ready", "Check",
+				description="Ticks itself once every technical document on the checklist is ready and every requirement is answered",
+			),
+			_ro(
+				"muhick_financial_bid_ready", "Financial Bid Ready", "Check",
+				description="Ticks itself once every financial document on the checklist is ready",
+			),
 			_sec(
 				"muhick_documents_section", "Bid Documents",
-				description="Every document going in with the bid, by part. A part can be marked ready once each of its documents has its file.",
+				description="What the bid must contain. Each document is tracked on its own, with who prepares it, by when, its status and its file.",
 			),
-			dict(fieldname="muhick_documents", label="Bid Documents", fieldtype="Table", options="Bid Document"),
+			dict(
+				fieldname="muhick_checklist", label="Document Checklist", fieldtype="Table", options="Bid Checklist Item",
+				description="A new bid starts with the documents every bid needs; add or remove lines for this tender",
+			),
 			_sec(
 				"muhick_submission_section", "Submission",
 				description="Recording the submission with its acknowledgement marks the bid Submitted",
@@ -389,7 +401,7 @@ OPPORTUNITY_ORDER = [
 	"muhick_financial_requirements",
 	"muhick_preparation_section", "muhick_estimated_cost", "muhick_margin_percent", "muhick_preparation_column",
 	"muhick_administrative_bid_ready", "muhick_technical_bid_ready", "muhick_financial_bid_ready",
-	"muhick_documents_section", "muhick_documents",
+	"muhick_documents_section", "muhick_checklist",
 	"muhick_submission_section", "muhick_submitted_at", "muhick_submission_mode", "muhick_copies", "muhick_submission_column",
 	"muhick_delivered_by", "muhick_received_by", "muhick_acknowledgement",
 	"muhick_security_section", "muhick_bid_security_required", "muhick_bid_security_amount", "muhick_security_column",

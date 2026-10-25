@@ -75,12 +75,13 @@ FINANCIAL_REQUIREMENT_TYPES = [
 	("Bid Security Charges", "Bid Security Expense"), ("Bank Charges", "Cost"), ("Site Visit", "Cost"), ("Transport", "Cost"),
 	("Printing and Binding", "Cost"), ("Other", "Cost"),
 ]
-# documents a bid can contain, and the part each belongs to
+# documents a bid can contain, the part each belongs to and whether every bid's checklist starts with
+# it (the bid security is added to a bid that has one)
 BID_DOCUMENT_TYPES = [
-	("Trading Licence", "Administrative"), ("Certificate of Registration", "Administrative"),
-	("Tax Clearance Certificate", "Administrative"), ("Books of Accounts", "Administrative"), ("Bid Security", "Administrative"),
-	("Technical Proposal", "Technical"), ("Technical Data Sheets", "Technical"), ("Financial Proposal", "Financial"),
-	("Priced BOQ", "Financial"), ("Other", "Administrative"),
+	("Trading Licence", "Administrative", 1), ("Certificate of Registration", "Administrative", 1),
+	("Tax Clearance Certificate", "Administrative", 1), ("Books of Accounts", "Administrative", 1),
+	("Bid Security", "Administrative", 0), ("Technical Proposal", "Technical", 1), ("Technical Data Sheets", "Technical", 0),
+	("Financial Proposal", "Financial", 1), ("Priced BOQ", "Financial", 1), ("Other", "Administrative", 0),
 ]
 # the bid statuses (an opportunity's sales stages), which move by themselves: a bid still going, then
 # its outcomes
@@ -141,9 +142,11 @@ def setup_crm_lists():
 	for name, kind in FINANCIAL_REQUIREMENT_TYPES:
 		if not frappe.db.exists("Financial Requirement Type", name):
 			frappe.get_doc(doctype="Financial Requirement Type", type_name=name, kind=kind).insert(ignore_permissions=True)
-	for name, part in BID_DOCUMENT_TYPES:
+	for name, part, every in BID_DOCUMENT_TYPES:
 		if not frappe.db.exists("Bid Document Type", name):
-			frappe.get_doc(doctype="Bid Document Type", document_name=name, part=part).insert(ignore_permissions=True)
+			frappe.get_doc(doctype="Bid Document Type", document_name=name, part=part, in_every_bid=every).insert(
+				ignore_permissions=True
+			)
 	for doctype, names in SAMPLE_VALUES.items():
 		for name in names:
 			if frappe.db.exists(doctype, name):

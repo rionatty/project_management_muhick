@@ -73,7 +73,8 @@ CARDS = [
 		("Warranty", "Project Warranty", D),
 	]),
 	("Sales and Bids", [
-		("Lead", "Lead", D), ("Opportunity (Bid)", "Opportunity", D), ("Sales Requisition", "Sales Requisition", D),
+		("Lead", "Lead", D), ("Opportunity (Bid)", "Opportunity", D), ("Bid Documents", "Bid Document", D),
+		("Sales Requisition", "Sales Requisition", D),
 		("Bid Security Request", "Bid Security Request", D), ("Bid Outcome", "Bid Outcome", D),
 		("Bid Register", "Bid Register", R), ("Bid Margin Comparison", "Bid Margin Comparison", R),
 		("Financial Requirement Types", "Financial Requirement Type", D),

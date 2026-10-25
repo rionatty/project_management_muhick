@@ -7,7 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "document_name",
-  "part"
+  "part",
+  "in_every_bid"
  ],
  "fields": [
   {
@@ -27,12 +28,20 @@
    "label": "Part of the Bid",
    "options": "Administrative\nTechnical\nFinancial",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "New bids start their document checklist with these",
+   "fieldname": "in_every_bid",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "On Every Bid's Checklist"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-25 21:12:42.541493",
+ "modified": "2026-10-25 22:27:20.781588",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bid Document Type",

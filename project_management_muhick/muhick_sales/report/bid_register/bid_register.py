@@ -5,6 +5,8 @@
 was spent pursuing it, its outcome report and why it was won or lost, and the project a won bid
 became."""
 
+from collections import defaultdict
+
 import frappe
 from frappe import _
 from frappe.utils import date_diff, get_datetime, getdate, nowdate
@@ -23,6 +25,7 @@ def execute(filters=None):
 		{"fieldname": "days_in_status", "label": _("Days in Status"), "fieldtype": "Int", "width": 90},
 		{"fieldname": "utm_source", "label": _("Source"), "fieldtype": "Data", "width": 150},
 		{"fieldname": "muhick_submission_deadline", "label": _("Deadline"), "fieldtype": "Datetime", "width": 150},
+		{"fieldname": "documents_ready", "label": _("Documents Ready"), "fieldtype": "Data", "width": 110},
 		{"fieldname": "muhick_submitted_at", "label": _("Submitted On"), "fieldtype": "Datetime", "width": 150},
 		{"fieldname": "muhick_submission_mode", "label": _("Mode"), "fieldtype": "Data", "width": 90},
 		{"fieldname": "acknowledged", "label": _("Acknowledged"), "fieldtype": "Check", "width": 100},
@@ -47,8 +50,8 @@ def execute(filters=None):
 	if filters.from_date and filters.to_date:
 		conditions["transaction_date"] = ("between", [filters.from_date, filters.to_date])
 	computed = (
-		"days_in_status", "acknowledged", "late", "days_waiting", "gross_margin", "bid_cost", "project", "security_status",
-		"outcome_report", "outcome",
+		"days_in_status", "documents_ready", "acknowledged", "late", "days_waiting", "gross_margin", "bid_cost", "project",
+		"security_status", "outcome_report", "outcome",
 	)
 	bids = frappe.get_all(
 		"Opportunity",
@@ -85,9 +88,18 @@ def execute(filters=None):
 			as_list=True,
 		)
 	)
+	# documents ready of those on each bid's checklist
+	checklist = defaultdict(lambda: [0, 0])
+	for row in frappe.get_all(
+		"Bid Checklist Item", filters={"parent": ("in", names), "parenttype": "Opportunity"}, fields=["parent", "status"]
+	):
+		checklist[row.parent][1] += 1
+		checklist[row.parent][0] += 1 if row.status == "Ready" else 0
 	today = getdate(nowdate())
 	for b in bids:
 		b.days_in_status = date_diff(today, getdate(b.muhick_stage_since)) if b.muhick_stage_since else None
+		if b.name in checklist:
+			b.documents_ready = _("{0} of {1}").format(*checklist[b.name])
 		b.bid_cost = spent.get(b.name, 0)
 		report = reports.get(b.name)
 		b.outcome_report = report.name if report else None

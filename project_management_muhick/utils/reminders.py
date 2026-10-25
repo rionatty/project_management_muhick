@@ -180,8 +180,8 @@ def _alert_due(doctype, name, last_alert_on, today, every_days=7) -> bool:
 
 
 def bids_needing_attention():
-	"""Bid submission deadlines coming up, and bids still under evaluation after their expected award
-	date: the sales engineer follows them up."""
+	"""Bid submission deadlines coming up, bid documents not ready as their date comes up, and bids still
+	under evaluation after their expected award date: the sales engineer follows them up."""
 	today = getdate(nowdate())
 	days = get_settings().bid_deadline_alert_days or 3
 	for o in frappe.get_all(
@@ -201,6 +201,19 @@ def bids_needing_attention():
 				doc=frappe._dict(doctype="Opportunity", name=o.name),
 				extra_users=[o.opportunity_owner],
 			)
+	preparing = frappe.get_all("Opportunity", filters={"sales_stage": ("in", ("Qualified", "In Preparation"))}, pluck="name")
+	for d in frappe.get_all(
+		"Bid Document",
+		filters={"opportunity": ("in", preparing or [""]), "status": ("!=", "Ready"), "due_date": ("<=", add_days(today, days))},
+		fields=["name", "document_type", "organisation", "prepared_by", "due_date", "status"],
+	):
+		notify(
+			[d.prepared_by],
+			_("{0} for the {1} bid is needed by {2} and is still {3}.").format(
+				d.document_type, d.organisation, formatdate(d.due_date), _(d.status).lower()
+			),
+			doc=frappe._dict(doctype="Bid Document", name=d.name),
+		)
 	for o in frappe.get_all(
 		"Opportunity",
 		filters={"sales_stage": "Under Evaluation", "expected_closing": ("<", today)},

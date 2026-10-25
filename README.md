@@ -68,12 +68,20 @@ and certificates, retention, payments and the controls around them.
   reminded daily to follow up a bid still under evaluation after its expected award date.
 - The opportunity is the bid, built on the standard Opportunity: its Bid tab holds the tender, the
   client's requirements with a compliance answer for each (the technical bid check), the financial
-  requirements, the three parts of the bid with their documents (each part ready once every document
-  listed under it has its file), the submission record (date and time, mode, copies, who delivered it,
-  who received it and the acknowledgement, which marks the bid Submitted and is flagged if late), the
-  bid security and the outcome. The
-  technical bid is ready only when every requirement is answered, and a bid is submitted only when
-  all three parts are ready. Financial requirement types are a list sales can add to; each type's
+  requirements, the three parts of the bid, its document checklist, the submission record (date and
+  time, mode, copies, who delivered it, who received it and the acknowledgement, which marks the bid
+  Submitted and is flagged if late), the bid security and the outcome. A bid is submitted only when
+  all three parts are ready.
+- Bid documents are tracked one by one: each is a Bid Document of its own (the document, who prepares
+  it, by when, its status, its file and, for a licence or certificate, how long it is valid), with its
+  own list, timeline and assignment. The opportunity's checklist starts with the document types marked
+  for every bid (and the bid security when the bid has one), can be changed for the tender, and shows
+  each line's document and status; Create Missing Documents makes the rest in one go. A part ticks
+  itself as ready once every document of that part is ready (the technical part also once every
+  requirement is answered). The top of a bid being prepared shows the documents not created yet and
+  those still being prepared, and whoever prepares a document is reminded as its date comes up. A
+  document is ready only with its file, and a licence or certificate only if it is still valid on the
+  submission deadline. Financial requirement types are a list sales can add to; each type's
   kind decides where its lines go: costs fill in the sales requisition (with the date the money is
   needed by), whether it is started from the opportunity or the opportunity is picked on it, the bid security line sets the bid security, and contract securities go to the
   handover; the project handover takes the requirements with

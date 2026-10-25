@@ -5,7 +5,9 @@
 decision, recorded with who made it and when, and only a qualified lead becomes an opportunity.
 
 The opportunity is the bid: its tender, the three parts of the bid, the submission, the bid
-security and the outcome. A bid is complete with all three parts before it is submitted. Its status
+security and the outcome. Its documents are on a checklist, each tracked as a document of its own, and
+a part of the bid is ready once all its documents are; a bid is complete with all three parts before
+it is submitted. Its status
 (the Sales Stage) moves by itself with what is recorded on it, from Qualified to Won, Lost, Not
 Pursued or Cancelled; won and lost come only from an outcome report approved by the Head of Sales
 and the General Manager. When a bid is lost or closed, Finance is asked to cancel its bid security,
@@ -28,6 +30,9 @@ BID_PARTS = (
 )
 # the bid statuses of a bid still going; it ends Won, Lost, Not Pursued or Cancelled
 IN_PROGRESS = ("Qualified", "In Preparation", "Submitted", "Under Evaluation", "Outcome Pending Approval")
+# the document a bid with a bid security adds to its checklist
+BID_SECURITY_DOCUMENT = "Bid Security"
+PART_ORDER = {part: i for i, (_field, part) in enumerate(BID_PARTS)}
 SECURITY_RUNNING = ("Requested", "Active")
 
 
@@ -63,13 +68,7 @@ def validate_opportunity(doc, method=None):
 	securities = [r for r in doc.get("muhick_financial_requirements") or [] if kinds.get(r.requirement_type) == "Bid Security"]
 	doc.set("muhick_bid_security_required", 1 if securities else 0)
 	doc.set("muhick_bid_security_amount", sum(flt(r.amount) for r in securities))
-	if doc.get("muhick_technical_bid_ready"):
-		still_open = [str(r.idx) for r in doc.get("muhick_requirements") or [] if r.compliance in (None, "", "Clarification Needed")]
-		if still_open:
-			frappe.throw(
-				_("The technical bid is ready only when every requirement is answered. Still open: row {0}.").format(", ".join(still_open))
-			)
-	check_parts_ready(doc)
+	set_checklist(doc)
 	record_submission(doc)
 	check_outcome_changes(doc)
 	if doc.status == "Closed" and doc.has_value_changed("status") and not (doc.get("muhick_outcome_notes") or "").strip():
@@ -81,17 +80,117 @@ def validate_opportunity(doc, method=None):
 		doc.set("muhick_outcome_date", today())
 
 
-def check_parts_ready(doc):
-	"""A part is marked ready only once its documents are listed, each with its file."""
-	for field, part in BID_PARTS:
-		if not (doc.get(field) and doc.has_value_changed(field)):
+def set_checklist(doc):
+	"""The bid's document checklist: a new bid starts with the documents every bid needs, a bid with a bid
+	security adds it, and each line shows the document made for it and where it stands."""
+	if doc.is_new() and not doc.get("muhick_checklist"):
+		default_checklist(doc)
+	add_bid_security(doc)
+	apply_documents(doc, documents_of(doc))
+	set_parts_ready(doc)
+
+
+def add_bid_security(doc):
+	listed = {r.document_type for r in doc.get("muhick_checklist") or []}
+	if doc.get("muhick_bid_security_required") and BID_SECURITY_DOCUMENT not in listed:
+		if frappe.db.exists("Bid Document Type", BID_SECURITY_DOCUMENT):
+			doc.append("muhick_checklist", {"document_type": BID_SECURITY_DOCUMENT})
+
+
+def default_checklist(doc):
+	types = frappe.get_all("Bid Document Type", filters={"in_every_bid": 1}, fields=["name", "part"])
+	for t in sorted(types, key=lambda t: (PART_ORDER.get(t.part, 9), t.name)):
+		doc.append("muhick_checklist", {"document_type": t.name})
+
+
+def documents_of(doc) -> list:
+	if doc.is_new():
+		return []
+	return frappe.get_all(
+		"Bid Document",
+		filters={"opportunity": doc.name},
+		fields=["name", "document_type", "status", "prepared_by"],
+		order_by="creation asc",
+	)
+
+
+def apply_documents(doc, documents):
+	"""Each checklist line with the document made for it (a document not on the checklist gets a line of
+	its own) and that document's status."""
+	by_name = {d.name: d for d in documents}
+	rows = doc.get("muhick_checklist") or []
+	for row in rows:
+		linked = by_name.get(row.bid_document)
+		if not (linked and linked.document_type == row.document_type):
+			row.bid_document = None
+	taken = {row.bid_document for row in rows if row.bid_document}
+	for d in documents:
+		if d.name in taken:
 			continue
-		rows = [r for r in doc.get("muhick_documents") or [] if r.part == part]
-		if not rows:
-			frappe.throw(_("List the documents of the {0} bid before marking it ready.").format(_(part).lower()))
-		without_file = [r.document_type for r in rows if not r.file]
-		if without_file:
-			frappe.throw(_("{0} bid: attach the file of {1} before marking it ready.").format(_(part), ", ".join(without_file)))
+		row = next((r for r in rows if not r.bid_document and r.document_type == d.document_type), None)
+		if not row:
+			row = doc.append("muhick_checklist", {"document_type": d.document_type})
+		row.bid_document = d.name
+		taken.add(d.name)
+	parts = dict(frappe.get_all("Bid Document Type", fields=["name", "part"], as_list=True))
+	for row in doc.get("muhick_checklist") or []:
+		linked = by_name.get(row.bid_document)
+		row.part = parts.get(row.document_type)
+		row.status = linked.status if linked else "Not Created"
+		row.prepared_by = linked.prepared_by if linked else None
+
+
+def set_parts_ready(doc):
+	"""A part of the bid is ready once every document of that part on the checklist is ready; the
+	technical part also needs every requirement answered."""
+	answered = not open_requirements(doc)
+	for field, part in BID_PARTS:
+		rows = [r for r in doc.get("muhick_checklist") or [] if r.part == part]
+		ready = bool(rows) and all(r.status == "Ready" for r in rows) and (answered or part != "Technical")
+		doc.set(field, 1 if ready else 0)
+
+
+def open_requirements(doc) -> list:
+	return [str(r.idx) for r in doc.get("muhick_requirements") or [] if r.compliance in (None, "", "Clarification Needed")]
+
+
+def sync_checklist(opportunity):
+	"""After one of a bid's documents changed: its checklist line, the parts ready and the bid's status
+	follow, without saving the whole bid."""
+	if not opportunity or not frappe.db.exists("Opportunity", opportunity):
+		return
+	doc = frappe.get_doc("Opportunity", opportunity)
+	known = {row.name: (row.bid_document, row.status, row.prepared_by, row.part) for row in doc.get("muhick_checklist")}
+	apply_documents(doc, documents_of(doc))
+	set_parts_ready(doc)
+	for row in doc.get("muhick_checklist"):
+		if row.name not in known:
+			row.db_insert()
+		elif known[row.name] != (row.bid_document, row.status, row.prepared_by, row.part):
+			row.db_update()
+	doc.db_set({field: doc.get(field) for field, _part in BID_PARTS}, update_modified=False)
+	refresh_bid_status(opportunity)
+	doc.notify_update()
+
+
+@frappe.whitelist()
+def create_bid_documents(opportunity: str) -> int:
+	"""A document for every checklist line that has none, prepared by the sales engineer by the
+	submission deadline unless it is given to someone else; each is then tracked on its own."""
+	doc = frappe.get_doc("Opportunity", opportunity)
+	doc.check_permission("write")
+	frappe.has_permission("Bid Document", "create", throw=True)
+	made = 0
+	for row in doc.get("muhick_checklist") or []:
+		if row.bid_document:
+			continue
+		document = frappe.get_doc({"doctype": "Bid Document", "opportunity": doc.name, "document_type": row.document_type})
+		document.flags.skip_checklist_sync = True
+		document.insert()
+		made += 1
+	if made:
+		sync_checklist(doc.name)
+	return made
 
 
 def record_submission(doc):
@@ -110,7 +209,14 @@ def record_submission(doc):
 	if is_submitted(doc):
 		missing = [_(part).lower() for field, part in BID_PARTS if not doc.get(field)]
 		if missing:
-			frappe.throw(_("A bid is complete only with all three parts. Still to be marked ready: {0}.").format(", ".join(missing)))
+			waiting = [r.document_type for r in doc.get("muhick_checklist") or [] if r.status != "Ready"]
+			unanswered = open_requirements(doc)
+			message = [_("A bid is complete only with all three parts. Not ready yet: {0}.").format(", ".join(missing))]
+			if waiting:
+				message.append(_("Documents still to prepare: {0}.").format(", ".join(waiting)))
+			if unanswered:
+				message.append(_("Requirements still to answer: row {0}.").format(", ".join(unanswered)))
+			frappe.throw(" ".join(message))
 	deadline, submitted = doc.get("muhick_submission_deadline"), doc.get("muhick_submitted_at")
 	if deadline and submitted and doc.has_value_changed("muhick_submitted_at") and get_datetime(submitted) > get_datetime(deadline):
 		frappe.msgprint(
@@ -143,12 +249,10 @@ def is_submitted(doc) -> bool:
 
 
 def is_preparing(doc) -> bool:
-	"""Work on the bid has started: its documents, a part ready, or money requested for it."""
-	if doc.get("muhick_documents") or any(doc.get(field) for field, _part in BID_PARTS):
-		return True
+	"""Work on the bid has started: a document made for it, or money requested for it."""
 	return not doc.is_new() and any(
 		frappe.db.exists(doctype, {"opportunity": doc.name, "docstatus": ("<", 2)})
-		for doctype in ("Sales Requisition", "Bid Security Request")
+		for doctype in ("Bid Document", "Sales Requisition", "Bid Security Request")
 	)
 
 

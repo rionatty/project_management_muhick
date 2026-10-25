@@ -1,0 +1,78 @@
+{
+ "actions": [],
+ "creation": "2026-10-25 22:27:20.781588",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_type",
+  "part",
+  "bid_document",
+  "status",
+  "prepared_by"
+ ],
+ "fields": [
+  {
+   "columns": 3,
+   "fieldname": "document_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Document",
+   "options": "Bid Document Type",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fetch_from": "document_type.part",
+   "fieldname": "part",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Part",
+   "options": "Administrative\nTechnical\nFinancial",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "bid_document",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Tracked As",
+   "no_copy": 1,
+   "options": "Bid Document",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "default": "Not Created",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Not Created\nPending\nIn Progress\nReady",
+   "read_only": 1
+  },
+  {
+   "fieldname": "prepared_by",
+   "fieldtype": "Link",
+   "label": "Prepared By",
+   "no_copy": 1,
+   "options": "User",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-25 22:27:20.781588",
+ "modified_by": "Administrator",
+ "module": "Muhick Sales",
+ "name": "Bid Checklist Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
