@@ -32,7 +32,7 @@ frappe.ui.form.on("Project Claim", {
 				frappe
 					.call({ method: "project_management_muhick.muhick_projects.doctype.project_claim.project_claim.make_sales_invoice", args: { source_name: frm.doc.name }, freeze: true })
 					.then((r) => r.message && frappe.set_route("Form", "Sales Invoice", r.message));
-			}, __("Create")).addClass("btn-primary");
+			}, __("Create"));
 		}
 	},
 

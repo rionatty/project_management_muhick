@@ -1,0 +1,19 @@
+/* Copyright (c) 2026, CyveTech and contributors
+   For license information, please see license.txt */
+
+/* On every document, the buttons a form adds to its header (Create, View and the other groups, Close,
+   Issue Funds...) have the colour of its main button, so the actions look the same on every screen. */
+body[data-route^="Form/"] .page-head .page-actions .custom-actions .btn.btn-default {
+	background-color: var(--btn-primary);
+	color: var(--neutral);
+	--icon-stroke: currentColor;
+	--icon-fill-bg: var(--btn-primary);
+}
+
+body[data-route^="Form/"] .page-head .page-actions .custom-actions .btn.btn-default:hover,
+body[data-route^="Form/"] .page-head .page-actions .custom-actions .btn.btn-default:focus,
+body[data-route^="Form/"] .page-head .page-actions .custom-actions .btn.btn-default[aria-expanded="true"] {
+	background-color: var(--btn-primary);
+	color: var(--neutral);
+	opacity: 0.85;
+}

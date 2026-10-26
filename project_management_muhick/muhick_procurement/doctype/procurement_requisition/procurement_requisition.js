@@ -23,7 +23,7 @@ frappe.ui.form.on("Procurement Requisition", {
 						freeze: true,
 					})
 					.then((r) => r.message && frappe.set_route("Form", "Purchase Order", r.message));
-			}, __("Create")).addClass("btn-primary");
+			}, __("Create"));
 		}
 	},
 });

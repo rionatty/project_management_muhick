@@ -213,6 +213,9 @@ again: it only creates what is missing.
   (timesheets, activity types and costs, project types, project updates, settings and the standard
   project reports), so ERPNext's Projects icon is hidden while the app is installed. It comes back
   if the app is uninstalled; the standard workspace is still at /desk/projects.
+- **One colour for the buttons.** On every document, standard ones included, the buttons a form adds
+  to its header (Create, View and the other groups, Close, Issue Funds and so on) have the colour of
+  its Save button (`public/css/muhick.css`).
 
 - **Milestones come from one shared list**, ERPNext's Task Type ("Milestones (Master List)" in the
   menu). BOQ lines and the activity plan pick from it; Get Milestones adds names it does not know.
