@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "field:milestone_name",
- "creation": "2026-10-26 09:14:42.676995",
+ "creation": "2026-10-26 09:28:43.367957",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -23,7 +23,7 @@
    "unique": 1
   },
   {
-   "description": "Its share of a bid's progress. A milestone that does not apply to a bid counts for nothing either way.",
+   "description": "Its share of an opportunity's progress. A milestone that does not apply to an opportunity counts for nothing either way.",
    "fieldname": "weight",
    "fieldtype": "Percent",
    "in_list_view": 1,
@@ -31,12 +31,12 @@
    "reqd": 1
   },
   {
-   "description": "What marks it reached on a bid; Ticked by Hand for one the sales engineer ticks",
+   "description": "What marks it reached on an opportunity; Ticked by Hand for one the sales engineer ticks",
    "fieldname": "reached_when",
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Reached When",
-   "options": "Bid Opened\nSite Visit Done\nFunds Issued\nBid Security Issued\nAdministrative Bid Ready\nTechnical Bid Ready\nFinancial Bid Ready\nBid Submitted\nSubmission Deadline Passed\nOutcome Approved\nTicked by Hand",
+   "options": "Opportunity Opened\nSite Visit Done\nFunds Issued\nBid Security Issued\nAdministrative Bid Ready\nTechnical Bid Ready\nFinancial Bid Ready\nBid Submitted\nSubmission Deadline Passed\nOutcome Approved\nBid Won\nQuotation Submitted\nSales Order Submitted\nProject Handed Over\nTicked by Hand",
    "reqd": 1
   },
   {
@@ -45,7 +45,7 @@
   },
   {
    "default": "0",
-   "description": "Where it comes in a bid's list of milestones",
+   "description": "Where it comes in an opportunity's list of milestones",
    "fieldname": "sequence",
    "fieldtype": "Int",
    "in_list_view": 1,
@@ -53,7 +53,7 @@
   },
   {
    "default": "0",
-   "description": "Not added to new bids",
+   "description": "Not added to new opportunities",
    "fieldname": "disabled",
    "fieldtype": "Check",
    "label": "Disabled"
@@ -62,10 +62,10 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-26 09:14:42.676995",
+ "modified": "2026-10-26 09:28:43.367957",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
- "name": "Bid Milestone",
+ "name": "Opportunity Milestone",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [

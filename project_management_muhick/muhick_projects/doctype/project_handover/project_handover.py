@@ -16,7 +16,7 @@ from frappe.utils import fmt_money, now_datetime
 from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.muhick_projects.utils import validate_dates
 from project_management_muhick.muhick_sales.bids import bid_spent
-from project_management_muhick.overrides.crm import requirement_kinds
+from project_management_muhick.overrides.crm import refresh_bid_status, requirement_kinds
 from project_management_muhick.utils.common import get_settings
 
 # handover field -> Project field
@@ -72,6 +72,8 @@ class ProjectHandover(Document):
 		project = frappe.get_doc("Project", self.project) if self.project else self.make_project()
 		self.update_project(project)
 		budget_engine.refresh_projects([project.name])
+		# the opportunity's Handed Over to Projects milestone
+		refresh_bid_status(self.opportunity)
 
 	def make_project(self):
 		project = frappe.new_doc("Project")
@@ -104,6 +106,7 @@ class ProjectHandover(Document):
 			if frappe.db.get_value("Project", self.project, "muhick_stage") != "Planning":
 				frappe.throw(_("Project {0} is already in execution; its handover cannot be cancelled.").format(self.project))
 			frappe.db.set_value("Project", self.project, "muhick_handover", None)
+		refresh_bid_status(self.opportunity)
 
 
 @frappe.whitelist()

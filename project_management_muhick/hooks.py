@@ -28,10 +28,8 @@ before_uninstall = "project_management_muhick.install.before_uninstall"
 # Client scripts
 # --------------
 
-# helpers shared by the Muhick forms
+# helpers shared by the Muhick forms, and one colour for the header buttons of every document
 app_include_js = "/assets/project_management_muhick/js/muhick_common.js"
-# the header buttons of every document in one colour
-app_include_css = "/assets/project_management_muhick/css/muhick.css"
 
 # scripts added to standard ERPNext forms
 
@@ -71,7 +69,10 @@ doc_events = {
 		"validate": "project_management_muhick.overrides.crm.validate_opportunity",
 		"on_update": "project_management_muhick.overrides.crm.on_update_opportunity",
 	},
-	"Quotation": {"on_cancel": "project_management_muhick.overrides.crm.quotation_cancelled"},
+	"Quotation": {
+		"on_submit": "project_management_muhick.overrides.crm.refresh_from_sale",
+		"on_cancel": "project_management_muhick.overrides.crm.quotation_cancelled",
+	},
 	"Project": {
 		"validate": "project_management_muhick.overrides.project.validate",
 		"after_insert": "project_management_muhick.overrides.project.after_insert",
@@ -139,7 +140,11 @@ doc_events = {
 		"on_cancel": "project_management_muhick.overrides.accounts.on_cancel_sales_invoice",
 	},
 	"Sales Order": {
-		"on_submit": "project_management_muhick.overrides.accounts.on_submit_sales_order",
+		"on_submit": [
+			"project_management_muhick.overrides.accounts.on_submit_sales_order",
+			"project_management_muhick.overrides.crm.refresh_from_sale",
+		],
+		"on_cancel": "project_management_muhick.overrides.crm.refresh_from_sale",
 	},
 	# documents of this app that move through an approval workflow
 	"Project Budget": _approval_events,

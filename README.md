@@ -70,13 +70,14 @@ and certificates, retention, payments and the controls around them.
   outcome stays whatever happens to the sale afterwards. It opens the Bid tab with the expected award
   date, and the sales engineer is reminded daily to follow up a bid still under evaluation after its
   expected award date.
-- Under it, the bid's milestones, each carrying a weight from the Bid Milestones list (lead qualified,
-  bid funds issued, site visit done, bid security issued, the three parts of the bid ready, bid
-  submitted, outcome approved; the business can rename them, change their weights and add its own).
-  Each is reached as the bid's record shows, with the date and who, or is ticked by hand when it is
-  one the system cannot see; one that does not apply (no site visit, no bid security) counts for
-  nothing. The Bid Progress % is the weight reached out of the weight that applies, on the bid, the
-  opportunity list and the Bid Register.
+- The opportunity's milestones, on its first tab, from the lead to the project, each carrying a weight
+  from the Opportunity Milestones list (in the CRM menu's Setup): lead qualified, bid funds issued,
+  site visit done, bid security issued, the three parts of the bid ready, bid submitted, bid won,
+  quotation sent, sales order confirmed, handed over to projects. The business can rename them, change
+  their weights and add its own. Each is reached as the record shows, with the date and who, or is
+  ticked by hand when it is one the system cannot see; one that does not apply (no site visit, no bid
+  security) counts for nothing. The Progress % is the weight reached out of the weight that applies,
+  on the opportunity, its list and the Bid Register.
 - The opportunity is the bid, built on the standard Opportunity: its Bid tab holds the tender, the
   client's requirements with a compliance answer for each (the technical bid check), the financial
   requirements, the three parts of the bid, its document checklist, the submission record (date and
@@ -221,7 +222,7 @@ again: it only creates what is missing.
   if the app is uninstalled; the standard workspace is still at /desk/projects.
 - **One colour for the buttons.** On every document, standard ones included, the buttons a form adds
   to its header (Create, View and the other groups, Close, Issue Funds and so on) have the colour of
-  its Save button (`public/css/muhick.css`).
+  its Save button (`public/js/muhick_common.js`).
 
 - **Milestones come from one shared list**, ERPNext's Task Type ("Milestones (Master List)" in the
   menu). BOQ lines and the activity plan pick from it; Get Milestones adds names it does not know.

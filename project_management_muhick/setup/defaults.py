@@ -89,12 +89,14 @@ SALES_STAGES = [
 	"Qualified", "In Preparation", "Submitted", "Under Evaluation", "Outcome Pending Approval", "Won", "Lost", "Not Pursued",
 	"Cancelled",
 ]
-# the milestones of a bid, the weight each carries in its progress (together 100) and what reaches it
-BID_MILESTONES = [
-	("Lead Qualified", 5, "Bid Opened"), ("Bid Funds Issued", 10, "Funds Issued"), ("Site Visit Done", 5, "Site Visit Done"),
-	("Bid Security Issued", 10, "Bid Security Issued"), ("Administrative Bid Ready", 15, "Administrative Bid Ready"),
-	("Technical Bid Ready", 20, "Technical Bid Ready"), ("Financial Bid Ready", 15, "Financial Bid Ready"),
-	("Bid Submitted", 15, "Bid Submitted"), ("Outcome Approved", 5, "Outcome Approved"),
+# the milestones of an opportunity from the lead to the project, the weight each carries in its progress
+# (together 100) and what reaches it
+OPPORTUNITY_MILESTONES = [
+	("Lead Qualified", 5, "Opportunity Opened"), ("Bid Funds Issued", 5, "Funds Issued"), ("Site Visit Done", 5, "Site Visit Done"),
+	("Bid Security Issued", 5, "Bid Security Issued"), ("Administrative Bid Ready", 10, "Administrative Bid Ready"),
+	("Technical Bid Ready", 15, "Technical Bid Ready"), ("Financial Bid Ready", 10, "Financial Bid Ready"),
+	("Bid Submitted", 15, "Bid Submitted"), ("Bid Won", 10, "Bid Won"), ("Quotation Sent", 5, "Quotation Submitted"),
+	("Sales Order Confirmed", 10, "Sales Order Submitted"), ("Handed Over to Projects", 5, "Project Handed Over"),
 ]
 # ERPNext's sample values that do not fit the business; removed while nothing uses them. Opportunity
 # Type "Sales" stays: ERPNext falls back to it.
@@ -154,10 +156,10 @@ def setup_crm_lists():
 			frappe.get_doc(doctype="Bid Document Type", document_name=name, part=part, in_every_bid=every).insert(
 				ignore_permissions=True
 			)
-	for order, (name, weight, reached_when) in enumerate(BID_MILESTONES, 1):
-		if not frappe.db.exists("Bid Milestone", name):
+	for order, (name, weight, reached_when) in enumerate(OPPORTUNITY_MILESTONES, 1):
+		if not frappe.db.exists("Opportunity Milestone", name):
 			frappe.get_doc(
-				doctype="Bid Milestone", milestone_name=name, weight=weight, reached_when=reached_when, sequence=order * 10
+				doctype="Opportunity Milestone", milestone_name=name, weight=weight, reached_when=reached_when, sequence=order * 10
 			).insert(ignore_permissions=True)
 	for doctype, names in SAMPLE_VALUES.items():
 		for name in names:

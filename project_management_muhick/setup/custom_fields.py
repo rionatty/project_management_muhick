@@ -279,22 +279,28 @@ CUSTOM_FIELDS = {
 	"Opportunity": [
 		_ro("muhick_stage_since", "In This Status Since", "Date", insert_after="sales_stage"),
 	]
+	# the opportunity's milestones from the lead to the project, each carrying a weight, and its progress
+	+ _chain(
+		"probability",
+		[
+			_ro(
+				"muhick_progress", "Progress %", "Percent", in_list_view=1,
+				description="The weight of the milestones reached, out of the weight of those that apply",
+			),
+			_sec("muhick_milestones_section", "Opportunity Milestones"),
+			dict(
+				fieldname="muhick_milestones", label="Milestones", fieldtype="Table", options="Opportunity Milestone Line",
+				description="From the lead to the project. Each milestone carries its weight and is reached as the record shows; one ticked by hand is set here. The milestones and their weights are in the Opportunity Milestones list.",
+			),
+		],
+	)
 	+ _chain(
 		"competitors",
 		[
 			dict(fieldname="muhick_bid_tab", fieldtype="Tab Break", label="Bid"),
-			# the bid status and the expected award date (standard fields) sit here, with the milestones
+			# the bid status and the expected award date (standard fields) sit here
 			_sec("muhick_status_section", "Bid Status"),
 			_col("muhick_status_column"),
-			_ro(
-				"muhick_bid_progress", "Bid Progress %", "Percent", in_list_view=1,
-				description="The weight of the milestones reached, out of the weight of those that apply to the bid",
-			),
-			_sec("muhick_milestones_section"),
-			dict(
-				fieldname="muhick_milestones", label="Milestones", fieldtype="Table", options="Bid Milestone Line",
-				description="Each milestone carries its weight and is reached as the bid's record shows; those ticked by hand are set here. Weights and milestones are in the Bid Milestones list.",
-			),
 			_sec("muhick_tender_section", "Tender"),
 			dict(fieldname="muhick_tender_reference", label="Tender Reference", fieldtype="Data"),
 			dict(fieldname="muhick_advert", label="Advert / Invitation", fieldtype="Attach"),
@@ -394,11 +400,12 @@ LEAD_ORDER = [
 	"dashboard_tab",
 ]
 # the opportunity reads like its lead: the organisation, what it wants, where it came from and who
-# runs it; the bid's status (its sales stage) opens the Bid tab, with its milestones and progress
+# runs it, then its progress and milestones; the bid's status (its sales stage) opens the Bid tab
 OPPORTUNITY_ORDER = [
 	"naming_series", "opportunity_from", "party_name", "customer_name", "status",
 	"column_break0", "opportunity_type", "utm_source", "opportunity_owner",
-	"column_break_10", "transaction_date", "probability",
+	"column_break_10", "transaction_date", "muhick_progress", "probability",
+	"muhick_milestones_section", "muhick_milestones",
 	"organization_details_section", "no_of_employees", "annual_revenue", "customer_group",
 	"column_break_23", "industry", "market_segment", "website",
 	"column_break_31", "city", "state", "country", "territory",
@@ -407,8 +414,7 @@ OPPORTUNITY_ORDER = [
 	"utm_analytics_section", "utm_medium", "column_break_emai", "utm_campaign", "utm_content",
 	"more_info", "company", "column_break1", "language", "amended_from", "title", "first_response_time",
 	"lost_detail_section", "lost_reasons", "order_lost_reason", "column_break_56", "competitors",
-	"muhick_bid_tab", "muhick_status_section", "sales_stage", "muhick_stage_since", "muhick_status_column", "muhick_bid_progress",
-	"expected_closing", "muhick_milestones_section", "muhick_milestones",
+	"muhick_bid_tab", "muhick_status_section", "sales_stage", "muhick_stage_since", "muhick_status_column", "expected_closing",
 	"muhick_tender_section", "muhick_tender_reference", "muhick_advert", "muhick_tender_column",
 	"muhick_submission_deadline", "muhick_site_visit_required", "muhick_site_visit_date", "muhick_tender_column_2",
 	"muhick_qualification_notes", "muhick_compliance_section", "muhick_requirements", "muhick_financial_section",

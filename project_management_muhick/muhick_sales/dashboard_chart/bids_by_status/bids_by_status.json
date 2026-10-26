@@ -1,7 +1,7 @@
 {
  "chart_name": "Bids by Status",
  "chart_type": "Group By",
- "creation": "2026-10-26 09:14:44.386451",
+ "creation": "2026-10-26 09:28:45.110129",
  "currency": "",
  "docstatus": 0,
  "doctype": "Dashboard Chart",
@@ -13,7 +13,7 @@
  "idx": 0,
  "is_public": 1,
  "is_standard": 1,
- "modified": "2026-10-26 09:14:44.386451",
+ "modified": "2026-10-26 09:28:45.110129",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bids by Status",

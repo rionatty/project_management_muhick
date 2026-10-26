@@ -4,6 +4,31 @@
 // Small helpers shared by the Muhick forms. Loaded on every desk page (see hooks.py).
 frappe.provide("muhick");
 
+// On a document, every button its form adds to the header, and every group of them (Create, View...),
+// is a primary button like Save, so they all take its colour whatever the theme
+(() => {
+	const page = frappe.ui && frappe.ui.Page && frappe.ui.Page.prototype;
+	if (!page) {
+		return;
+	}
+	const on_document = () => {
+		const route = frappe.router && frappe.router.current_route;
+		return Boolean(route && route[0] === "Form");
+	};
+	const add_inner_button = page.add_inner_button;
+	page.add_inner_button = function (label, action, group, type = "default", align_right = false) {
+		return add_inner_button.call(this, label, action, group, type === "default" && on_document() ? "primary" : type, align_right);
+	};
+	const get_or_add_inner_group_button = page.get_or_add_inner_group_button;
+	page.get_or_add_inner_group_button = function (label, align_right) {
+		const $group = get_or_add_inner_group_button.call(this, label, align_right);
+		if (on_document()) {
+			$group.children("button").removeClass("btn-default").addClass("btn-primary");
+		}
+		return $group;
+	};
+})();
+
 // an opportunity's status (where the sale stands) as a coloured tag, on the opportunity list and at the
 // top of the opportunity; its bid status is a column of the list and opens the Bid tab
 muhick.opportunity_status_indicator = function (doc) {

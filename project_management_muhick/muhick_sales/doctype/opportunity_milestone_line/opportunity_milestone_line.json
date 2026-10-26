@@ -1,6 +1,6 @@
 {
  "actions": [],
- "creation": "2026-10-26 09:14:42.676995",
+ "creation": "2026-10-26 09:28:43.367957",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -21,7 +21,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Milestone",
-   "options": "Bid Milestone",
+   "options": "Opportunity Milestone",
    "read_only": 1
   },
   {
@@ -41,7 +41,7 @@
   {
    "columns": 2,
    "default": "Pending",
-   "description": "Set as the bid's record shows; only a milestone ticked by hand is set here",
+   "description": "Set as the record shows; only a milestone ticked by hand is set here",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -81,10 +81,10 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-26 09:14:42.676995",
+ "modified": "2026-10-26 09:28:43.367957",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
- "name": "Bid Milestone Line",
+ "name": "Opportunity Milestone Line",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",

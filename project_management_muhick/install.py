@@ -22,6 +22,10 @@ CRM_ITEMS = (
 	("Bid Security Request", "Bid Outcome", "DocType", "Bid Outcome", 0),
 	("Opportunity Summary by Sales Stage", "Bid Register", "Report", "Bid Register", 1),
 	("Bid Register", "Bid Margin Comparison", "Report", "Bid Margin Comparison", 1),
+	# the sales team's own lists, in the menu's Setup section
+	("Sales Stage", "Opportunity Milestones", "DocType", "Opportunity Milestone", 1),
+	("Opportunity Milestone", "Bid Document Types", "DocType", "Bid Document Type", 1),
+	("Bid Document Type", "Financial Requirement Types", "DocType", "Financial Requirement Type", 1),
 )
 # taken out of the CRM menu while the app is installed (a lead is already one organisation), put back
 # on uninstall

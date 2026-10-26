@@ -10,12 +10,12 @@ a part of the bid is ready once all its documents are; a bid is complete with al
 it is submitted.
 
 It has two statuses, each moving by itself. The bid status (the Sales Stage) follows the tender, from
-Qualified to Won, Lost, Not Pursued or Cancelled, and its milestones, each carrying a weight, give its
-progress; the opportunity status (the standard status) follows
+Qualified to Won, Lost, Not Pursued or Cancelled; the opportunity status (the standard status) follows
 the sale, from Open to Won, Quotation and Converted, or Lost or Closed. Won and lost come only from an
 outcome report approved by the Head of Sales and the General Manager, and a bid's outcome stays
-whatever happens to the sale afterwards. When an opportunity is lost or closed, Finance is asked to
-cancel its bid security, because the bank charges for it until it is cancelled."""
+whatever happens to the sale afterwards. Its milestones, from the lead to the project and each carrying
+a weight, give its progress. When an opportunity is lost or closed, Finance is asked to cancel its bid
+security, because the bank charges for it until it is cancelled."""
 
 import frappe
 from frappe import _
@@ -301,13 +301,13 @@ def set_bid_status(doc):
 
 
 def set_milestones(doc):
-	"""The bid's milestones, each carrying its weight: reached as the bid's record shows (or ticked by
+	"""The opportunity's milestones, each carrying its weight: reached as the record shows (or ticked by
 	hand), and its progress the weight reached out of the weight that applies. While the bid is going,
-	its milestones and weights follow the Bid Milestones list."""
+	its milestones and weights follow the Opportunity Milestones list."""
 	rows = doc.get("muhick_milestones") or []
 	if not rows or doc.is_new() or doc.sales_stage in IN_PROGRESS:
 		milestones = frappe.get_all(
-			"Bid Milestone", filters={"disabled": 0}, fields=["name", "weight", "reached_when"], order_by="sequence asc, name asc"
+			"Opportunity Milestone", filters={"disabled": 0}, fields=["name", "weight", "reached_when"], order_by="sequence asc, name asc"
 		)
 		listed = {row.milestone: row for row in rows}
 		for m in milestones:
@@ -336,12 +336,14 @@ def set_milestones(doc):
 				"note": note if status == "Reached" else None,
 			}
 		)
-	doc.set("muhick_bid_progress", flt(calc.milestone_progress([(r.weight, r.status) for r in doc.get("muhick_milestones")]), 2))
+	doc.set("muhick_progress", flt(calc.milestone_progress([(r.weight, r.status) for r in doc.get("muhick_milestones")]), 2))
 
 
 def milestone_facts(doc) -> dict:
-	"""What the milestones are read from, beyond the bid itself."""
+	"""What the milestones are read from, beyond the opportunity itself: the bid's requisitions and
+	security, its outcome, and the quotation, sales order and handover that follow a win."""
 	facts = frappe._dict(funds_issued_on=None, requisitions=False, security_issued_on=None)
+	facts.outcome = frappe.db.get_value("Bid Outcome", doc.muhick_bid_outcome, "outcome") if doc.get("muhick_bid_outcome") else None
 	facts.costs = "Cost" in requirement_kinds(doc.get("muhick_financial_requirements")).values()
 	if not doc.is_new():
 		issued = frappe.get_all(
@@ -353,6 +355,28 @@ def milestone_facts(doc) -> dict:
 		)
 		facts.funds_issued_on = getdate(issued[0].issued_on) if issued and issued[0].issued_on else None
 		facts.requisitions = bool(frappe.db.exists("Sales Requisition", {"opportunity": doc.name, "docstatus": ("<", 2)}))
+		quotations = frappe.db.sql(
+			"""
+			select distinct quotation.name, quotation.transaction_date from `tabQuotation` quotation
+			left join `tabQuotation Item` item on item.parent = quotation.name and item.prevdoc_doctype = 'Opportunity'
+			where quotation.docstatus = 1 and (quotation.opportunity = %(name)s or item.prevdoc_docname = %(name)s)
+			""",
+			{"name": doc.name},
+			as_dict=True,
+		)
+		if quotations:
+			facts.quotation_on = min(getdate(q.transaction_date) for q in quotations)
+			ordered = frappe.db.sql(
+				"""
+				select min(so.transaction_date) from `tabSales Order` so
+				where so.docstatus = 1
+					and so.name in (select parent from `tabSales Order Item` where prevdoc_docname in %(quotations)s)
+				""",
+				{"quotations": [q.name for q in quotations]},
+			)[0][0]
+			facts.sales_order_on = getdate(ordered) if ordered else None
+		handed_over = frappe.db.get_value("Project Handover", {"opportunity": doc.name, "docstatus": 1}, "accepted_on")
+		facts.handover_on = getdate(handed_over) if handed_over else None
 	if doc.get("muhick_bid_security"):
 		issued_on = frappe.db.get_value("Bank Instrument", doc.muhick_bid_security, "issue_date")
 		facts.security_issued_on = getdate(issued_on or today())
@@ -363,8 +387,8 @@ def milestone_state(doc, row, facts) -> tuple:
 	"""(whether a milestone applies to the bid, the day it was reached or None, how)."""
 	rule = row.reached_when
 	kept = getdate(row.reached_on) if row.status == "Reached" and row.reached_on else None
-	if rule == "Bid Opened":
-		return True, getdate(doc.get("transaction_date") or today()), _("Bid opened")
+	if rule == "Opportunity Opened":
+		return True, getdate(doc.get("transaction_date") or today()), _("Opportunity opened")
 	if rule == "Site Visit Done":
 		visit = doc.get("muhick_site_visit_date")
 		done = bool(visit) and getdate(visit) <= getdate(today())
@@ -385,21 +409,28 @@ def milestone_state(doc, row, facts) -> tuple:
 		deadline = doc.get("muhick_submission_deadline")
 		passed = bool(deadline) and is_submitted(doc) and get_datetime(deadline) < now_datetime()
 		return bool(deadline), getdate(deadline) if passed else None, _("Submission deadline passed")
-	if rule == "Outcome Approved":
+	if rule in ("Outcome Approved", "Bid Won"):
 		outcome = doc.get("muhick_bid_outcome")
-		reached = getdate(doc.get("muhick_outcome_date") or today()) if outcome else None
-		return True, reached, _("Outcome report {0} approved").format(outcome)
+		reached = outcome and (rule == "Outcome Approved" or facts.outcome == "Won")
+		return True, getdate(doc.get("muhick_outcome_date") or today()) if reached else None, _("Outcome report {0} approved").format(outcome)
+	if rule == "Quotation Submitted":
+		return True, facts.quotation_on, _("Quotation submitted")
+	if rule == "Sales Order Submitted":
+		return True, facts.sales_order_on, _("Sales order submitted")
+	if rule == "Project Handed Over":
+		return True, facts.handover_on, _("Handover to projects accepted")
 	return True, kept, None
 
 
 def refresh_bid_status(opportunity):
-	"""A bid's status and milestones after something recorded elsewhere: a document, a requisition and
-	its funds, the bid security, its outcome report, or a date passing."""
+	"""An opportunity's bid status and milestones after something recorded elsewhere: a document, a
+	requisition and its funds, the bid security, its outcome report, a quotation, sales order or
+	handover, or a date passing."""
 	if not opportunity or not frappe.db.exists("Opportunity", opportunity):
 		return
 	doc = frappe.get_doc("Opportunity", opportunity)
 	stored = {row.name: row.as_dict() for row in doc.get("muhick_milestones")}
-	stage, progress = doc.sales_stage, flt(doc.get("muhick_bid_progress"), 2)
+	stage, progress = doc.sales_stage, flt(doc.get("muhick_progress"), 2)
 	set_milestones(doc)
 	for row in doc.get("muhick_milestones"):
 		if row.name not in stored:
@@ -410,8 +441,8 @@ def refresh_bid_status(opportunity):
 	new_stage = bid_status(doc)
 	if new_stage != stage:
 		values.update({"sales_stage": new_stage, "muhick_stage_since": today()})
-	if flt(doc.muhick_bid_progress) != progress:
-		values["muhick_bid_progress"] = doc.muhick_bid_progress
+	if flt(doc.muhick_progress) != progress:
+		values["muhick_progress"] = doc.muhick_progress
 	if values:
 		doc.db_set(values, notify=True)
 
@@ -449,6 +480,28 @@ def on_update_opportunity(doc, method=None):
 		request_security_cancellation(doc)
 
 
+def refresh_from_sale(doc, method=None):
+	"""A quotation or sales order submitted or cancelled: the opportunity's milestones follow."""
+	for name in sale_opportunities(doc):
+		refresh_bid_status(name)
+
+
+def sale_opportunities(doc) -> set:
+	"""The opportunities a quotation or a sales order comes from."""
+	quotations = [doc.name] if doc.doctype == "Quotation" else list({i.prevdoc_docname for i in doc.items if i.prevdoc_docname})
+	if not quotations:
+		return set()
+	names = set(frappe.get_all("Quotation", filters={"name": ("in", quotations), "opportunity": ("is", "set")}, pluck="opportunity"))
+	names.update(
+		frappe.get_all(
+			"Quotation Item",
+			filters={"parent": ("in", quotations), "prevdoc_doctype": "Opportunity", "prevdoc_docname": ("is", "set")},
+			pluck="prevdoc_docname",
+		)
+	)
+	return names
+
+
 def quotation_cancelled(doc, method=None):
 	"""A won bid's quotation cancelled: ERPNext puts the opportunity back to Open, but the bid was won."""
 	opportunities = {i.prevdoc_docname for i in doc.items if i.prevdoc_doctype == "Opportunity" and i.prevdoc_docname}
@@ -459,6 +512,7 @@ def quotation_cancelled(doc, method=None):
 		if bid and bid.status == "Open" and bid.muhick_bid_outcome:
 			if frappe.db.get_value("Bid Outcome", bid.muhick_bid_outcome, "outcome") == "Won":
 				frappe.db.set_value("Opportunity", name, "status", "Won")
+	refresh_from_sale(doc)
 
 
 def request_security_cancellation(doc):
