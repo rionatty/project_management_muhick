@@ -283,6 +283,14 @@ CUSTOM_FIELDS = {
 		"competitors",
 		[
 			dict(fieldname="muhick_bid_tab", fieldtype="Tab Break", label="Bid"),
+			# the bid status and the expected award date (standard fields) sit here, with the history
+			_sec("muhick_status_section", "Bid Status"),
+			_col("muhick_status_column"),
+			_sec("muhick_status_history_section"),
+			dict(
+				fieldname="muhick_status_history", label="Status History", fieldtype="Table", options="Bid Status Change", read_only=1,
+				description="Every status the bid has been in: from when, for how many days, who moved it and what moved it",
+			),
 			_sec("muhick_tender_section", "Tender"),
 			dict(fieldname="muhick_tender_reference", label="Tender Reference", fieldtype="Data"),
 			dict(fieldname="muhick_advert", label="Advert / Invitation", fieldtype="Attach"),
@@ -382,11 +390,11 @@ LEAD_ORDER = [
 	"dashboard_tab",
 ]
 # the opportunity reads like its lead: the organisation, what it wants, where it came from and who
-# runs it, then how far it has gone; the bid's status is its sales stage
+# runs it; the bid's status (its sales stage) opens the Bid tab, with its history
 OPPORTUNITY_ORDER = [
 	"naming_series", "opportunity_from", "party_name", "customer_name", "status",
 	"column_break0", "opportunity_type", "utm_source", "opportunity_owner",
-	"column_break_10", "sales_stage", "muhick_stage_since", "expected_closing", "transaction_date", "probability",
+	"column_break_10", "transaction_date", "probability",
 	"organization_details_section", "no_of_employees", "annual_revenue", "customer_group",
 	"column_break_23", "industry", "market_segment", "website",
 	"column_break_31", "city", "state", "country", "territory",
@@ -395,7 +403,9 @@ OPPORTUNITY_ORDER = [
 	"utm_analytics_section", "utm_medium", "column_break_emai", "utm_campaign", "utm_content",
 	"more_info", "company", "column_break1", "language", "amended_from", "title", "first_response_time",
 	"lost_detail_section", "lost_reasons", "order_lost_reason", "column_break_56", "competitors",
-	"muhick_bid_tab", "muhick_tender_section", "muhick_tender_reference", "muhick_advert", "muhick_tender_column",
+	"muhick_bid_tab", "muhick_status_section", "sales_stage", "muhick_stage_since", "muhick_status_column", "expected_closing",
+	"muhick_status_history_section", "muhick_status_history",
+	"muhick_tender_section", "muhick_tender_reference", "muhick_advert", "muhick_tender_column",
 	"muhick_submission_deadline", "muhick_site_visit_required", "muhick_site_visit_date", "muhick_tender_column_2",
 	"muhick_qualification_notes", "muhick_compliance_section", "muhick_requirements", "muhick_financial_section",
 	"muhick_financial_requirements",

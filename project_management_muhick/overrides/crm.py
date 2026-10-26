@@ -15,7 +15,7 @@ because the bank charges for it until it is cancelled."""
 
 import frappe
 from frappe import _
-from frappe.utils import flt, format_datetime, get_datetime, getdate, now_datetime, today
+from frappe.utils import date_diff, flt, format_datetime, get_datetime, getdate, now_datetime, today
 
 from project_management_muhick.setup.workflows import PENDING_STATES
 from project_management_muhick.utils.common import FINANCE_ROLES, GM, notify_roles
@@ -28,8 +28,9 @@ BID_PARTS = (
 	("muhick_technical_bid_ready", "Technical"),
 	("muhick_financial_bid_ready", "Financial"),
 )
-# the bid statuses of a bid still going; it ends Won, Lost, Not Pursued or Cancelled
+# the bid statuses of a bid still going, and those it ends with
 IN_PROGRESS = ("Qualified", "In Preparation", "Submitted", "Under Evaluation", "Outcome Pending Approval")
+OUTCOMES = ("Won", "Lost", "Not Pursued", "Cancelled")
 # the document a bid with a bid security adds to its checklist
 BID_SECURITY_DOCUMENT = "Bid Security"
 PART_ORDER = {part: i for i, (_field, part) in enumerate(BID_PARTS)}
@@ -276,21 +277,65 @@ def bid_status(doc) -> str:
 
 
 def set_bid_status(doc):
+	before = doc.get_doc_before_save()
 	doc.sales_stage = bid_status(doc)
-	if doc.has_value_changed("sales_stage") or not doc.get("muhick_stage_since"):
+	if not doc.get("muhick_status_history") or (before and before.sales_stage != doc.sales_stage):
 		doc.set("muhick_stage_since", today())
+		log_status(doc, doc.sales_stage)
 
 
 def refresh_bid_status(opportunity):
-	"""A bid's status after something recorded elsewhere: a requisition, a bid security request, its
-	outcome report, or the submission deadline passing."""
+	"""A bid's status after something recorded elsewhere: a document, a requisition, a bid security
+	request, its outcome report, or the submission deadline passing."""
 	if not opportunity:
 		return
 	doc = frappe.get_doc("Opportunity", opportunity)
 	stage = bid_status(doc)
 	if stage != doc.sales_stage:
+		ending = [row for row in doc.get("muhick_status_history") if not row.to_date]
+		log_status(doc, stage).db_insert()
+		for row in ending:
+			row.db_update()
 		doc.db_set({"sales_stage": stage, "muhick_stage_since": today()}, notify=True)
-		doc.add_comment("Info", _("Bid status: {0}").format(_(stage)))
+
+
+def log_status(doc, stage):
+	"""The bid's history: the status it leaves ends today, and the new one starts."""
+	note = status_note(doc, stage)
+	for row in doc.get("muhick_status_history") or []:
+		if not row.to_date:
+			row.to_date = today()
+			row.days = date_diff(today(), row.from_date)
+	return doc.append(
+		"muhick_status_history", {"status": stage, "from_date": today(), "changed_by": frappe.session.user, "note": note}
+	)
+
+
+def status_note(doc, stage) -> str:
+	"""What moved a bid to a status, from what is recorded on it."""
+	history = doc.get("muhick_status_history") or []
+	previous = history[-1].status if history else None
+	if stage in ("Won", "Lost"):
+		outcome = doc.get("muhick_bid_outcome")
+		return _("Outcome report {0} approved").format(outcome) if outcome else _("Marked lost")
+	if stage in ("Not Pursued", "Cancelled"):
+		return _("Closed: {0}").format(doc.get("muhick_outcome_notes") or "")
+	if stage == "Outcome Pending Approval":
+		return _("Outcome report sent to the Head of Sales and the General Manager")
+	if previous == "Outcome Pending Approval":
+		reason = frappe.db.get_value(
+			"Bid Outcome", {"opportunity": doc.name, "docstatus": 0, "workflow_state": "Rejected"}, "rejection_reason"
+		)
+		return _("Outcome report returned: {0}").format(reason) if reason else _("Outcome report returned")
+	if previous in OUTCOMES:
+		return _("Reopened")
+	if stage == "Under Evaluation":
+		return _("The submission deadline passed")
+	if stage == "Submitted":
+		return _("Submission recorded with its acknowledgement")
+	if stage == "In Preparation":
+		return _("Work on the bid started")
+	return _("Bid opened") if not history else _("No work recorded on the bid")
 
 
 def refresh_bid_statuses():

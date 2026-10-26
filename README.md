@@ -62,10 +62,12 @@ and certificates, retention, payments and the controls around them.
 - The Bid Status (ERPNext's Sales Stage) moves by itself with what is recorded on the bid: Qualified, In
   Preparation (a sales requisition, a bid security request or a document), Submitted (the submission
   with its acknowledgement), Under Evaluation (its deadline has passed), Outcome Pending Approval, then
-  Won, Lost, Not Pursued or Cancelled (closed before or after it was submitted). The opportunity list
-  is coloured by it, ERPNext's own status keeps in step out of sight (without "Replied", which would
-  close a bid by itself after a few days), every change is on the timeline, and the sales engineer is
-  reminded daily to follow up a bid still under evaluation after its expected award date.
+  Won, Lost, Not Pursued or Cancelled (closed before or after it was submitted). It opens the Bid tab
+  with the expected award date and a status history (each status the bid has been in, from when, for
+  how many days, who and what moved it), shows on the tag at the top of the bid and colours the
+  opportunity list. ERPNext's own status keeps in step out of sight (without "Replied", which would
+  close a bid by itself after a few days), and the sales engineer is reminded daily to follow up a bid
+  still under evaluation after its expected award date.
 - The opportunity is the bid, built on the standard Opportunity: its Bid tab holds the tender, the
   client's requirements with a compliance answer for each (the technical bid check), the financial
   requirements, the three parts of the bid, its document checklist, the submission record (date and

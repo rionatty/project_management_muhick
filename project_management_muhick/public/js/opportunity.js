@@ -31,6 +31,11 @@ frappe.ui.form.on("Opportunity", {
 		if (frm.is_new()) {
 			return;
 		}
+		// the tag at the top shows the bid status, not the standard status kept out of sight
+		const indicator = muhick.bid_status_indicator && muhick.bid_status_indicator(frm.doc);
+		if (indicator) {
+			frm.page.set_indicator(indicator[0], indicator[1]);
+		}
 		replace_close_and_reopen(frm);
 		if ((frm.doc.items || []).length) {
 			frm.add_custom_button(
