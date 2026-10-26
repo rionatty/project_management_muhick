@@ -13,6 +13,7 @@ from frappe.utils import add_months, flt, getdate, nowdate
 
 from project_management_muhick.muhick_finance.doctype.bank_facility.bank_facility import RUNNING, get_utilised, update_utilisation
 from project_management_muhick.muhick_projects.utils import validate_dates
+from project_management_muhick.overrides.crm import refresh_bid_status
 
 CLOSED = ("Cancelled", "Released", "Expired")
 
@@ -82,6 +83,9 @@ class BankInstrument(Document):
 			)
 			if line:
 				frappe.db.set_value("Bid Security Line", line, "bank_instrument", self.name, update_modified=False)
+		# the bid's Bid Security Issued milestone
+		if self.opportunity and self.instrument_type == "Bid Security":
+			refresh_bid_status(self.opportunity)
 
 	def after_delete(self):
 		update_utilisation(self.bank_facility)

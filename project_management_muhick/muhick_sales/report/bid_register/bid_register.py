@@ -24,6 +24,7 @@ def execute(filters=None):
 		{"fieldname": "status", "label": _("Opportunity Status"), "fieldtype": "Data", "width": 120},
 		{"fieldname": "sales_stage", "label": _("Bid Status"), "fieldtype": "Data", "width": 150},
 		{"fieldname": "days_in_status", "label": _("Days in Status"), "fieldtype": "Int", "width": 90},
+		{"fieldname": "muhick_bid_progress", "label": _("Bid Progress %"), "fieldtype": "Percent", "width": 110},
 		{"fieldname": "utm_source", "label": _("Source"), "fieldtype": "Data", "width": 150},
 		{"fieldname": "muhick_submission_deadline", "label": _("Deadline"), "fieldtype": "Datetime", "width": 150},
 		{"fieldname": "documents_ready", "label": _("Documents Ready"), "fieldtype": "Data", "width": 110},

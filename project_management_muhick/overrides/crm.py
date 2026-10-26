@@ -10,7 +10,8 @@ a part of the bid is ready once all its documents are; a bid is complete with al
 it is submitted.
 
 It has two statuses, each moving by itself. The bid status (the Sales Stage) follows the tender, from
-Qualified to Won, Lost, Not Pursued or Cancelled; the opportunity status (the standard status) follows
+Qualified to Won, Lost, Not Pursued or Cancelled, and its milestones, each carrying a weight, give its
+progress; the opportunity status (the standard status) follows
 the sale, from Open to Won, Quotation and Converted, or Lost or Closed. Won and lost come only from an
 outcome report approved by the Head of Sales and the General Manager, and a bid's outcome stays
 whatever happens to the sale afterwards. When an opportunity is lost or closed, Finance is asked to
@@ -18,9 +19,10 @@ cancel its bid security, because the bank charges for it until it is cancelled."
 
 import frappe
 from frappe import _
-from frappe.utils import date_diff, flt, format_datetime, get_datetime, getdate, now_datetime, today
+from frappe.utils import flt, format_datetime, formatdate, get_datetime, getdate, now_datetime, today
 
 from project_management_muhick.setup.workflows import PENDING_STATES
+from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import FINANCE_ROLES, GM, notify_roles
 
 DECIDED = ("Qualified", "Not Pursued")
@@ -31,9 +33,17 @@ BID_PARTS = (
 	("muhick_technical_bid_ready", "Technical"),
 	("muhick_financial_bid_ready", "Financial"),
 )
-# the bid statuses of a bid still going, and those it ends with
+# the bid statuses of a bid still going
 IN_PROGRESS = ("Qualified", "In Preparation", "Submitted", "Under Evaluation", "Outcome Pending Approval")
-OUTCOMES = ("Won", "Lost", "Not Pursued", "Cancelled")
+# milestones reached by the parts of the bid, and the one the sales engineer ticks
+PART_MILESTONES = {
+	"Administrative Bid Ready": "muhick_administrative_bid_ready",
+	"Technical Bid Ready": "muhick_technical_bid_ready",
+	"Financial Bid Ready": "muhick_financial_bid_ready",
+}
+BY_HAND = "Ticked by Hand"
+# a sales requisition whose funds have gone out
+FUNDS_OUT = ("Paid", "Accountability Submitted", "Accounted", "Closed")
 # the document a bid with a bid security adds to its checklist
 BID_SECURITY_DOCUMENT = "Bid Security"
 PART_ORDER = {part: i for i, (_field, part) in enumerate(BID_PARTS)}
@@ -77,6 +87,7 @@ def validate_opportunity(doc, method=None):
 	check_outcome_changes(doc)
 	if doc.status == "Closed" and doc.has_value_changed("status") and not (doc.get("muhick_outcome_notes") or "").strip():
 		frappe.throw(_("Give the reason the bid is being closed."))
+	set_milestones(doc)
 	set_bid_status(doc)
 	if doc.sales_stage in IN_PROGRESS:
 		doc.set("muhick_outcome_date", None)
@@ -284,72 +295,131 @@ def bid_status(doc) -> str:
 
 
 def set_bid_status(doc):
-	before = doc.get_doc_before_save()
 	doc.sales_stage = bid_status(doc)
-	if not doc.get("muhick_status_history") or (before and before.sales_stage != doc.sales_stage):
+	if doc.has_value_changed("sales_stage") or not doc.get("muhick_stage_since"):
 		doc.set("muhick_stage_since", today())
-		log_status(doc, doc.sales_stage)
+
+
+def set_milestones(doc):
+	"""The bid's milestones, each carrying its weight: reached as the bid's record shows (or ticked by
+	hand), and its progress the weight reached out of the weight that applies. While the bid is going,
+	its milestones and weights follow the Bid Milestones list."""
+	rows = doc.get("muhick_milestones") or []
+	if not rows or doc.is_new() or doc.sales_stage in IN_PROGRESS:
+		milestones = frappe.get_all(
+			"Bid Milestone", filters={"disabled": 0}, fields=["name", "weight", "reached_when"], order_by="sequence asc, name asc"
+		)
+		listed = {row.milestone: row for row in rows}
+		for m in milestones:
+			if m.name in listed:
+				listed[m.name].update({"weight": m.weight, "reached_when": m.reached_when})
+			else:
+				doc.append("muhick_milestones", {"milestone": m.name, "weight": m.weight, "reached_when": m.reached_when})
+	facts = milestone_facts(doc)
+	# who reached a milestone: nobody is named for those found reached when the milestones were first drawn up
+	who = None if frappe.flags.in_patch else frappe.session.user
+	for row in doc.get("muhick_milestones"):
+		if row.reached_when == BY_HAND:
+			if row.status == "Reached":
+				row.update({"reached_on": row.reached_on or today(), "reached_by": row.reached_by or who, "note": _("Ticked by hand")})
+			else:
+				row.update({"reached_on": None, "reached_by": None, "note": None})
+			continue
+		applies, reached_on, note = milestone_state(doc, row, facts)
+		status = "Reached" if applies and reached_on else ("Pending" if applies else "Not Applicable")
+		reached_by = (row.reached_by if row.status == "Reached" else who) if status == "Reached" else None
+		row.update(
+			{
+				"status": status,
+				"reached_on": reached_on if status == "Reached" else None,
+				"reached_by": reached_by,
+				"note": note if status == "Reached" else None,
+			}
+		)
+	doc.set("muhick_bid_progress", flt(calc.milestone_progress([(r.weight, r.status) for r in doc.get("muhick_milestones")]), 2))
+
+
+def milestone_facts(doc) -> dict:
+	"""What the milestones are read from, beyond the bid itself."""
+	facts = frappe._dict(funds_issued_on=None, requisitions=False, security_issued_on=None)
+	facts.costs = "Cost" in requirement_kinds(doc.get("muhick_financial_requirements")).values()
+	if not doc.is_new():
+		issued = frappe.get_all(
+			"Sales Requisition",
+			filters={"opportunity": doc.name, "docstatus": 1, "status": ("in", FUNDS_OUT)},
+			fields=["issued_on"],
+			order_by="issued_on asc",
+			limit=1,
+		)
+		facts.funds_issued_on = getdate(issued[0].issued_on) if issued and issued[0].issued_on else None
+		facts.requisitions = bool(frappe.db.exists("Sales Requisition", {"opportunity": doc.name, "docstatus": ("<", 2)}))
+	if doc.get("muhick_bid_security"):
+		issued_on = frappe.db.get_value("Bank Instrument", doc.muhick_bid_security, "issue_date")
+		facts.security_issued_on = getdate(issued_on or today())
+	return facts
+
+
+def milestone_state(doc, row, facts) -> tuple:
+	"""(whether a milestone applies to the bid, the day it was reached or None, how)."""
+	rule = row.reached_when
+	kept = getdate(row.reached_on) if row.status == "Reached" and row.reached_on else None
+	if rule == "Bid Opened":
+		return True, getdate(doc.get("transaction_date") or today()), _("Bid opened")
+	if rule == "Site Visit Done":
+		visit = doc.get("muhick_site_visit_date")
+		done = bool(visit) and getdate(visit) <= getdate(today())
+		return bool(doc.get("muhick_site_visit_required")), getdate(visit) if done else None, _("Site visit on {0}").format(formatdate(visit))
+	if rule == "Funds Issued":
+		return bool(facts.costs or facts.requisitions), facts.funds_issued_on, _("Funds for the bid issued")
+	if rule == "Bid Security Issued":
+		return bool(doc.get("muhick_bid_security_required")), facts.security_issued_on, _("Bid security {0} issued").format(
+			doc.get("muhick_bid_security")
+		)
+	if rule in PART_MILESTONES:
+		ready = doc.get(PART_MILESTONES[rule])
+		return True, (kept or getdate(today())) if ready else None, _("Every document of the part ready")
+	if rule == "Bid Submitted":
+		submitted = getdate(doc.muhick_submitted_at) if is_submitted(doc) else None
+		return True, submitted, _("Submission recorded with its acknowledgement")
+	if rule == "Submission Deadline Passed":
+		deadline = doc.get("muhick_submission_deadline")
+		passed = bool(deadline) and is_submitted(doc) and get_datetime(deadline) < now_datetime()
+		return bool(deadline), getdate(deadline) if passed else None, _("Submission deadline passed")
+	if rule == "Outcome Approved":
+		outcome = doc.get("muhick_bid_outcome")
+		reached = getdate(doc.get("muhick_outcome_date") or today()) if outcome else None
+		return True, reached, _("Outcome report {0} approved").format(outcome)
+	return True, kept, None
 
 
 def refresh_bid_status(opportunity):
-	"""A bid's status after something recorded elsewhere: a document, a requisition, a bid security
-	request, its outcome report, or the submission deadline passing."""
-	if not opportunity:
+	"""A bid's status and milestones after something recorded elsewhere: a document, a requisition and
+	its funds, the bid security, its outcome report, or a date passing."""
+	if not opportunity or not frappe.db.exists("Opportunity", opportunity):
 		return
 	doc = frappe.get_doc("Opportunity", opportunity)
-	stage = bid_status(doc)
-	if stage != doc.sales_stage:
-		ending = [row for row in doc.get("muhick_status_history") if not row.to_date]
-		log_status(doc, stage).db_insert()
-		for row in ending:
+	stored = {row.name: row.as_dict() for row in doc.get("muhick_milestones")}
+	stage, progress = doc.sales_stage, flt(doc.get("muhick_bid_progress"), 2)
+	set_milestones(doc)
+	for row in doc.get("muhick_milestones"):
+		if row.name not in stored:
+			row.db_insert()
+		elif any(stored[row.name].get(f) != row.get(f) for f in ("weight", "reached_when", "status", "reached_on", "reached_by", "note")):
 			row.db_update()
-		doc.db_set({"sales_stage": stage, "muhick_stage_since": today()}, notify=True)
-
-
-def log_status(doc, stage):
-	"""The bid's history: the status it leaves ends today, and the new one starts."""
-	note = status_note(doc, stage)
-	for row in doc.get("muhick_status_history") or []:
-		if not row.to_date:
-			row.to_date = today()
-			row.days = date_diff(today(), row.from_date)
-	return doc.append(
-		"muhick_status_history", {"status": stage, "from_date": today(), "changed_by": frappe.session.user, "note": note}
-	)
-
-
-def status_note(doc, stage) -> str:
-	"""What moved a bid to a status, from what is recorded on it."""
-	history = doc.get("muhick_status_history") or []
-	previous = history[-1].status if history else None
-	if stage in ("Won", "Lost"):
-		outcome = doc.get("muhick_bid_outcome")
-		return _("Outcome report {0} approved").format(outcome) if outcome else _("Marked lost")
-	if stage in ("Not Pursued", "Cancelled"):
-		return _("Closed: {0}").format(doc.get("muhick_outcome_notes") or "")
-	if stage == "Outcome Pending Approval":
-		return _("Outcome report sent to the Head of Sales and the General Manager")
-	if previous == "Outcome Pending Approval":
-		reason = frappe.db.get_value(
-			"Bid Outcome", {"opportunity": doc.name, "docstatus": 0, "workflow_state": "Rejected"}, "rejection_reason"
-		)
-		return _("Outcome report returned: {0}").format(reason) if reason else _("Outcome report returned")
-	if previous in OUTCOMES:
-		return _("Reopened")
-	if stage == "Under Evaluation":
-		return _("The submission deadline passed")
-	if stage == "Submitted":
-		return _("Submission recorded with its acknowledgement")
-	if stage == "In Preparation":
-		return _("Work on the bid started")
-	return _("Bid opened") if not history else _("No work recorded on the bid")
+	values = {}
+	new_stage = bid_status(doc)
+	if new_stage != stage:
+		values.update({"sales_stage": new_stage, "muhick_stage_since": today()})
+	if flt(doc.muhick_bid_progress) != progress:
+		values["muhick_bid_progress"] = doc.muhick_bid_progress
+	if values:
+		doc.db_set(values, notify=True)
 
 
 def refresh_bid_statuses():
-	"""Daily: a submitted bid goes under evaluation once its submission deadline has passed."""
-	for name in frappe.get_all(
-		"Opportunity", filters={"sales_stage": "Submitted", "muhick_submission_deadline": ("<", now_datetime())}, pluck="name"
-	):
+	"""Daily: a submitted bid goes under evaluation once its submission deadline has passed, and the
+	milestones that come with a date (a site visit, the deadline) are reached."""
+	for name in frappe.get_all("Opportunity", filters={"sales_stage": ("in", IN_PROGRESS)}, pluck="name"):
 		refresh_bid_status(name)
 
 

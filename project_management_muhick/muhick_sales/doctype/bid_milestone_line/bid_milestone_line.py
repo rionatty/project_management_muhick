@@ -4,5 +4,5 @@
 from frappe.model.document import Document
 
 
-class BidStatusChange(Document):
+class BidMilestoneLine(Document):
 	pass

@@ -90,6 +90,7 @@ class SalesRequisition(Document):
 			}
 		)
 		settle_plan_line(self.doctype, self.name, amount_issued)
+		refresh_bid_status(self.opportunity)
 		notify([self.requested_by], _("{0} has been paid. Account for it by {1}.").format(self.name, self.accountability_due_date), doc=self)
 
 	@frappe.whitelist()

@@ -78,7 +78,7 @@ CARDS = [
 		("Bid Security Request", "Bid Security Request", D), ("Bid Outcome", "Bid Outcome", D),
 		("Bid Register", "Bid Register", R), ("Bid Margin Comparison", "Bid Margin Comparison", R),
 		("Financial Requirement Types", "Financial Requirement Type", D),
-		("Bid Document Types", "Bid Document Type", D),
+		("Bid Document Types", "Bid Document Type", D), ("Bid Milestones", "Bid Milestone", D),
 	]),
 	("Administration", [
 		("Fuel Requisition", "Fuel Requisition", D), ("Vehicle Service Request", "Vehicle Service Request", D),

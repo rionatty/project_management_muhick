@@ -89,6 +89,13 @@ SALES_STAGES = [
 	"Qualified", "In Preparation", "Submitted", "Under Evaluation", "Outcome Pending Approval", "Won", "Lost", "Not Pursued",
 	"Cancelled",
 ]
+# the milestones of a bid, the weight each carries in its progress (together 100) and what reaches it
+BID_MILESTONES = [
+	("Lead Qualified", 5, "Bid Opened"), ("Bid Funds Issued", 10, "Funds Issued"), ("Site Visit Done", 5, "Site Visit Done"),
+	("Bid Security Issued", 10, "Bid Security Issued"), ("Administrative Bid Ready", 15, "Administrative Bid Ready"),
+	("Technical Bid Ready", 20, "Technical Bid Ready"), ("Financial Bid Ready", 15, "Financial Bid Ready"),
+	("Bid Submitted", 15, "Bid Submitted"), ("Outcome Approved", 5, "Outcome Approved"),
+]
 # ERPNext's sample values that do not fit the business; removed while nothing uses them. Opportunity
 # Type "Sales" stays: ERPNext falls back to it.
 SAMPLE_VALUES = {
@@ -147,6 +154,11 @@ def setup_crm_lists():
 			frappe.get_doc(doctype="Bid Document Type", document_name=name, part=part, in_every_bid=every).insert(
 				ignore_permissions=True
 			)
+	for order, (name, weight, reached_when) in enumerate(BID_MILESTONES, 1):
+		if not frappe.db.exists("Bid Milestone", name):
+			frappe.get_doc(
+				doctype="Bid Milestone", milestone_name=name, weight=weight, reached_when=reached_when, sequence=order * 10
+			).insert(ignore_permissions=True)
 	for doctype, names in SAMPLE_VALUES.items():
 		for name in names:
 			if frappe.db.exists(doctype, name):

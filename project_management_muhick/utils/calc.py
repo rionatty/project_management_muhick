@@ -222,6 +222,14 @@ def margin_percent(price, cost) -> float:
 	return (price - _f(cost)) / price * 100 if price else 0.0
 
 
+def milestone_progress(rows) -> float:
+	"""Weight reached out of the weight that applies, in percent. rows: (weight, status) pairs, status
+	Pending, Reached or Not Applicable; a milestone that does not apply counts for nothing either way."""
+	applying = [(_f(weight), status) for weight, status in rows if status != "Not Applicable"]
+	total = sum(weight for weight, _status in applying)
+	return sum(weight for weight, status in applying if status == "Reached") / total * 100 if total else 0.0
+
+
 def price_gap_percent(ours, theirs) -> float:
 	"""How much higher our price was than the winning one; negative when ours was lower."""
 	ours, theirs = _f(ours), _f(theirs)

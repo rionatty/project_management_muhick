@@ -28,6 +28,9 @@ frappe.ui.form.on("Opportunity", {
 
 	refresh(frm) {
 		toggle_bid_price(frm);
+		// the milestones come from the Bid Milestones list
+		frm.set_df_property("muhick_milestones", "cannot_add_rows", true);
+		frm.set_df_property("muhick_milestones", "cannot_delete_rows", true);
 		if (frm.is_new()) {
 			return;
 		}

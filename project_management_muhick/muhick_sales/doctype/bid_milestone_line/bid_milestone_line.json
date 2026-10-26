@@ -1,0 +1,94 @@
+{
+ "actions": [],
+ "creation": "2026-10-26 09:14:42.676995",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "milestone",
+  "weight",
+  "reached_when",
+  "status",
+  "column_break_1",
+  "reached_on",
+  "reached_by",
+  "note"
+ ],
+ "fields": [
+  {
+   "columns": 3,
+   "fieldname": "milestone",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Milestone",
+   "options": "Bid Milestone",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "weight",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reached_when",
+   "fieldtype": "Data",
+   "label": "Reached When",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "default": "Pending",
+   "description": "Set as the bid's record shows; only a milestone ticked by hand is set here",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nReached\nNot Applicable",
+   "read_only_depends_on": "eval:doc.reached_when!='Ticked by Hand'"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 2,
+   "fieldname": "reached_on",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Reached On",
+   "read_only_depends_on": "eval:doc.reached_when!='Ticked by Hand'"
+  },
+  {
+   "columns": 2,
+   "fieldname": "reached_by",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Data",
+   "label": "How It Was Reached",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-26 09:14:42.676995",
+ "modified_by": "Administrator",
+ "module": "Muhick Sales",
+ "name": "Bid Milestone Line",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

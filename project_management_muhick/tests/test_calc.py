@@ -170,6 +170,12 @@ class TestBids(unittest.TestCase):
 	def test_no_margin_without_a_price(self):
 		self.assertEqual(calc.margin_percent(0, 50), 0)
 
+	def test_progress_is_the_weight_reached_of_the_weight_that_applies(self):
+		rows = [(10, "Reached"), (30, "Pending"), (60, "Not Applicable")]
+		self.assertEqual(calc.milestone_progress(rows), 25)
+		self.assertEqual(calc.milestone_progress([(50, "Reached"), (50, "Reached")]), 100)
+		self.assertEqual(calc.milestone_progress([(20, "Not Applicable")]), 0)
+
 	def test_price_gap_to_the_winner(self):
 		# we bid 110 against a winning 100: 10% above; 90 against 100: 10% below
 		self.assertEqual(calc.price_gap_percent(110, 100), 10)
