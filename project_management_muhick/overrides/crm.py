@@ -304,17 +304,8 @@ def set_milestones(doc):
 	"""The opportunity's milestones, each carrying its weight: reached as the record shows (or ticked by
 	hand), and its progress the weight reached out of the weight that applies. While the bid is going,
 	its milestones and weights follow the Opportunity Milestones list."""
-	rows = doc.get("muhick_milestones") or []
-	if not rows or doc.is_new() or doc.sales_stage in IN_PROGRESS:
-		milestones = frappe.get_all(
-			"Opportunity Milestone", filters={"disabled": 0}, fields=["name", "weight", "reached_when"], order_by="sequence asc, name asc"
-		)
-		listed = {row.milestone: row for row in rows}
-		for m in milestones:
-			if m.name in listed:
-				listed[m.name].update({"weight": m.weight, "reached_when": m.reached_when})
-			else:
-				doc.append("muhick_milestones", {"milestone": m.name, "weight": m.weight, "reached_when": m.reached_when})
+	if not doc.get("muhick_milestones") or doc.is_new() or doc.sales_stage in IN_PROGRESS:
+		follow_milestone_list(doc)
 	facts = milestone_facts(doc)
 	# who reached a milestone: nobody is named for those found reached when the milestones were first drawn up
 	who = None if frappe.flags.in_patch else frappe.session.user
@@ -337,6 +328,24 @@ def set_milestones(doc):
 			}
 		)
 	doc.set("muhick_progress", flt(calc.milestone_progress([(r.weight, r.status) for r in doc.get("muhick_milestones")]), 2))
+
+
+def follow_milestone_list(doc):
+	"""The milestones of the list, in its order and with its weights: one taken off the list (disabled or
+	deleted) leaves the opportunity, a new one joins it, and those already reached keep their date."""
+	milestones = frappe.get_all(
+		"Opportunity Milestone", filters={"disabled": 0}, fields=["name", "weight", "reached_when"], order_by="sequence asc, name asc"
+	)
+	active = {m.name for m in milestones}
+	kept = {row.milestone: row for row in doc.get("muhick_milestones") or [] if row.milestone in active}
+	rows = []
+	for m in milestones:
+		row = kept.get(m.name) or frappe._dict(milestone=m.name, status="Pending")
+		row.update({"weight": m.weight, "reached_when": m.reached_when})
+		rows.append(row)
+	doc.set("muhick_milestones", rows)
+	for idx, row in enumerate(doc.get("muhick_milestones"), 1):
+		row.idx = idx
 
 
 def milestone_facts(doc) -> dict:
@@ -432,11 +441,18 @@ def refresh_bid_status(opportunity):
 	stored = {row.name: row.as_dict() for row in doc.get("muhick_milestones")}
 	stage, progress = doc.sales_stage, flt(doc.get("muhick_progress"), 2)
 	set_milestones(doc)
+	kept = set()
 	for row in doc.get("muhick_milestones"):
-		if row.name not in stored:
+		if not row.name or row.name not in stored:
 			row.db_insert()
-		elif any(stored[row.name].get(f) != row.get(f) for f in ("weight", "reached_when", "status", "reached_on", "reached_by", "note")):
+		elif any(
+			stored[row.name].get(f) != row.get(f) for f in ("idx", "weight", "reached_when", "status", "reached_on", "reached_by", "note")
+		):
 			row.db_update()
+		kept.add(row.name)
+	dropped = [name for name in stored if name not in kept]
+	if dropped:
+		frappe.db.delete("Opportunity Milestone Line", {"name": ("in", dropped)})
 	values = {}
 	new_stage = bid_status(doc)
 	if new_stage != stage:
