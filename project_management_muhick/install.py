@@ -11,12 +11,11 @@ from project_management_muhick.setup.workflows import setup_workflows
 # ERPNext's own desk icon for its Projects workspace
 STANDARD_PROJECTS_ICON = "Projects"
 
-# ERPNext's CRM menu, where the sales team works, also lists the bid documents, sales requisitions, bid
-# security requests and outcome reports, the bid register and the margin comparison: (placed after the
-# item linking to, label, link type, link to, inside a section)
+# ERPNext's CRM menu, where the sales team works, also lists the sales requisitions, bid security
+# requests and outcome reports, the bid register and the margin comparison: (placed after the item
+# linking to, label, link type, link to, inside a section)
 CRM_SIDEBAR = "CRM"
 CRM_ITEMS = (
-	("Opportunity", "Bid Document", "DocType", "Bid Document", 0),
 	("Opportunity", "Sales Requisition", "DocType", "Sales Requisition", 0),
 	("Sales Requisition", "Bid Security Request", "DocType", "Bid Security Request", 0),
 	("Bid Security Request", "Bid Outcome", "DocType", "Bid Outcome", 0),
@@ -77,8 +76,10 @@ def add_sales_to_crm_menu():
 	developer site."""
 	if not frappe.db.exists("Workspace Sidebar", CRM_SIDEBAR):
 		return
-	# bids used to be a separate document
-	frappe.db.delete("Workspace Sidebar Item", {"parent": CRM_SIDEBAR, "link_to": ("in", ["Bid", *(i[3] for i in CRM_HIDDEN)])})
+	# bids, and then their documents, used to be separate documents
+	frappe.db.delete(
+		"Workspace Sidebar Item", {"parent": CRM_SIDEBAR, "link_to": ("in", ["Bid", "Bid Document", *(i[3] for i in CRM_HIDDEN)])}
+	)
 	for item in CRM_ITEMS:
 		add_crm_item(*item)
 

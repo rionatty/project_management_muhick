@@ -201,18 +201,28 @@ def bids_needing_attention():
 				doc=frappe._dict(doctype="Opportunity", name=o.name),
 				extra_users=[o.opportunity_owner],
 			)
-	preparing = frappe.get_all("Opportunity", filters={"sales_stage": ("in", ("Qualified", "In Preparation"))}, pluck="name")
+	preparing = {
+		o.name: o.customer_name
+		for o in frappe.get_all(
+			"Opportunity", filters={"sales_stage": ("in", ("Qualified", "In Preparation"))}, fields=["name", "customer_name"]
+		)
+	}
 	for d in frappe.get_all(
-		"Bid Document",
-		filters={"opportunity": ("in", preparing or [""]), "status": ("!=", "Ready"), "due_date": ("<=", add_days(today, days))},
-		fields=["name", "document_type", "organisation", "prepared_by", "due_date", "status"],
+		"Bid Checklist Item",
+		filters={
+			"parenttype": "Opportunity",
+			"parent": ("in", list(preparing) or [""]),
+			"status": ("!=", "Ready"),
+			"due_date": ("<=", add_days(today, days)),
+		},
+		fields=["parent", "document_type", "prepared_by", "due_date", "status"],
 	):
 		notify(
 			[d.prepared_by],
 			_("{0} for the {1} bid is needed by {2} and is still {3}.").format(
-				d.document_type, d.organisation, formatdate(d.due_date), _(d.status).lower()
+				d.document_type, preparing[d.parent], formatdate(d.due_date), _(d.status).lower()
 			),
-			doc=frappe._dict(doctype="Bid Document", name=d.name),
+			doc=frappe._dict(doctype="Opportunity", name=d.parent),
 		)
 	for o in frappe.get_all(
 		"Opportunity",

@@ -2,8 +2,8 @@
 # For license information, please see license.txt
 
 """A bid's documents are a table now and its submission has a record of its own. The single
-attachment becomes a document line, the submission date becomes the submission date and time, and the
-old fields are removed."""
+attachment becomes a line of the document checklist, the submission date becomes the submission date
+and time, and the old fields are removed."""
 
 import frappe
 from frappe.utils import get_datetime
@@ -22,11 +22,11 @@ def execute():
 			frappe.db.set_value("Opportunity", name, "muhick_submitted_at", get_datetime(submitted), update_modified=False)
 	if frappe.db.has_column("Opportunity", "muhick_bid_documents"):
 		for name, url in frappe.db.sql("select name, muhick_bid_documents from `tabOpportunity` where ifnull(muhick_bid_documents, '') != ''"):
-			if not frappe.db.exists("Bid Document", {"parent": name, "parenttype": "Opportunity"}):
+			if not frappe.db.exists("Bid Checklist Item", {"parent": name, "parenttype": "Opportunity", "file": url}):
 				frappe.get_doc(
 					{
-						"doctype": "Bid Document", "parent": name, "parenttype": "Opportunity", "parentfield": "muhick_documents",
-						"idx": 1, "document_type": "Other", "part": "Administrative", "file": url,
+						"doctype": "Bid Checklist Item", "parent": name, "parenttype": "Opportunity", "parentfield": "muhick_checklist",
+						"idx": 100, "document_type": "Other", "part": "Administrative", "file": url, "status": "Ready",
 					}
 				).db_insert()
 	for field in ("Opportunity-muhick_submitted_on", "Opportunity-muhick_bid_documents", "Opportunity-muhick_preparation_column_2"):

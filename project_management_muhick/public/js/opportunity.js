@@ -68,26 +68,6 @@ frappe.ui.form.on("Opportunity", {
 			// approved by the Finance Manager, after which Finance issues the funds for it
 			create(__("Bid Security Request"), "project_management_muhick.overrides.crm.make_bid_security_request");
 		}
-		const preparing = ["Qualified", "In Preparation"].includes(frm.doc.sales_stage);
-		if (preparing && (frm.doc.muhick_checklist || []).some((r) => !r.bid_document) && frappe.model.can_create("Bid Document")) {
-			// one document per checklist line, each then tracked on its own
-			frm.add_custom_button(
-				__("Create Missing Documents"),
-				() =>
-					frappe
-						.xcall("project_management_muhick.overrides.crm.create_bid_documents", { opportunity: frm.doc.name })
-						.then((made) => {
-							frappe.show_alert({ message: __("{0} document(s) created.", [made]), indicator: "green" });
-							frm.reload_doc();
-						}),
-				__("Bid Documents")
-			);
-		}
-		frm.add_custom_button(
-			__("All Documents"),
-			() => frappe.set_route("List", "Bid Document", { opportunity: frm.doc.name }),
-			__("Bid Documents")
-		);
 		show_outcome(frm);
 		show_preparation(frm);
 	},
@@ -98,8 +78,8 @@ frappe.ui.form.on("Opportunity Item", {
 	items_remove: toggle_bid_price,
 });
 
-// at the top of a bid still being prepared: when it is due, and the documents on its checklist not
-// created yet or still being prepared
+// at the top of a bid still being prepared: when it is due, and the documents on its checklist overdue,
+// not started or in progress
 function show_preparation(frm) {
 	if (!["Qualified", "In Preparation"].includes(frm.doc.sales_stage)) {
 		return;
@@ -114,17 +94,25 @@ function show_preparation(frm) {
 		}
 	}
 	const checklist = frm.doc.muhick_checklist || [];
+	const today = frappe.datetime.get_today();
 	const names = (rows) => rows.map((r) => frappe.utils.escape_html(r.document_type)).join(", ");
-	const missing = checklist.filter((r) => !r.bid_document);
-	const preparing = checklist.filter((r) => r.bid_document && r.status !== "Ready");
-	if (missing.length) {
-		lines.push(__("Not created yet: {0}.", [names(missing)]));
+	const waiting = checklist.filter((r) => r.status !== "Ready");
+	const overdue = waiting.filter((r) => r.due_date && r.due_date < today);
+	const on_time = waiting.filter((r) => !overdue.includes(r));
+	const not_started = on_time.filter((r) => !r.status || r.status === "Pending");
+	const in_progress = on_time.filter((r) => r.status === "In Progress");
+	if (overdue.length) {
+		lines.push(__("Overdue: {0}.", [names(overdue)]));
+		colour = "red";
+	}
+	if (not_started.length) {
+		lines.push(__("Not started: {0}.", [names(not_started)]));
 		colour = colour === "blue" ? "orange" : colour;
 	}
-	if (preparing.length) {
-		lines.push(__("Being prepared: {0}.", [names(preparing)]));
+	if (in_progress.length) {
+		lines.push(__("In progress: {0}.", [names(in_progress)]));
 	}
-	if (checklist.length && !missing.length && !preparing.length) {
+	if (checklist.length && !waiting.length) {
 		lines.push(__("Every document on the checklist is ready."));
 		colour = colour === "blue" ? "green" : colour;
 	}

@@ -335,7 +335,7 @@ CUSTOM_FIELDS = {
 			),
 			_sec(
 				"muhick_documents_section", "Bid Documents",
-				description="What the bid must contain. Each document is tracked on its own, with who prepares it, by when, its status and its file.",
+				description="What the bid must contain, each document tracked on its line: its status, who prepares it, by when and its file. A part of the bid is ready once all its documents are.",
 			),
 			dict(
 				fieldname="muhick_checklist", label="Document Checklist", fieldtype="Table", options="Bid Checklist Item",
