@@ -34,19 +34,9 @@ frappe.ui.form.on("Bid Security Request", {
 			return;
 		}
 		const finance = frappe.user.has_role(["Finance Manager", "Finance Officer", "System Manager"]);
-		if (frm.doc.status === "Approved" && finance && flt(frm.doc.funds_required) > 0) {
-			frm.add_custom_button(__("Issue Funds"), () => {
-				muhick.prompt_and_run(
-					frm,
-					__("Issue Funds"),
-					[
-						{ fieldname: "amount_issued", fieldtype: "Currency", label: __("Amount Issued"), reqd: 1, default: frm.doc.funds_required },
-						{ fieldname: "issued_on", fieldtype: "Date", label: __("Issued On"), reqd: 1, default: frappe.datetime.get_today() },
-						{ fieldname: "payment_reference", fieldtype: "Data", label: __("Payment Reference") },
-					],
-					"issue_funds"
-				);
-			}).addClass("btn-primary");
+		// its funds are issued from the weekly payment plan
+		if (frm.doc.status === "Approved" && flt(frm.doc.funds_required) > 0) {
+			muhick.show_payment_schedule && muhick.show_payment_schedule(frm);
 		}
 		// once its funds are issued, or right after approval when it needs none
 		const ready = frm.doc.status === "Funds Issued" || (frm.doc.status === "Approved" && !flt(frm.doc.funds_required));

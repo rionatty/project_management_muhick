@@ -12,6 +12,7 @@ from frappe.model.document import Document
 from frappe.utils import add_months, flt, getdate, nowdate
 
 from project_management_muhick.muhick_finance.doctype.bank_facility.bank_facility import RUNNING, get_utilised, update_utilisation
+from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import settle_plan_line
 from project_management_muhick.muhick_projects.utils import validate_dates
 from project_management_muhick.overrides.crm import refresh_bid_status
 
@@ -66,6 +67,24 @@ class BankInstrument(Document):
 		while due <= end:
 			self.append("fees", {"due_date": due, "amount": self.quarterly_fee})
 			due = getdate(add_months(due, 3))
+		# the first fee of a bid security was paid with its request's funds
+		if self.bid_security_request and self.fees:
+			request = frappe.db.get_value("Bid Security Request", self.bid_security_request, ["status", "issued_on"], as_dict=True)
+			if request and request.status == "Funds Issued":
+				self.fees[0].update({"paid": 1, "paid_on": request.issued_on, "reference": self.bid_security_request})
+
+	def pay_fees(self, amount: float, paid_on: str | None = None, reference: str | None = None):
+		"""Fees paid from the instrument's line on an approved payment plan: those falling due first, as
+		far as the amount goes."""
+		left = flt(amount)
+		for fee in sorted((f for f in self.fees if not f.paid), key=lambda f: getdate(f.due_date)):
+			if flt(fee.amount) > left + 0.5:
+				break
+			fee.update({"paid": 1, "paid_on": paid_on or nowdate(), "reference": reference})
+			left -= flt(fee.amount)
+		self.flags.ignore_permissions = True
+		self.save()
+		settle_plan_line(self.doctype, self.name, flt(amount) - left)
 
 	def on_update(self):
 		update_utilisation(self.bank_facility)

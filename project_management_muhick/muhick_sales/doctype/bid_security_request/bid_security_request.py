@@ -4,9 +4,10 @@
 """A request for a bid security. The Sales Executive raises it from the bid (the opportunity); the
 Finance Manager and the General Manager are told, and the Finance Manager approves it or rejects it
 with the reason: a rejected request is amended and sent again, or left closed while the bid goes on.
-Once it is approved, Finance issues the funds needed to obtain the securities (the one-off expenses and
-the first payment of the recurring ones) and records each security when the bank or insurer has issued
-it; a recurring expense becomes that security's quarterly fee. A request with no expenses needs no
+Once it is approved, the funds needed to obtain the securities (the one-off expenses and the first
+payment of the recurring ones) go on the weekly payment plan and are issued from there, and Finance
+records each security when the bank or insurer has issued it; a recurring expense becomes that
+security's quarterly fee, which the payment plan picks up as it falls due. A request with no expenses needs no
 funds: its securities are recorded as soon as it is approved."""
 
 import frappe
@@ -70,8 +71,8 @@ class BidSecurityRequest(Document):
 			frappe.throw(_("Funds have already been issued for this request; it cannot be cancelled."))
 		self.db_set("status", "Cancelled")
 
-	@frappe.whitelist()
 	def issue_funds(self, amount_issued: float, issued_on: str | None = None, payment_reference: str | None = None):
+		"""Funds issued from the request's line on an approved payment plan."""
 		require_roles(*FINANCE_ROLES)
 		if self.docstatus != 1 or self.status != "Approved":
 			frappe.throw(_("Funds are issued once the request is approved."))

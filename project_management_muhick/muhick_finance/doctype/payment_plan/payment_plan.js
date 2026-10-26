@@ -26,12 +26,13 @@ frappe.ui.form.on("Payment Plan", {
 			fetch(__("Invoices Due"), "get_due_invoices");
 			fetch(__("Payment Requests"), "get_payment_requests");
 			fetch(__("Requisitions, Labour and Expense Claims"), "get_project_payables");
+			fetch(__("Bank Fees Due"), "get_bank_fees");
 		}
 		if (frm.doc.docstatus === 1 && frm.doc.status === "Approved") {
 			frm.add_custom_button(__("Raise Payments"), () => raise_payments(frm)).addClass("btn-primary");
 			frm.add_custom_button(__("Refresh Lines"), () => muhick.run(frm, "refresh_lines"));
 			const issuable = (frm.doc.lines || []).filter(
-				(l) => l.line_status === "Approved" && ["Sales Requisition", "Bid Security Request"].includes(l.reference_doctype)
+				(l) => l.line_status === "Approved" && ["Sales Requisition", "Bid Security Request", "Bank Instrument"].includes(l.reference_doctype)
 			);
 			if (issuable.length) {
 				frm.add_custom_button(__("Issue Funds"), () => issue_funds(frm, issuable));
@@ -46,7 +47,7 @@ frappe.ui.form.on("Payment Plan Line", {
 	},
 });
 
-// pay one sales requisition or bid security request line: the document records the funds issued
+// pay one sales requisition, bid security request or bank fee line: the document records the funds issued
 function issue_funds(frm, lines) {
 	frappe.prompt(
 		[

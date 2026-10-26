@@ -33,25 +33,9 @@ frappe.ui.form.on("Sales Requisition", {
 		}
 		const status = frm.doc.status;
 		const finance = frappe.user.has_role(["Finance Manager", "Finance Officer", "System Manager"]);
-		if (status === "Approved" && finance) {
-			frm.add_custom_button(__("Issue Funds"), () => {
-				muhick.prompt_and_run(
-					frm,
-					__("Issue Funds"),
-					[
-						{ fieldname: "amount_issued", fieldtype: "Currency", label: __("Amount Issued"), reqd: 1, default: frm.doc.total_amount },
-						{ fieldname: "issued_on", fieldtype: "Date", label: __("Issued On"), reqd: 1, default: frappe.datetime.get_today() },
-						{ fieldname: "payment_reference", fieldtype: "Data", label: __("Payment Reference") },
-						{
-							fieldname: "accountability_due_date",
-							fieldtype: "Date",
-							label: __("Account By"),
-							description: __("Leave empty for the usual number of days after payment."),
-						},
-					],
-					"mark_paid"
-				);
-			}).addClass("btn-primary");
+		// its funds are issued from the weekly payment plan
+		if (status === "Approved") {
+			muhick.show_payment_schedule && muhick.show_payment_schedule(frm);
 		}
 		if (status === "Paid") {
 			frm.set_intro(__("Record the expenses with receipts in the Accountability section, save, then submit the accountability."), "blue");

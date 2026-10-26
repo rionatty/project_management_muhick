@@ -40,8 +40,9 @@ and certificates, retention, payments and the controls around them.
 
 **Finance and controls**
 
-- Weekly or monthly payment plan from which supplier payments are raised; expense claims refunded
-  by journal entry.
+- Weekly or monthly payment plan from which supplier payments are raised; the money for a bid (sales
+  requisitions and bid security requests) and the bank fees of guarantees and bonds falling due are
+  issued from it only; expense claims refunded by journal entry.
 - Bank facilities and the guarantees, bonds and letters of credit drawn on them, with expiry and
   quarterly fee reminders; funds lent between projects with approval.
 - Three-way match (order, receipt, supplier invoice), segregation of duties on the purchase cycle,
@@ -119,19 +120,20 @@ and certificates, retention, payments and the controls around them.
   later quarterly fees) goes to the cost of the project made from it: the project budget counts it
   under the cost code set in Muhick Settings (ADM-600, Cost of Winning the Bid), and the handover
   shows the amount.
-- Sales requisitions for the cost of preparing a bid, paid through the payment plan: Issue Funds on the
-  plan line (or on the requisition) records the money issued on both, with the date it must be
-  accounted for by. As for project requisitions, a new one is refused only while an earlier one of
+- Sales requisitions for the cost of preparing a bid, paid through the weekly payment plan only: Issue
+  Funds on its approved plan line records the money issued, with the date it must be accounted for
+  by, and the requisition shows the plan it is on. As for project requisitions, a new one is refused only while an earlier one of
   the same person is past that date and still not accounted for.
 - Bid security requests, raised from the opportunity with their securities and the expenses of
   obtaining them (one-off or recurring) as lines: the Finance Manager approves one (the General
   Manager is told) or rejects it with the reason, after which it is amended and sent again or left
   closed while the bid goes on. The Finance Manager chooses the bank facility the securities are drawn
   on and cannot approve them if they do not fit in what it has left (its limit, less the securities
-  running on it and those approved but not yet issued). Once it is approved, Finance issues the funds
-  from the payment plan or the request itself (the one-off
-  expenses and the first payment of the recurring ones), then each security once the bank or insurer
-  has issued it, with the recurring expenses as its quarterly fee. A request with no expenses needs no
+  running on it and those approved but not yet issued). Once it is approved, its funds (the one-off
+  expenses and the first payment of the recurring ones) go on the weekly payment plan and are issued
+  from there, and the request shows the plan it is on; Finance then records each security once the
+  bank or insurer has issued it, with the recurring expenses as its quarterly fee, which the payment
+  plan picks up as it falls due (Get > Bank Fees Due). A request with no expenses needs no
   funds: its securities are recorded straight after approval. All of a lost bid's securities are put
   up for cancellation.
 - Sale type on the Sales Order (Stock, Project, Additions): project and additions orders notify the

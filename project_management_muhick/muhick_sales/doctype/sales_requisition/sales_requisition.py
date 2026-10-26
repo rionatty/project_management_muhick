@@ -2,7 +2,8 @@
 # For license information, please see license.txt
 
 """Funds for a bid: the bid document, bank charges, site visit and similar costs. Prepared by the
-Sales Engineer, approved by the Head of Sales and the General Manager, then paid by Finance.
+Sales Engineer, approved by the Head of Sales and the General Manager, then put on the weekly payment
+plan and paid by Finance from it.
 The engineer accounts for the money afterwards: an unspent balance is returned, an overspend is
 reimbursed."""
 
@@ -64,7 +65,6 @@ class SalesRequisition(Document):
 		if self.docstatus != 1 or self.status not in allowed:
 			frappe.throw(_("This is not possible while the requisition is {0}.").format(_(self.status)))
 
-	@frappe.whitelist()
 	def mark_paid(
 		self,
 		amount_issued: float,

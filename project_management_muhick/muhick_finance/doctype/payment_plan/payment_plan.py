@@ -4,7 +4,9 @@
 """Weekly or monthly payment plan: the list of what Finance proposes to pay in the period, set
 against the cash and bank position. It is approved by the Finance Manager and then the General
 Manager, who may reduce an amount or hold a line. Payments are then raised from the approved
-lines, so every supplier payment traces back to an approved plan."""
+lines, so every supplier payment traces back to an approved plan. The money for a bid (its sales
+requisitions and bid security requests) and the bank fees of guarantees and bonds falling due are
+issued from the plan only."""
 
 import frappe
 from frappe import _
@@ -19,7 +21,9 @@ OPEN_PLAN = ("Draft", "Pending Approval", "Approved")
 # documents paid with a Payment Entry; the others are paid from their own form
 PAID_BY_PAYMENT_ENTRY = ("Purchase Invoice", "Purchase Order", "Payment Request")
 # documents whose funds can also be issued from the plan: the method that records them on the document
-ISSUED_FROM_PLAN = {"Sales Requisition": "mark_paid", "Bid Security Request": "issue_funds"}
+ISSUED_FROM_PLAN = {"Sales Requisition": "mark_paid", "Bid Security Request": "issue_funds", "Bank Instrument": "pay_fees"}
+# a guarantee or bond whose bank fees are still charged
+FEES_RUNNING = ("Requested", "Active", "Cancellation Requested")
 
 
 class PaymentPlan(Document):
@@ -78,6 +82,10 @@ class PaymentPlan(Document):
 		elif dt == "Bid Security Request":
 			outstanding = flt(source.funds_required) - flt(source.amount_issued)
 			details = (source.requested_by, None, outstanding, source.required_by)
+		elif dt == "Bank Instrument":
+			fees = self.fees_due(dn)
+			bank = frappe.db.get_value("Bank Facility", source.bank_facility, "bank") if source.bank_facility else None
+			details = (bank or source.title, source.project, sum(flt(f.amount) for f in fees), fees[0].due_date if fees else None)
 		elif dt == "Casual Sheet":
 			outstanding = 0 if source.status == "Paid" else source.total_amount
 			details = (_("Casual labour"), source.project, outstanding, source.period_to)
@@ -196,6 +204,23 @@ class PaymentPlan(Document):
 				self.add_line(doctype, doc.name, doc.amount, doc.title)
 
 	@frappe.whitelist()
+	def get_bank_fees(self):
+		"""The bank fees of guarantees and bonds falling due by the end of the period."""
+		for instrument in frappe.get_all(
+			"Bank Instrument", filters={"company": self.company, "status": ("in", FEES_RUNNING)}, fields=["name", "title"]
+		):
+			fees = self.fees_due(instrument.name)
+			if fees:
+				self.add_line("Bank Instrument", instrument.name, sum(flt(f.amount) for f in fees), instrument.title)
+
+	def fees_due(self, instrument) -> list:
+		"""An instrument's unpaid fees falling due by the end of the period, earliest first."""
+		filters = {"parent": instrument, "parenttype": "Bank Instrument", "paid": 0}
+		if self.period_to:
+			filters["due_date"] = ("<=", self.period_to)
+		return frappe.get_all("Bank Instrument Fee", filters=filters, fields=["name", "due_date", "amount"], order_by="due_date asc")
+
+	@frappe.whitelist()
 	def make_payment(self, line: str):
 		"""Raise the outgoing payment for one approved line, as a draft Payment Entry."""
 		from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
@@ -228,8 +253,8 @@ class PaymentPlan(Document):
 	def issue_funds(
 		self, line: str, issued_on: str | None = None, payment_reference: str | None = None, accountability_due_date: str | None = None
 	):
-		"""Pay an approved sales requisition or bid security request line: the document records the
-		funds issued, and its line here is marked paid."""
+		"""Pay an approved sales requisition, bid security request or bank fee line: the document records
+		the funds issued (or the fees paid), and its line here is marked paid."""
 		require_roles(*FINANCE_ROLES)
 		if self.docstatus != 1 or self.status != "Approved":
 			frappe.throw(_("Funds can only be issued from an approved plan."))
@@ -271,6 +296,25 @@ def update_progress(plan):
 	if status in ("Approved", "Closed"):
 		values["status"] = "Closed" if lines and all(l.line_status in DONE for l in lines) else "Approved"
 	frappe.db.set_value("Payment Plan", plan, values, update_modified=False)
+
+
+@frappe.whitelist()
+def get_payment_schedule(doctype: str, name: str) -> dict | None:
+	"""The payment plan line of a request: which plan, its period, the amount and where it stands."""
+	frappe.has_permission(doctype, "read", name, throw=True)
+	lines = frappe.db.sql(
+		"""
+		select plan.name as plan, plan.period_from, plan.period_to, line.line_status, line.proposed_amount,
+			line.approved_amount, line.hold_reason
+		from `tabPayment Plan Line` line inner join `tabPayment Plan` plan on plan.name = line.parent
+		where line.reference_doctype = %s and line.reference_name = %s and plan.docstatus < 2
+		order by plan.period_from desc, plan.creation desc
+		limit 1
+		""",
+		(doctype, name),
+		as_dict=True,
+	)
+	return lines[0] if lines else None
 
 
 def settle_plan_line(doctype, name, amount):

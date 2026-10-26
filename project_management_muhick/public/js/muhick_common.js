@@ -29,6 +29,36 @@ frappe.provide("muhick");
 	};
 })();
 
+// where an approved request stands on the weekly payment plan, from which its funds are issued
+muhick.show_payment_schedule = function (frm) {
+	frappe
+		.xcall("project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan.get_payment_schedule", {
+			doctype: frm.doctype,
+			name: frm.doc.name,
+		})
+		.then((line) => {
+			if (!line) {
+				frm.set_intro(__("Approved. It goes on the next weekly payment plan, and its funds are issued from there."), "blue");
+				return;
+			}
+			const plan = frappe.utils.get_form_link("Payment Plan", line.plan, true);
+			if (line.line_status === "Held") {
+				frm.set_intro(__("Held on payment plan {0}: {1}", [plan, frappe.utils.escape_html(line.hold_reason || "")]), "orange");
+				return;
+			}
+			frm.set_intro(
+				__("On payment plan {0} for {1} to {2}: {3}, {4}.", [
+					plan,
+					frappe.datetime.str_to_user(line.period_from),
+					frappe.datetime.str_to_user(line.period_to),
+					format_currency(line.approved_amount || line.proposed_amount),
+					__(line.line_status).toLowerCase(),
+				]),
+				"blue"
+			);
+		});
+};
+
 // an opportunity's status (where the sale stands) as a coloured tag, on the opportunity list and at the
 // top of the opportunity; its bid status is a column of the list and opens the Bid tab
 muhick.opportunity_status_indicator = function (doc) {
