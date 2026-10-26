@@ -88,6 +88,7 @@ def validate_opportunity(doc, method=None):
 	if doc.status == "Closed" and doc.has_value_changed("status") and not (doc.get("muhick_outcome_notes") or "").strip():
 		frappe.throw(_("Give the reason the bid is being closed."))
 	set_milestones(doc)
+	check_milestone_weights(doc)
 	set_bid_status(doc)
 	if doc.sales_stage in IN_PROGRESS:
 		doc.set("muhick_outcome_date", None)
@@ -302,10 +303,18 @@ def set_bid_status(doc):
 
 def set_milestones(doc):
 	"""The opportunity's milestones, each carrying its weight: reached as the record shows (or ticked by
-	hand), and its progress the weight reached out of the weight that applies. While the bid is going,
-	its milestones and weights follow the Opportunity Milestones list."""
-	if not doc.get("muhick_milestones") or doc.is_new() or doc.sales_stage in IN_PROGRESS:
+	hand), and its progress the weight reached out of the weight that applies. They start from the
+	Opportunity Milestones list and are the opportunity's own after that: lines added, removed or
+	reweighted for its tender."""
+	if not doc.get("muhick_milestones"):
 		follow_milestone_list(doc)
+	rules = dict(frappe.get_all("Opportunity Milestone", fields=["name", "reached_when"], as_list=True))
+	listed = set()
+	for row in doc.get("muhick_milestones"):
+		if row.milestone in listed:
+			frappe.throw(_("Milestones row {0}: {1} is already one of this opportunity's milestones.").format(row.idx, row.milestone))
+		listed.add(row.milestone)
+		row.reached_when = rules.get(row.milestone, row.reached_when)
 	facts = milestone_facts(doc)
 	# who reached a milestone: nobody is named for those found reached when the milestones were first drawn up
 	who = None if frappe.flags.in_patch else frappe.session.user
@@ -331,8 +340,8 @@ def set_milestones(doc):
 
 
 def follow_milestone_list(doc):
-	"""The milestones of the list, in its order and with its weights: one taken off the list (disabled or
-	deleted) leaves the opportunity, a new one joins it, and those already reached keep their date."""
+	"""The milestones of the list, in its order and with its weights; those already reached keep their
+	date."""
 	milestones = frappe.get_all(
 		"Opportunity Milestone", filters={"disabled": 0}, fields=["name", "weight", "reached_when"], order_by="sequence asc, name asc"
 	)
@@ -346,6 +355,32 @@ def follow_milestone_list(doc):
 	doc.set("muhick_milestones", rows)
 	for idx, row in enumerate(doc.get("muhick_milestones"), 1):
 		row.idx = idx
+
+
+@frappe.whitelist()
+def reset_milestones(opportunity: str):
+	"""The opportunity's milestones back to those of the list, with its weights and order."""
+	doc = frappe.get_doc("Opportunity", opportunity)
+	doc.check_permission("write")
+	follow_milestone_list(doc)
+	doc.save()
+
+
+def check_milestone_weights(doc):
+	"""Lines changed on the opportunity: say when their weights do not add up to 100%."""
+	before = doc.get_doc_before_save()
+	lines = [(r.milestone, flt(r.weight)) for r in doc.get("muhick_milestones") or []]
+	if before is not None and lines == [(r.milestone, flt(r.weight)) for r in before.get("muhick_milestones") or []]:
+		return
+	total = sum(weight for _milestone, weight in lines)
+	if lines and abs(total - 100) > 0.001:
+		frappe.msgprint(
+			_("This opportunity's milestones weigh {0}% together. Progress is worked out from that total, but at 100% each weight reads as its share.").format(
+				flt(total, 2)
+			),
+			indicator="orange",
+			alert=True,
+		)
 
 
 def milestone_facts(doc) -> dict:

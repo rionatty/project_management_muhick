@@ -22,17 +22,20 @@
    "in_list_view": 1,
    "label": "Milestone",
    "options": "Opportunity Milestone",
-   "read_only": 1
+   "reqd": 1
   },
   {
    "columns": 1,
+   "description": "From the list; change it for this opportunity",
+   "fetch_from": "milestone.weight",
+   "fetch_if_empty": 1,
    "fieldname": "weight",
    "fieldtype": "Percent",
    "in_list_view": 1,
-   "label": "Weight",
-   "read_only": 1
+   "label": "Weight"
   },
   {
+   "fetch_from": "milestone.reached_when",
    "fieldname": "reached_when",
    "fieldtype": "Data",
    "label": "Reached When",
@@ -81,7 +84,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-26 09:28:43.367957",
+ "modified": "2026-10-26 11:01:00.544703",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Opportunity Milestone Line",

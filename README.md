@@ -73,9 +73,11 @@ and certificates, retention, payments and the controls around them.
 - The opportunity's milestones, on its first tab, from the lead to the project, each carrying a weight
   from the Opportunity Milestones list (in the CRM menu's Setup): lead qualified, bid funds issued,
   site visit done, bid security issued, the three parts of the bid ready, bid submitted, bid won,
-  quotation sent, sales order confirmed, handed over to projects. The business defines its own: renames
-  them, changes their weights (the list says when those in use do not add up to 100%), adds, disables
-  or deletes them, and the opportunities still being bid follow at once while decided ones keep theirs. Each is reached as the record shows, with the date and who, or is
+  quotation sent, sales order confirmed, handed over to projects. The business defines its own list
+  (it says when the weights in use do not add up to 100%), which every new opportunity starts from;
+  the opportunity's milestones are then its own: lines are added (a sales engineer can create a new
+  stage from the line), deleted, reweighted and reordered for the tender, and Reset to the List brings
+  them back to the list. Each is reached as the record shows, with the date and who, or is
   ticked by hand when it is one the system cannot see; one that does not apply (no site visit, no bid
   security) counts for nothing. The Progress % is the weight reached out of the weight that applies,
   on the opportunity, its list and the Bid Register.

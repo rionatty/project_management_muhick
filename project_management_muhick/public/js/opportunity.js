@@ -3,6 +3,7 @@
 
 frappe.ui.form.on("Opportunity", {
 	setup(frm) {
+		frm.set_query("milestone", "muhick_milestones", () => ({ filters: { disabled: 0 } }));
 		// "Sales" stays only as ERPNext's fallback; the types of work are the business's own
 		frm.set_query("opportunity_type", () => ({ filters: { name: ["!=", "Sales"] } }));
 		// from a qualified lead or an existing customer, not from a prospect
@@ -28,9 +29,18 @@ frappe.ui.form.on("Opportunity", {
 
 	refresh(frm) {
 		toggle_bid_price(frm);
-		// the milestones come from the Bid Milestones list
-		frm.set_df_property("muhick_milestones", "cannot_add_rows", true);
-		frm.set_df_property("muhick_milestones", "cannot_delete_rows", true);
+		// the milestones start from the list and are the opportunity's own: Reset to the List goes back to it
+		const milestones = frm.fields_dict.muhick_milestones.grid;
+		milestones.clear_custom_buttons();
+		if (!frm.is_new() && frm.perm[0].write) {
+			milestones.add_custom_button(__("Reset to the List"), () =>
+				frappe.confirm(__("Replace this opportunity's milestones with those of the Opportunity Milestones list?"), () =>
+					frappe
+						.xcall("project_management_muhick.overrides.crm.reset_milestones", { opportunity: frm.doc.name })
+						.then(() => frm.reload_doc())
+				)
+			);
+		}
 		if (frm.is_new()) {
 			return;
 		}
