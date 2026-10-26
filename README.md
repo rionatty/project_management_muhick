@@ -59,15 +59,18 @@ and certificates, retention, payments and the controls around them.
   Pursued with the reason. Only the Head of Sales decides, and the lead records who decided and when.
 - Only a qualified lead becomes an opportunity. The opportunity reads the same way and takes over the
   lead's details; its type of work is the business's own in place of ERPNext's sample list.
-- The Bid Status (ERPNext's Sales Stage) moves by itself with what is recorded on the bid: Qualified, In
+- Two statuses, each moving by itself. The Opportunity Status (ERPNext's own status) is where the sale
+  stands: Open while it is pursued, Won once its outcome report is approved, then Quotation and
+  Converted as the quotation and the sales order follow, or Lost or Closed. It is the tag at the top of
+  the opportunity and on the list ("Replied" is not used: it would close an opportunity by itself after
+  a few days). The Bid Status (ERPNext's Sales Stage) is where the tender stands: Qualified, In
   Preparation (a sales requisition, a bid security request or a document), Submitted (the submission
   with its acknowledgement), Under Evaluation (its deadline has passed), Outcome Pending Approval, then
-  Won, Lost, Not Pursued or Cancelled (closed before or after it was submitted). It opens the Bid tab
-  with the expected award date and a status history (each status the bid has been in, from when, for
-  how many days, who and what moved it), shows on the tag at the top of the bid and colours the
-  opportunity list. ERPNext's own status keeps in step out of sight (without "Replied", which would
-  close a bid by itself after a few days), and the sales engineer is reminded daily to follow up a bid
-  still under evaluation after its expected award date.
+  Won, Lost, Not Pursued or Cancelled (closed before or after it was submitted); a bid's approved
+  outcome stays whatever happens to the sale afterwards. It opens the Bid tab with the expected award
+  date and a status history (each status the bid has been in, from when, for how many days, who and
+  what moved it), and the sales engineer is reminded daily to follow up a bid still under evaluation
+  after its expected award date.
 - The opportunity is the bid, built on the standard Opportunity: its Bid tab holds the tender, the
   client's requirements with a compliance answer for each (the technical bid check), the financial
   requirements, the three parts of the bid, its document checklist, the submission record (date and

@@ -4,23 +4,14 @@
 // Small helpers shared by the Muhick forms. Loaded on every desk page (see hooks.py).
 frappe.provide("muhick");
 
-// a bid's status (its sales stage) as a coloured tag: on the opportunity list and at the top of the bid
-muhick.bid_status_indicator = function (doc) {
-	const colours = {
-		Qualified: "blue",
-		"In Preparation": "orange",
-		Submitted: "purple",
-		"Under Evaluation": "yellow",
-		"Outcome Pending Approval": "pink",
-		Won: "green",
-		Lost: "red",
-		"Not Pursued": "gray",
-		Cancelled: "darkgrey",
-	};
-	if (!doc.sales_stage) {
+// an opportunity's status (where the sale stands) as a coloured tag, on the opportunity list and at the
+// top of the opportunity; its bid status is a column of the list and opens the Bid tab
+muhick.opportunity_status_indicator = function (doc) {
+	const colours = { Open: "orange", Won: "green", Quotation: "cyan", Converted: "blue", Lost: "red", Closed: "gray" };
+	if (!doc.status) {
 		return null;
 	}
-	return [__(doc.sales_stage), colours[doc.sales_stage] || "gray", "sales_stage,=," + doc.sales_stage];
+	return [__(doc.status), colours[doc.status] || "gray", "status,=," + doc.status];
 };
 
 // keep amount = qty x rate on a child row

@@ -18,3 +18,4 @@ project_management_muhick.patches.bid_submission
 project_management_muhick.patches.bid_status
 project_management_muhick.patches.bid_documents
 project_management_muhick.patches.bid_status_history
+project_management_muhick.patches.opportunity_status_won

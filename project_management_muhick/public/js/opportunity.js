@@ -31,8 +31,8 @@ frappe.ui.form.on("Opportunity", {
 		if (frm.is_new()) {
 			return;
 		}
-		// the tag at the top shows the bid status, not the standard status kept out of sight
-		const indicator = muhick.bid_status_indicator && muhick.bid_status_indicator(frm.doc);
+		// the tag at the top shows where the sale stands; where the tender stands opens the Bid tab
+		const indicator = muhick.opportunity_status_indicator && muhick.opportunity_status_indicator(frm.doc);
 		if (indicator) {
 			frm.page.set_indicator(indicator[0], indicator[1]);
 		}
@@ -155,16 +155,17 @@ function show_outcome(frm) {
 	});
 }
 
-// ERPNext adds Close and Reopen after this script has run. A bid is closed with the reason; one whose
-// outcome was approved is reopened only by cancelling its outcome report
+// ERPNext adds Close and Reopen after this script has run. An opportunity is closed with the reason (a
+// won one too, when the sale falls through) and reopened as it was; a won or lost bid is otherwise
+// reopened only by cancelling its outcome report
 function replace_close_and_reopen(frm) {
 	setTimeout(() => {
 		frm.remove_custom_button(__("Close"));
 		frm.remove_custom_button(__("Reopen"));
-		if (!frm.perm[0].write || frm.doc.muhick_bid_outcome || frm.doc.sales_stage === "Outcome Pending Approval") {
+		if (!frm.perm[0].write || frm.doc.sales_stage === "Outcome Pending Approval") {
 			return;
 		}
-		if (frm.doc.status === "Open") {
+		if (["Open", "Won", "Quotation"].includes(frm.doc.status)) {
 			frm.add_custom_button(__("Close"), () =>
 				frappe.prompt(
 					{ fieldname: "reason", fieldtype: "Small Text", label: __("Why is the bid being closed?"), reqd: 1 },
@@ -173,7 +174,8 @@ function replace_close_and_reopen(frm) {
 				)
 			);
 		} else if (frm.doc.status === "Closed") {
-			frm.add_custom_button(__("Reopen"), () => frm.set_value("status", "Open").then(() => frm.save()));
+			const reopened = frm.doc.sales_stage === "Won" ? "Won" : "Open";
+			frm.add_custom_button(__("Reopen"), () => frm.set_value("status", reopened).then(() => frm.save()));
 		}
 	});
 }

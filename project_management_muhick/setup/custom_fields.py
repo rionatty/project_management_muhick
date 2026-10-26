@@ -492,16 +492,23 @@ PROPERTY_SETTERS = (
 	("Opportunity", "opportunity_type", "reqd", "1", "Check"),
 	("Opportunity", "opportunity_owner", "label", "Sales Engineer", "Data"),
 	("Opportunity", "sales_stage", "default", "Qualified", "Text"),
-	# the bid status moves by itself with what is recorded on the bid; the standard status keeps in
-	# step underneath, out of sight
+	# two statuses, each moving by itself: the bid status (the sales stage) follows the tender, the
+	# opportunity status (the standard status) follows the sale
 	("Opportunity", "sales_stage", "label", "Bid Status", "Data"),
 	("Opportunity", "sales_stage", "read_only", "1", "Check"),
-	("Opportunity", "sales_stage", "description", "Moves by itself as the bid is prepared, submitted, evaluated and decided", "Text"),
-	("Opportunity", "status", "hidden", "1", "Check"),
+	("Opportunity", "sales_stage", "description", "Where the tender stands: moves by itself as the bid is prepared, submitted, evaluated and decided", "Text"),
+	("Opportunity", "status", "label", "Opportunity Status", "Data"),
+	("Opportunity", "status", "hidden", "0", "Check"),
+	("Opportunity", "status", "read_only", "1", "Check"),
 	("Opportunity", "status", "in_list_view", "0", "Check"),
-	("Opportunity", "status", "in_standard_filter", "0", "Check"),
+	("Opportunity", "status", "in_standard_filter", "1", "Check"),
+	(
+		"Opportunity", "status", "description",
+		"Where the sale stands: Open while it is pursued, Won once its outcome report is approved, then Quotation and Converted as the quotation and the sales order follow; Lost or Closed when it ends",
+		"Text",
+	),
 	# no "Replied": a replied opportunity closes itself after some days, in the middle of an evaluation
-	("Opportunity", "status", "options", "Open\nQuotation\nConverted\nLost\nClosed", "Text"),
+	("Opportunity", "status", "options", "Open\nWon\nQuotation\nConverted\nLost\nClosed", "Text"),
 	# every change, the bid status's included, on the timeline
 	("Opportunity", None, "track_changes", "1", "Check"),
 	("Opportunity", "expected_closing", "label", "Expected Award Date", "Data"),

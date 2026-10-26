@@ -167,8 +167,8 @@ class BidOutcome(Document):
 				"muhick_outcome_notes": report,
 			}
 		)
+		bid.status = self.outcome
 		if self.outcome == "Lost":
-			bid.status = "Lost"
 			bid.order_lost_reason = report
 			bid.set("lost_reasons", [{"lost_reason": r.lost_reason} for r in self.lost_reasons])
 			bid.set("competitors", [{"competitor": r.competitor} for r in self.competitors])
@@ -194,8 +194,9 @@ class BidOutcome(Document):
 			if quotation:
 				frappe.throw(_("Quotation {0} was made from this bid. Cancel it before cancelling the outcome.").format(quotation))
 		bid.update({"muhick_bid_outcome": None, "muhick_outcome_date": None, "muhick_award_notice": None, "muhick_outcome_notes": None})
-		if self.outcome == "Lost":
+		if bid.status == self.outcome:
 			bid.status = "Open"
+		if self.outcome == "Lost":
 			bid.order_lost_reason = None
 			bid.set("lost_reasons", [])
 			bid.set("competitors", [])

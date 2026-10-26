@@ -69,6 +69,7 @@ doc_events = {
 		"validate": "project_management_muhick.overrides.crm.validate_opportunity",
 		"on_update": "project_management_muhick.overrides.crm.on_update_opportunity",
 	},
+	"Quotation": {"on_cancel": "project_management_muhick.overrides.crm.quotation_cancelled"},
 	"Project": {
 		"validate": "project_management_muhick.overrides.project.validate",
 		"after_insert": "project_management_muhick.overrides.project.after_insert",

@@ -7,11 +7,14 @@ decision, recorded with who made it and when, and only a qualified lead becomes 
 The opportunity is the bid: its tender, the three parts of the bid, the submission, the bid
 security and the outcome. Its documents are on a checklist, each tracked as a document of its own, and
 a part of the bid is ready once all its documents are; a bid is complete with all three parts before
-it is submitted. Its status
-(the Sales Stage) moves by itself with what is recorded on it, from Qualified to Won, Lost, Not
-Pursued or Cancelled; won and lost come only from an outcome report approved by the Head of Sales
-and the General Manager. When a bid is lost or closed, Finance is asked to cancel its bid security,
-because the bank charges for it until it is cancelled."""
+it is submitted.
+
+It has two statuses, each moving by itself. The bid status (the Sales Stage) follows the tender, from
+Qualified to Won, Lost, Not Pursued or Cancelled; the opportunity status (the standard status) follows
+the sale, from Open to Won, Quotation and Converted, or Lost or Closed. Won and lost come only from an
+outcome report approved by the Head of Sales and the General Manager, and a bid's outcome stays
+whatever happens to the sale afterwards. When an opportunity is lost or closed, Finance is asked to
+cancel its bid security, because the bank charges for it until it is cancelled."""
 
 import frappe
 from frappe import _
@@ -228,7 +231,8 @@ def record_submission(doc):
 
 
 def check_outcome_changes(doc):
-	"""Won and lost come only from an approved outcome report, and only cancelling it reopens the bid."""
+	"""Won and lost come only from an approved outcome report, and only cancelling it reopens the bid. A
+	won opportunity whose sale falls through can still be closed, and reopened as won."""
 	if doc.is_new() or doc.flags.get("muhick_outcome"):
 		return
 	before = doc.get_doc_before_save()
@@ -236,13 +240,15 @@ def check_outcome_changes(doc):
 		return
 	if (doc.get("muhick_bid_outcome") or None) != (before.get("muhick_bid_outcome") or None):
 		frappe.throw(_("The outcome report of a bid is set by its approval."))
-	if doc.status == "Lost" and before.status != "Lost":
+	outcome = doc.get("muhick_bid_outcome")
+	approved = frappe.db.get_value("Bid Outcome", outcome, "outcome") if outcome else None
+	if doc.status in ("Won", "Lost") and doc.status != before.status and doc.status != approved:
 		frappe.throw(
-			_("A lost bid is reported with Outcome > Lost on the opportunity, for the Head of Sales and the General Manager to approve."),
+			_("A bid is won or lost with its outcome report (Outcome > Won or Lost on the opportunity), approved by the Head of Sales and the General Manager."),
 			title=_("Outcome Needs Approval"),
 		)
-	if before.status == "Lost" and doc.status != "Lost" and doc.get("muhick_bid_outcome"):
-		frappe.throw(_("The loss of this bid was approved in {0}. Cancel that outcome report to reopen the bid.").format(doc.muhick_bid_outcome))
+	if approved and doc.status == "Open":
+		frappe.throw(_("The outcome of this bid was approved in {0}. Cancel that outcome report to reopen the bid.").format(outcome))
 
 
 def is_submitted(doc) -> bool:
@@ -258,14 +264,15 @@ def is_preparing(doc) -> bool:
 
 
 def bid_status(doc) -> str:
-	"""Where a bid stands, from what is recorded on it and its outcome report."""
+	"""Where the bid stands, from what is recorded on it. Once its outcome report is approved the bid is
+	won or lost for good, whatever happens to the sale afterwards."""
+	outcome = doc.get("muhick_bid_outcome")
+	if outcome:
+		return frappe.db.get_value("Bid Outcome", outcome, "outcome") or "Won"
 	if doc.status == "Lost":
 		return "Lost"
 	if doc.status == "Closed":
 		return "Cancelled" if is_submitted(doc) else "Not Pursued"
-	outcome = doc.get("muhick_bid_outcome")
-	if outcome and frappe.db.get_value("Bid Outcome", outcome, "outcome") == "Won":
-		return "Won"
 	if not doc.is_new() and frappe.db.exists(
 		"Bid Outcome", {"opportunity": doc.name, "docstatus": 0, "workflow_state": ("in", PENDING_STATES)}
 	):
@@ -370,6 +377,18 @@ def on_update_opportunity(doc, method=None):
 		)
 	if doc.has_value_changed("status") and doc.status in ("Lost", "Closed"):
 		request_security_cancellation(doc)
+
+
+def quotation_cancelled(doc, method=None):
+	"""A won bid's quotation cancelled: ERPNext puts the opportunity back to Open, but the bid was won."""
+	opportunities = {i.prevdoc_docname for i in doc.items if i.prevdoc_doctype == "Opportunity" and i.prevdoc_docname}
+	if doc.get("opportunity"):
+		opportunities.add(doc.opportunity)
+	for name in opportunities:
+		bid = frappe.db.get_value("Opportunity", name, ["status", "muhick_bid_outcome"], as_dict=True)
+		if bid and bid.status == "Open" and bid.muhick_bid_outcome:
+			if frappe.db.get_value("Bid Outcome", bid.muhick_bid_outcome, "outcome") == "Won":
+				frappe.db.set_value("Opportunity", name, "status", "Won")
 
 
 def request_security_cancellation(doc):

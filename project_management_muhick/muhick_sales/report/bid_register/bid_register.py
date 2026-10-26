@@ -21,6 +21,7 @@ def execute(filters=None):
 		{"fieldname": "customer_name", "label": _("Organisation"), "fieldtype": "Data", "width": 200},
 		{"fieldname": "opportunity_type", "label": _("Type of Work"), "fieldtype": "Data", "width": 140},
 		{"fieldname": "opportunity_owner", "label": _("Sales Engineer"), "fieldtype": "Link", "options": "User", "width": 160},
+		{"fieldname": "status", "label": _("Opportunity Status"), "fieldtype": "Data", "width": 120},
 		{"fieldname": "sales_stage", "label": _("Bid Status"), "fieldtype": "Data", "width": 150},
 		{"fieldname": "days_in_status", "label": _("Days in Status"), "fieldtype": "Int", "width": 90},
 		{"fieldname": "utm_source", "label": _("Source"), "fieldtype": "Data", "width": 150},
@@ -44,7 +45,7 @@ def execute(filters=None):
 		{"fieldname": "outcome", "label": _("Why Won / Lost"), "fieldtype": "Data", "width": 300},
 	]
 	conditions = {}
-	for field in ("sales_stage", "opportunity_owner", "company"):
+	for field in ("status", "sales_stage", "opportunity_owner", "company"):
 		if filters.get(field):
 			conditions[field] = filters.get(field)
 	if filters.from_date and filters.to_date:
@@ -57,7 +58,7 @@ def execute(filters=None):
 		"Opportunity",
 		filters=conditions,
 		fields=[c["fieldname"] for c in columns if c["fieldname"] not in computed]
-		+ ["status", "muhick_stage_since", "muhick_outcome_notes", "order_lost_reason", "muhick_acknowledgement"],
+		+ ["muhick_stage_since", "muhick_outcome_notes", "order_lost_reason", "muhick_acknowledgement"],
 		order_by="transaction_date desc",
 	)
 	if not bids:
