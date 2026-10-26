@@ -550,9 +550,25 @@ PROPERTY_SETTERS = (
 )
 
 
+# descriptions that other apps on the site put on their fields and that do not belong on this business's
+# screens, such as notes about a mobile app it does not use
+FOREIGN_DESCRIPTIONS = ("Sales Pro",)
+
+
 def setup_custom_fields():
 	create_custom_fields(CUSTOM_FIELDS, update=True)
 	for doctype, fieldname, prop, value, prop_type in PROPERTY_SETTERS:
 		filters = {"doc_type": doctype, "property": prop, "field_name": fieldname or ("is", "not set")}
 		if frappe.db.get_value("Property Setter", filters, "value") != value:
 			make_property_setter(doctype, fieldname, prop, value, prop_type, for_doctype=not fieldname, validate_fields_for_doctype=False)
+	clear_foreign_descriptions()
+
+
+def clear_foreign_descriptions():
+	"""Blank the descriptions other apps' fields carry about things the business does not use; a
+	property setter keeps them blank when those apps put their fields back."""
+	for text in FOREIGN_DESCRIPTIONS:
+		for field in frappe.get_all("Custom Field", filters={"description": ("like", f"%{text}%")}, fields=["dt", "fieldname"]):
+			filters = {"doc_type": field.dt, "field_name": field.fieldname, "property": "description"}
+			if frappe.db.get_value("Property Setter", filters, "value") != "":
+				make_property_setter(field.dt, field.fieldname, "description", "", "Text", validate_fields_for_doctype=False)
