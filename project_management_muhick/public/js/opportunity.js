@@ -112,7 +112,18 @@ function show_preparation(frm) {
 	if (in_progress.length) {
 		lines.push(__("In progress: {0}.", [names(in_progress)]));
 	}
-	if (checklist.length && !waiting.length) {
+	// what else keeps the bid from going in: a part with no document, and requirements not answered
+	const parts = ["Administrative", "Technical", "Financial"].filter((part) => !checklist.some((r) => r.part === part));
+	if (parts.length) {
+		lines.push(__("No {0} document on the checklist.", [parts.map((p) => __(p).toLowerCase()).join(", ")]));
+		colour = colour === "blue" ? "orange" : colour;
+	}
+	const unanswered = (frm.doc.muhick_requirements || []).filter((r) => !r.compliance || r.compliance === "Clarification Needed");
+	if (unanswered.length) {
+		lines.push(__("Requirements and Compliance, row {0}: answer Complies or Deviation.", [unanswered.map((r) => r.idx).join(", ")]));
+		colour = colour === "blue" ? "orange" : colour;
+	}
+	if (checklist.length && !waiting.length && !parts.length && !unanswered.length) {
 		lines.push(__("Every document on the checklist is ready."));
 		colour = colour === "blue" ? "green" : colour;
 	}

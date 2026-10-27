@@ -146,6 +146,26 @@ def set_parts_ready(doc):
 		doc.set(field, 1 if ready else 0)
 
 
+def parts_not_ready(doc) -> list:
+	"""What keeps each part of the bid from being ready, a line per part."""
+	unanswered = open_requirements(doc)
+	lines = []
+	for field, part in BID_PARTS:
+		if doc.get(field):
+			continue
+		rows = [r for r in doc.get("muhick_checklist") or [] if r.part == part]
+		waiting = [r.document_type for r in rows if r.status != "Ready"]
+		why = []
+		if not rows:
+			why.append(_("no {0} document is on the document checklist").format(_(part).lower()))
+		if waiting:
+			why.append(_("not ready yet: {0}").format(", ".join(waiting)))
+		if part == "Technical" and unanswered:
+			why.append(_("Requirements and Compliance, row {0}: answer Complies or Deviation").format(", ".join(unanswered)))
+		lines.append(_("{0} part: {1}.").format(_(part), "; ".join(why)))
+	return lines
+
+
 def open_requirements(doc) -> list:
 	return [str(r.idx) for r in doc.get("muhick_requirements") or [] if r.compliance in (None, "", "Clarification Needed")]
 
@@ -164,16 +184,12 @@ def record_submission(doc):
 			alert=True,
 		)
 	if is_submitted(doc):
-		missing = [_(part).lower() for field, part in BID_PARTS if not doc.get(field)]
+		missing = parts_not_ready(doc)
 		if missing:
-			waiting = [r.document_type for r in doc.get("muhick_checklist") or [] if r.status != "Ready"]
-			unanswered = open_requirements(doc)
-			message = [_("A bid is complete only with all three parts. Not ready yet: {0}.").format(", ".join(missing))]
-			if waiting:
-				message.append(_("Documents still to prepare: {0}.").format(", ".join(waiting)))
-			if unanswered:
-				message.append(_("Requirements still to answer: row {0}.").format(", ".join(unanswered)))
-			frappe.throw(" ".join(message))
+			frappe.throw(
+				_("A bid is submitted only once all three parts are ready.") + "<br>" + "<br>".join(missing),
+				title=_("Bid Not Complete"),
+			)
 	deadline, submitted = doc.get("muhick_submission_deadline"), doc.get("muhick_submitted_at")
 	if deadline and submitted and doc.has_value_changed("muhick_submitted_at") and get_datetime(submitted) > get_datetime(deadline):
 		frappe.msgprint(
