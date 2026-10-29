@@ -269,45 +269,57 @@ muhick.cost_lines = {
 			__("Upload")
 		);
 	},
-	// the lines totalled by stage and budget section, then the contract value and the margin
+	// the lines totalled section by section (A Equipment, B Installation Materials...) against the stages, as the
+	// budget summary sheets lay them out, then the bid price or contract value, the cost and the margin
 	render_summary(frm) {
 		const field = frm.fields_dict[frm.doctype === "Opportunity" ? "muhick_estimate_summary" : "phase_summary"];
 		if (!field) {
 			return;
 		}
-		const sections = ["Materials", "Works", "Administrative"];
-		const totals = {};
+		const order = ["Equipment", "Installation Materials", "Taxes and Freight", "Labour", "Tools and Equipment", "Preliminaries", "Administrative"];
+		const cells = {};
+		const stages = [];
 		(frm.doc[muhick.cost_lines.table(frm)] || []).forEach((r) => {
-			const stage = (totals[r.stage || ""] = totals[r.stage || ""] || { total: 0 });
-			stage[r.budget_section] = flt(stage[r.budget_section]) + flt(r.amount);
-			stage.total += flt(r.amount);
+			const stage = r.stage || "";
+			if (!stages.includes(stage)) {
+				stages.push(stage);
+			}
+			cells[`${r.section || ""}|${stage}`] = flt(cells[`${r.section || ""}|${stage}`]) + flt(r.amount);
 		});
-		const stages = Object.keys(totals).sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1));
 		if (!stages.length) {
 			field.$wrapper.html("");
 			return;
 		}
+		stages.sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1));
+		const sections = [...order, ""].filter((section) => stages.some((stage) => cells[`${section}|${stage}`]));
 		const currency = erpnext.get_currency(frm.doc.company);
-		const all = { total: 0 };
-		stages.forEach((s) => [...sections, "total"].forEach((k) => (all[k] = flt(all[k]) + flt(totals[s][k]))));
-		const cells = (t) => [...sections, "total"].map((k) => `<td class="text-right">${format_currency(flt(t[k]), currency)}</td>`).join("");
-		const rows = stages
-			.map((s) => `<tr><td>${frappe.utils.escape_html(s || __("No stage"))}</td>${cells(totals[s])}</tr>`)
+		const money = (value) => (value ? format_currency(value, currency) : "");
+		const amount = (section, stage) => flt(cells[`${section}|${stage}`]);
+		const right = (html) => `<td class="text-right">${html}</td>`;
+		const head = stages.map((stage) => `<th class="text-right">${frappe.utils.escape_html(stage || __("No stage"))}</th>`).join("");
+		const rows = sections
+			.map((section, i) => {
+				const values = stages.map((stage) => amount(section, stage));
+				const total = values.reduce((sum, value) => sum + value, 0);
+				return `<tr><td>${String.fromCharCode(65 + i)}. ${__(section || "Other")}</td>${values.map((v) => right(money(v))).join("")}${right(`<b>${money(total)}</b>`)}</tr>`;
+			})
 			.join("");
-		const heads = [...sections, "Total"].map((s) => `<th class="text-right">${__(s)}</th>`).join("");
+		const by_stage = stages.map((stage) => sections.reduce((sum, section) => sum + amount(section, stage), 0));
+		const cost = by_stage.reduce((sum, value) => sum + value, 0);
 		const contract = muhick.cost_lines.contract_value(frm);
-		const price = frm.doctype === "Opportunity" ? __("Bid Price") : __("Revised Contract Value");
-		const margin = contract
-			? `<p>${__("{0} without VAT: {1}. Margin: {2} ({3}%).", [
-					price,
-					`<b>${format_currency(contract, currency)}</b>`,
-					`<b>${format_currency(contract - all.total, currency)}</b>`,
-					flt(((contract - all.total) / contract) * 100, 1),
-			  ])}</p>`
+		const price = frm.doctype === "Opportunity" ? __("Bid Price, without VAT") : __("Revised Contract Value, without VAT");
+		const position = contract
+			? `<table class="table table-condensed" style="width: auto"><tbody>` +
+			  `<tr><td>${price}</td>${right(money(contract))}</tr>` +
+			  `<tr><td>${__("Total Cost, without VAT")}</td>${right(money(cost))}</tr>` +
+			  `<tr class="bold"><td>${__("Margin")}</td>${right(`${format_currency(contract - cost, currency)} (${flt(((contract - cost) / contract) * 100, 1)}%)`)}</tr>` +
+			  `</tbody></table>`
 			: "";
 		field.$wrapper.html(
-			`<table class="table table-bordered table-condensed"><thead><tr><th>${__("Stage")}</th>${heads}</tr></thead>` +
-				`<tbody>${rows}<tr class="bold"><td>${__("Total")}</td>${cells(all)}</tr></tbody></table>${margin}`
+			`<div style="overflow-x: auto"><table class="table table-bordered table-condensed">` +
+				`<thead><tr><th>${__("Section")}</th>${head}<th class="text-right">${__("Total")}</th></tr></thead>` +
+				`<tbody>${rows}<tr class="bold"><td>${__("Total Cost, without VAT")}</td>${by_stage.map((v) => right(money(v))).join("")}${right(money(cost))}</tr></tbody>` +
+				`</table></div>${position}`
 		);
 	},
 };
@@ -328,7 +340,7 @@ frappe.ui.form.on("Project Budget Line", {
 		muhick.cost_lines.set_amount(frm, cdt, cdn);
 	},
 	...Object.fromEntries(
-		["amount", "stage", "budget_section", "lines_remove", "muhick_estimate_remove"].map((field) => [
+		["amount", "section", "stage", "budget_section", "lines_remove", "muhick_estimate_remove"].map((field) => [
 			field,
 			(frm) => muhick.cost_lines.render_summary(frm),
 		])

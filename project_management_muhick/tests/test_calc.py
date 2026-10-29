@@ -58,6 +58,22 @@ class TestCostLines(unittest.TestCase):
 	def test_goods_without_duty_or_freight_add_nothing(self):
 		self.assertEqual(calc.import_costs(25_000)["total"], 0)
 
+	def test_section_from_the_cost_code(self):
+		self.assertEqual(calc.section_of_cost_code("MAT-500"), "Equipment")
+		self.assertEqual(calc.section_of_cost_code("MAT-100"), "Installation Materials")
+		self.assertEqual(calc.section_of_cost_code("MAT-600"), "Taxes and Freight")
+		self.assertEqual(calc.section_of_cost_code("WRK-150"), "Labour")
+		self.assertEqual(calc.section_of_cost_code("WRK-300"), "Tools and Equipment")
+		self.assertEqual(calc.section_of_cost_code("ADM-300"), "Preliminaries")
+		self.assertEqual(calc.section_of_cost_code("ADM-500"), "Administrative")
+		self.assertEqual(calc.section_of_cost_code("FIRE-01", "Materials"), "Installation Materials")
+		self.assertIsNone(calc.section_of_cost_code(None))
+
+	def test_vat_in_local_quotes_for_goods_only(self):
+		self.assertEqual(calc.rate_includes_vat_by_default("Installation Materials", False), 1)
+		self.assertEqual(calc.rate_includes_vat_by_default("Equipment", True), 0)
+		self.assertEqual(calc.rate_includes_vat_by_default("Labour", False), 0)
+
 	def test_month_shares(self):
 		shares = calc.month_shares("2026-10-10", "2026-11-09")
 		self.assertAlmostEqual(shares[(2026, 10)], 22 / 31)

@@ -21,3 +21,4 @@ project_management_muhick.patches.bid_milestones
 project_management_muhick.patches.opportunity_milestones
 project_management_muhick.patches.bid_document_lines
 project_management_muhick.patches.budget_line_stages
+project_management_muhick.patches.cost_line_sections

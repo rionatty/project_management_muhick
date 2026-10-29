@@ -104,6 +104,7 @@ def set_estimate(doc):
 	lines = doc.get("muhick_estimate") or []
 	if not lines:
 		return
+	estimate.arrange(lines)
 	rate = flt(doc.conversion_rate) or 1
 	doc.set("muhick_estimated_cost", estimate.set_amounts(doc, lines, flt(doc.opportunity_amount) * rate) / rate)
 

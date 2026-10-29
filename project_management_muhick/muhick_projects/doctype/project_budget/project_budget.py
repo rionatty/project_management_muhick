@@ -3,11 +3,12 @@
 
 """Project budget, built and controlled inside the ERP by cost code.
 
-A budget made at handover starts from the won bid's cost estimate, line for line, and the Project
-Manager adjusts it before sending it for approval. Each line has a stage from the shared milestone
-list and takes the project's milestone (phase) of that name once the activity plan creates it; it is
-an item from the Item master, or a lump sum described in words, with its supplier, brand and cost
-code. Amounts are in the company's currency without VAT: people x qty x rate at the line's exchange
+A budget made at handover starts from the won bid's cost estimate, line for line and section by
+section (Equipment, Installation Materials, Taxes and Freight, Labour, Tools and Equipment,
+Preliminaries, Administrative), and the Project Manager adjusts it before sending it for approval.
+Each line has a stage from the shared milestone list and takes the project's milestone (phase) of
+that name once the activity plan creates it; it is an item from the Item master, or a lump sum
+described in words, with its supplier, brand and cost code. Amounts are in the company's currency without VAT: people x qty x rate at the line's exchange
 rate, a rate quoted with VAT taken without it, or a share of the contract value. Lines can also be
 taken from the items of the approved activity plan.
 
@@ -37,6 +38,7 @@ class ProjectBudget(Document):
 		self.check_single_budget()
 		self.validate_phases()
 		estimate.resolve_stages(self.project, self.lines)
+		estimate.arrange(self.lines)
 		self.contract_value = budget_engine.revised_contract_value(self.project)
 		estimate.set_amounts(self, self.lines, self.contract_value)
 		self.build_cost_code_summary()
@@ -143,6 +145,7 @@ def get_plan_items(project: str) -> list:
 		)
 		rows.append(
 			{
+				"section": "Installation Materials",
 				"stage": item.phase_name,
 				"phase": phases.get(item.phase_name),
 				"item_code": item.item_code,

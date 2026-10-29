@@ -1,6 +1,7 @@
-{#- Budget summary: the budget's cost codes, section by section, against its stages (the project's
-    milestones, each with its months), in the company's currency without VAT; then the contract value
-    and the margin, the approval record and the signatures. -#}
+{#- Budget summary, laid out as the business's budget summary sheet: each section (A Equipment, B Installation
+    Materials...) against the stages (the project's milestones, with their months) in the company's
+    currency without VAT; then the contract value and the margin, the budget by cost code, the approval
+    record and the signatures. -#}
 {%- from "templates/print_formats/standard_macros.html" import add_header with context -%}
 {%- set summary = budget_summary(doc) -%}
 {%- set currency = frappe.db.get_value("Company", doc.company, "default_currency") if doc.company else None -%}
@@ -8,6 +9,7 @@
 
 <style>
 	.budget-summary h3 { margin: 4px 0 8px; }
+	.budget-summary h5 { margin: 18px 0 6px; font-weight: bold; }
 	.budget-summary table.facts { width: 100%; margin-bottom: 12px; font-size: 12px; }
 	.budget-summary table.facts td { padding: 2px 0; }
 	.budget-summary table.grid { width: 100%; border-collapse: collapse; font-size: 11px; }
@@ -15,10 +17,7 @@
 	.budget-summary table.grid td { border: 1px solid #d1d8dd; padding: 4px 6px; }
 	.budget-summary table.grid th { background: #f4f5f6; text-align: center; }
 	.budget-summary .num { text-align: right; white-space: nowrap; }
-	.budget-summary tr.section td { background: #f9fafb; font-weight: bold; }
-	.budget-summary tr.subtotal td,
-	.budget-summary tr.total td { font-weight: bold; }
-	.budget-summary tr.total td { border-top: 2px solid #333; }
+	.budget-summary tr.total td { font-weight: bold; border-top: 2px solid #333; }
 	.budget-summary table.position { margin: 12px 0 0 auto; font-size: 12px; }
 	.budget-summary table.position td { padding: 3px 8px; }
 </style>
@@ -45,7 +44,7 @@
 	<table class="grid">
 		<thead>
 			<tr>
-				<th style="text-align: left">{{ _("Cost Code") }}</th>
+				<th style="text-align: left">{{ _("Section") }}</th>
 				{% for stage in summary.stages %}
 				<th>{{ stage.name or _("No stage") }}{% if stage.period %}<br><small>{{ stage.period }}</small>{% endif %}</th>
 				{% endfor %}
@@ -53,23 +52,15 @@
 			</tr>
 		</thead>
 		<tbody>
-			{% for block in summary.sections %}
-			<tr class="section"><td colspan="{{ summary.stages|length + 2 }}">{{ _(block.section) }}</td></tr>
-			{% for row in block.rows %}
+			{% for section in summary.sections %}
 			<tr>
-				<td>{{ row.cost_code }} {{ row.name }}</td>
-				{% for value in row.amounts %}<td class="num">{{ money(value) }}</td>{% endfor %}
-				<td class="num">{{ money(row.total) }}</td>
-			</tr>
-			{% endfor %}
-			<tr class="subtotal">
-				<td>{{ _("Total {0}").format(_(block.section)) }}</td>
-				{% for value in block.amounts %}<td class="num">{{ money(value) }}</td>{% endfor %}
-				<td class="num">{{ money(block.total) }}</td>
+				<td>{{ section.letter }}. {{ section.section }}</td>
+				{% for value in section.amounts %}<td class="num">{{ money(value) }}</td>{% endfor %}
+				<td class="num"><b>{{ money(section.total) }}</b></td>
 			</tr>
 			{% endfor %}
 			<tr class="total">
-				<td>{{ _("Budget") }}</td>
+				<td>{{ _("Total Cost") }}</td>
 				{% for value in summary.amounts %}<td class="num">{{ money(value) }}</td>{% endfor %}
 				<td class="num">{{ money(summary.total) }}</td>
 			</tr>
@@ -84,10 +75,26 @@
 		<tr><td>{{ _("Contract Value, without VAT") }}</td><td class="num">{{ money(summary.contract_value) }}</td></tr>
 		{% if summary.contract_value %}
 		<tr>
-			<td><b>{{ _("Planned Margin") }}</b></td>
+			<td><b>{{ _("Profit Margin") }}</b></td>
 			<td class="num"><b>{{ money(summary.margin) }} ({{ frappe.utils.flt(summary.margin_percent, 1) }}%)</b></td>
 		</tr>
 		{% endif %}
+	</table>
+
+	<h5>{{ _("Budget by Cost Code") }}</h5>
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="width: 18%; text-align: left">{{ _("Cost Code") }}</th>
+				<th style="text-align: left">{{ _("Description") }}</th>
+				<th style="width: 22%">{{ _("Amount") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for row in summary.cost_codes %}
+			<tr><td>{{ row.cost_code }}</td><td>{{ row.name }}</td><td class="num">{{ money(row.amount) }}</td></tr>
+			{% endfor %}
+		</tbody>
 	</table>
 
 	{% include "project_management_muhick/templates/print_formats/approval_record.html" %}

@@ -17,25 +17,33 @@ and certificates, retention, payments and the controls around them.
   milestone and the quantities requested, purchased and consumed so far in the item's stock unit,
   kept current as requests, orders and issues are submitted. Variation order lines are items too.
 - A bid's cost estimate on the opportunity (its Cost Estimate tab), on the same lines as the project
-  budget: each a stage from the shared milestone list, an item or a lump sum, its supplier, brand and
-  cost code, and an amount in the company's currency without VAT (people x qty x rate at the line's
-  exchange rate, a rate quoted with VAT taken without it, or a share of the contract value). Lines
-  come from the BOQ, are priced from the bid's supplier quotations, and import costs (insurance,
-  freight, import duty and infrastructure levy on the customs value) are added for the imported
-  lines. Its total is the estimated cost and gives the margin at bid; a summary by stage and budget
-  section sits under it.
-- Estimates and budgets prepared in Excel: Download Excel gives the lines in an Excel file with the
-  amounts worked out and lists to pick stages, cost codes, currencies and procurement types from;
-  Upload from Excel (.xlsx, .xls or .csv) reads every sheet with a heading row, recognises the
-  usual headings and units, takes the currency from columns such as "Amount (USD)", and checks
-  every row first: with any mistake nothing changes and each one is listed by sheet and row.
+  budget and in the sections of the business's budget sheets: Equipment, Installation Materials,
+  Taxes and Freight, Labour, Tools and Equipment, Preliminaries and Administrative. Each line has
+  its section, a stage from the shared milestone list (the system or phase it is for), an item or a
+  lump sum, its supplier, brand and cost code, and an amount in the company's currency without VAT
+  (people x qty x rate at the line's exchange rate, a rate quoted with VAT taken without it, or a
+  share of the contract value). Lines come from the BOQ, are priced from the bid's supplier
+  quotations, and import costs (insurance, freight, import duty and infrastructure levy on the
+  customs value) are added for the imported lines. Its total is the estimated cost; under it the
+  budget summary (each section against the stages) and the profitability (bid price, cost, margin
+  and margin %).
+- Estimates and budgets prepared in Excel: Download Excel gives a sheet per section with the
+  amounts worked out and lists to pick stages, cost codes, currencies and procurement types from.
+  Upload from Excel (.xlsx, .xls or .csv) also reads the business's own budget workbooks: the
+  section from the sheet or the heading above the lines, the stage from the system headings (a
+  misspelt one still finds its milestone, a new one is added to the list) or from a phase's sheet,
+  the number of people from a labour sheet's No column, the currency from columns such as "Amount
+  (USD)", rows copied in another sheet's layout checked against their own amount, and a tax
+  computation sheet as its insurance, duty, levy and freight (VAT apart, as it is claimed back).
+  Every row is checked first: with any mistake nothing changes and each one is listed by sheet and
+  row.
 - A project budget built by stage, milestone and cost code. When the project is handed over, the
   bid's cost estimate becomes its draft budget, assigned to the Project Manager to adjust before
   approval; lines can also be taken from the activity plan's items or typed in. A line takes the
-  project's milestone of its stage once the activity plan creates it. The budget shows its margin
-  and margin %, a summary by stage and section, the Budget Summary print (cost codes by section
-  against the stages and their months, contract value, margin and signatures) and a cash plan by
-  month. A purchase request is checked against its milestone's budgeted quantities, and one for
+  project's milestone of its stage once the activity plan creates it. The budget keeps the
+  estimate's sections and shows its margin and margin %, the budget summary (each section against
+  the stages), the Budget Summary print (sections against the stages and their months, contract
+  value, margin, cost codes and signatures) and a cash plan by month. A purchase request is checked against its milestone's budgeted quantities, and one for
   items the budget places only under another stage needs a justification.
 - Commitments: approved purchase orders, subcontracts, requisitions and labour reduce the available
   budget at once, before anything is paid. Original Budget, Approved Variations, Current Budget and

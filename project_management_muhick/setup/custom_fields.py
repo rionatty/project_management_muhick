@@ -385,10 +385,10 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_estimate_tab", fieldtype="Tab Break", label="Cost Estimate"),
 			dict(
 				fieldname="muhick_estimate", label="Cost Estimate", fieldtype="Table", options="Project Budget Line",
-				description="What the works will cost, line by line: equipment and materials, import costs, labour, tools, preliminaries and administration, in the company's currency without VAT. An estimate prepared in Excel comes in with Upload from Excel, in the layout of the file Download Excel gives. When the project is handed over it becomes the project's budget.",
+				description="What the works will cost, line by line, in the sections of the budget sheets: Equipment, Installation Materials, Taxes and Freight, Labour, Tools and Equipment, Preliminaries and Administrative, each line under its stage (the system or phase it is for), in the company's currency without VAT. A budget prepared in Excel, the business's own workbook included, comes in with Upload from Excel. When the project is handed over it becomes the project's budget.",
 			),
-			_sec("muhick_estimate_summary_section", "Summary by Stage"),
-			dict(fieldname="muhick_estimate_summary", label="Summary by Stage", fieldtype="HTML"),
+			_sec("muhick_estimate_summary_section", "Budget Summary and Profitability"),
+			dict(fieldname="muhick_estimate_summary", label="Budget Summary and Profitability", fieldtype="HTML"),
 		],
 	),
 }

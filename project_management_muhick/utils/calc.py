@@ -90,6 +90,36 @@ def import_costs(goods_value, freight=0, insurance_percent=0, duty_percent=0, le
 	}
 
 
+# the sections of a cost estimate and budget, in the order of the business's budget sheets
+COST_SECTIONS = (
+	"Equipment", "Installation Materials", "Taxes and Freight", "Labour", "Tools and Equipment", "Preliminaries", "Administrative",
+)
+
+
+def section_of_cost_code(cost_code, budget_section=None) -> str | None:
+	"""The section a line falls in when none is given, from its cost code: MAT-500 equipment, MAT-600 taxes
+	and freight, other MAT codes installation materials, WRK-300 tools, other WRK codes labour, ADM-100 and
+	ADM-300 preliminaries, other ADM codes administrative; any other code by its budget section."""
+	code = str(cost_code or "").upper()
+	if code.startswith("MAT-500"):
+		return "Equipment"
+	if code.startswith("MAT-600"):
+		return "Taxes and Freight"
+	if code.startswith("WRK-300"):
+		return "Tools and Equipment"
+	if code.startswith(("ADM-100", "ADM-300")):
+		return "Preliminaries"
+	by_prefix = {"MAT": "Installation Materials", "WRK": "Labour", "ADM": "Administrative"}.get(code[:3])
+	by_budget = {"Materials": "Installation Materials", "Works": "Labour", "Administrative": "Administrative"}.get(budget_section or "")
+	return by_prefix or by_budget
+
+
+def rate_includes_vat_by_default(section, foreign_currency) -> int:
+	"""Local quotations for equipment, materials and tools include VAT; imports, labour and overheads do
+	not (as the business's budget sheets have it)."""
+	return 1 if section in ("Equipment", "Installation Materials", "Tools and Equipment") and not foreign_currency else 0
+
+
 def month_shares(start, end) -> dict:
 	"""{(year, month): share} of a period's days that fall in each month, adding up to one: 10 October
 	to 9 November -> October 22/31, November 9/31. Without an end, or with the end before the start,
