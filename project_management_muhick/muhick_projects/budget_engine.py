@@ -57,13 +57,15 @@ def get_budget_rows(budget) -> dict:
 
 
 def get_budget_rate(project, item_code) -> float:
-	"""Budgeted rate of an item on the project's approved budget (0 when not budgeted)."""
+	"""Budgeted cost of one unit of an item on the project's approved budget, in the company's currency
+	without VAT (0 when not budgeted)."""
 	budget = get_approved_budget(project)
 	if not budget or not item_code:
 		return 0.0
-	return flt(
-		frappe.db.get_value("Project Budget Line", {"parent": budget, "item_code": item_code}, "rate")
+	line = frappe.db.get_value(
+		"Project Budget Line", {"parent": budget, "parenttype": "Project Budget", "item_code": item_code}, ["qty", "amount"], as_dict=True
 	)
+	return flt(line.amount) / flt(line.qty) if line and flt(line.qty) else 0.0
 
 
 def get_budget_cost_code(project, item_code) -> str | None:
@@ -371,7 +373,7 @@ def update_budget(project):
 	totals["paid"] += sum(p["paid"] for p in pos.values())
 	totals["forecast_final_cost"] += unbudgeted
 
-	contract_value = _revised_contract_value(project)
+	contract_value = revised_contract_value(project)
 	frappe.db.set_value(
 		"Project Budget",
 		budget,
@@ -387,6 +389,8 @@ def update_budget(project):
 			"contract_value": contract_value,
 			"planned_margin": contract_value - totals["current"],
 			"forecast_margin": contract_value - totals["forecast_final_cost"],
+			"planned_margin_percent": calc.margin_percent(contract_value, totals["current"]),
+			"forecast_margin_percent": calc.margin_percent(contract_value, totals["forecast_final_cost"]),
 			"last_recalculated_on": now_datetime(),
 		},
 		update_modified=False,
@@ -394,7 +398,8 @@ def update_budget(project):
 	return budget
 
 
-def _revised_contract_value(project) -> float:
+def revised_contract_value(project) -> float:
+	"""The project's contract value with its approved variations, without VAT."""
 	value = frappe.db.get_value(
 		"Project", project, ["muhick_contract_value", "muhick_approved_variations"], as_dict=True
 	)

@@ -34,7 +34,9 @@
   "column_break_3",
   "total_forecast_final_cost",
   "planned_margin",
+  "planned_margin_percent",
   "forecast_margin",
+  "forecast_margin_percent",
   "last_recalculated_on",
   "section_break_1",
   "remarks",
@@ -116,7 +118,7 @@
   },
   {
    "allow_bulk_edit": 1,
-   "description": "Build the budget here line by line, or use Download / Upload to bring it in from Excel",
+   "description": "Line by line in the company's currency, without VAT. A budget made at handover starts from the won bid's cost estimate; Download / Upload brings lines in from Excel.",
    "fieldname": "lines",
    "fieldtype": "Table",
    "label": "Budget Lines",
@@ -127,12 +129,12 @@
    "collapsible": 1,
    "fieldname": "phase_summary_section",
    "fieldtype": "Section Break",
-   "label": "Budget by Milestone"
+   "label": "Budget Summary"
   },
   {
    "fieldname": "phase_summary",
    "fieldtype": "HTML",
-   "label": "Budget by Milestone"
+   "label": "Budget Summary"
   },
   {
    "fieldname": "budget_position_by_cost_code_section",
@@ -154,6 +156,8 @@
   },
   {
    "allow_on_submit": 1,
+   "description": "Without VAT",
+   "fetch_from": "project.muhick_revised_contract_value",
    "fieldname": "contract_value",
    "fieldtype": "Currency",
    "label": "Revised Contract Value",
@@ -252,10 +256,25 @@
   },
   {
    "allow_on_submit": 1,
+   "fieldname": "planned_margin_percent",
+   "fieldtype": "Percent",
+   "label": "Planned Margin %",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
    "description": "Revised Contract Value less Forecast Final Cost",
    "fieldname": "forecast_margin",
    "fieldtype": "Currency",
    "label": "Forecast Margin",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "forecast_margin_percent",
+   "fieldtype": "Percent",
+   "label": "Forecast Margin %",
    "no_copy": 1,
    "read_only": 1
   },
@@ -290,7 +309,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-18 13:42:43.914262",
+ "modified": "2026-10-28 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget",

@@ -20,6 +20,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, format_datetime, formatdate, get_datetime, getdate, now_datetime, today
 
+from project_management_muhick.muhick_projects import estimate
 from project_management_muhick.setup.workflows import PENDING_STATES
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import FINANCE_ROLES, GM, notify_roles
@@ -75,6 +76,7 @@ def validate_opportunity(doc, method=None):
 	if doc.get("items"):
 		doc.opportunity_amount = flt(doc.total)
 		doc.base_opportunity_amount = flt(doc.total) * flt(doc.conversion_rate or 1)
+	set_estimate(doc)
 	price, cost = flt(doc.opportunity_amount), flt(doc.get("muhick_estimated_cost"))
 	doc.set("muhick_margin_percent", (price - cost) / price * 100 if price and cost else 0)
 	kinds = requirement_kinds(doc.get("muhick_financial_requirements"))
@@ -93,6 +95,17 @@ def validate_opportunity(doc, method=None):
 		doc.set("muhick_outcome_date", None)
 	elif doc.status in ("Lost", "Closed") and not doc.get("muhick_outcome_date"):
 		doc.set("muhick_outcome_date", today())
+
+
+def set_estimate(doc):
+	"""The cost estimate's amounts, in the company's currency without VAT, and its total as the
+	estimated cost in the bid's currency. A line priced as a share of the contract value takes it
+	of the bid price."""
+	lines = doc.get("muhick_estimate") or []
+	if not lines:
+		return
+	rate = flt(doc.conversion_rate) or 1
+	doc.set("muhick_estimated_cost", estimate.set_amounts(doc, lines, flt(doc.opportunity_amount) * rate) / rate)
 
 
 def set_checklist(doc):

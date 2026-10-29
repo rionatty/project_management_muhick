@@ -3,9 +3,13 @@
 
 """Project budget, built and controlled inside the ERP by cost code.
 
-Each line is an item from the Item master, placed in a phase (a group task of the project) and,
-optionally, one of its activities. The lines can be taken from the items of the approved
-activity plan; the cost code is proposed from the item.
+A budget made at handover starts from the won bid's cost estimate, line for line, and the Project
+Manager adjusts it before sending it for approval. Each line has a stage from the shared milestone
+list and takes the project's milestone (phase) of that name once the activity plan creates it; it is
+an item from the Item master, or a lump sum described in words, with its supplier, brand and cost
+code. Amounts are in the company's currency without VAT: people x qty x rate at the line's exchange
+rate, a rate quoted with VAT taken without it, or a share of the contract value. Lines can also be
+taken from the items of the approved activity plan.
 
 The approved figures are the Original Budget and never change. Later changes arrive only
 through approved Project Budget Revisions, so Original Budget, Approved Variations, Current
@@ -19,8 +23,9 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
-from project_management_muhick.muhick_projects import budget_engine
-from project_management_muhick.muhick_projects.utils import check_phase, set_amounts
+from project_management_muhick.muhick_projects import budget_engine, estimate
+from project_management_muhick.muhick_projects.utils import check_phase
+from project_management_muhick.utils import calc
 
 KEEP = ("opening_actual", "opening_paid", "etc_is_manual", "estimate_to_complete")
 
@@ -31,7 +36,9 @@ class ProjectBudget(Document):
 			self.prepared_by = frappe.session.user
 		self.check_single_budget()
 		self.validate_phases()
-		set_amounts(self.lines)
+		estimate.resolve_stages(self.project, self.lines)
+		self.contract_value = budget_engine.revised_contract_value(self.project)
+		estimate.set_amounts(self, self.lines, self.contract_value)
 		self.build_cost_code_summary()
 		self.set_totals()
 
@@ -94,12 +101,9 @@ class ProjectBudget(Document):
 		self.total_current_budget = self.total_original_budget
 		self.total_available = self.total_current_budget
 		self.total_forecast_final_cost = self.total_current_budget
-		contract = frappe.db.get_value(
-			"Project", self.project, ["muhick_contract_value", "muhick_approved_variations"], as_dict=True
-		)
-		self.contract_value = flt(contract.muhick_contract_value) + flt(contract.muhick_approved_variations) if contract else 0
 		self.planned_margin = flt(self.contract_value) - flt(self.total_current_budget)
 		self.forecast_margin = self.planned_margin
+		self.planned_margin_percent = self.forecast_margin_percent = calc.margin_percent(self.contract_value, self.total_current_budget)
 
 	def on_submit(self):
 		frappe.db.set_value(
@@ -139,6 +143,7 @@ def get_plan_items(project: str) -> list:
 		)
 		rows.append(
 			{
+				"stage": item.phase_name,
 				"phase": phases.get(item.phase_name),
 				"item_code": item.item_code,
 				"description": info.item_name,

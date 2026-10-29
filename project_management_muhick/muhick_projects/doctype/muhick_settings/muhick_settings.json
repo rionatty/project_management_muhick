@@ -34,6 +34,13 @@
   "budget_action_on_requisition",
   "budget_override_role",
   "min_subcontract_quotations",
+  "estimates_section",
+  "vat_percent",
+  "import_cost_code",
+  "column_break_13",
+  "import_insurance_percent",
+  "import_duty_percent",
+  "import_levy_percent",
   "billing_tab",
   "claims_and_invoicing_section",
   "claim_income_item",
@@ -265,6 +272,51 @@
    "fieldname": "min_subcontract_quotations",
    "fieldtype": "Int",
    "label": "Minimum Subcontract Quotations"
+  },
+  {
+   "description": "Used by bids' cost estimates and project budgets",
+   "fieldname": "estimates_section",
+   "fieldtype": "Section Break",
+   "label": "Cost Estimates and Imports"
+  },
+  {
+   "default": "18",
+   "description": "Taken out of a rate quoted with VAT",
+   "fieldname": "vat_percent",
+   "fieldtype": "Percent",
+   "label": "VAT Rate %"
+  },
+  {
+   "description": "For the insurance, freight, import duty and levy added to an estimate for imported goods",
+   "fieldname": "import_cost_code",
+   "fieldtype": "Link",
+   "label": "Cost Code for Import Costs",
+   "options": "Cost Code"
+  },
+  {
+   "fieldname": "column_break_13",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1.5",
+   "description": "Of the value of the goods",
+   "fieldname": "import_insurance_percent",
+   "fieldtype": "Percent",
+   "label": "Insurance on Imports %"
+  },
+  {
+   "default": "10",
+   "description": "Of the customs value: goods, insurance and freight",
+   "fieldname": "import_duty_percent",
+   "fieldtype": "Percent",
+   "label": "Import Duty %"
+  },
+  {
+   "default": "1.5",
+   "description": "Of the customs value",
+   "fieldname": "import_levy_percent",
+   "fieldtype": "Percent",
+   "label": "Infrastructure Levy %"
   },
   {
    "fieldname": "billing_tab",
@@ -591,7 +643,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-25 22:18:41.847298",
+ "modified": "2026-10-28 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Settings",

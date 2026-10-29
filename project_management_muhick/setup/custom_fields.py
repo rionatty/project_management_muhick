@@ -73,7 +73,7 @@ PROJECT = _chain(
 		_sec("muhick_contract_section", "Contract"),
 		dict(fieldname="muhick_contract_no", label="Contract No.", fieldtype="Data"),
 		dict(fieldname="muhick_contract_date", label="Contract Date", fieldtype="Date"),
-		dict(fieldname="muhick_contract_value", label="Original Contract Value", fieldtype="Currency"),
+		dict(fieldname="muhick_contract_value", label="Original Contract Value", fieldtype="Currency", description="Without VAT"),
 		_ro("muhick_approved_variations", "Approved Variations"),
 		_ro("muhick_revised_contract_value", "Revised Contract Value", bold=1),
 		_col("muhick_contract_column"),
@@ -318,7 +318,11 @@ CUSTOM_FIELDS = {
 			_sec("muhick_financial_section"),
 			dict(FINANCIAL_REQUIREMENTS),
 			_sec("muhick_preparation_section", "Bid Preparation", description="A bid is complete with all three parts, and only a complete bid is submitted"),
-			dict(fieldname="muhick_estimated_cost", label="Estimated Cost", fieldtype="Currency", options="currency"),
+			dict(
+				fieldname="muhick_estimated_cost", label="Estimated Cost", fieldtype="Currency", options="currency",
+				read_only_depends_on="eval:(doc.muhick_estimate || []).length",
+				description="Without VAT: the total of the cost estimate when it has lines",
+			),
 			_ro("muhick_margin_percent", "Margin %", "Percent"),
 			_col("muhick_preparation_column"),
 			_ro(
@@ -372,6 +376,19 @@ CUSTOM_FIELDS = {
 				"muhick_outcome_notes", "Why It Was Won, Lost or Closed, and the Lessons", "Small Text",
 				mandatory_depends_on="", description="",
 			),
+		],
+	)
+	# what the works will cost, on the same lines as the project budget it becomes at handover
+	+ _chain(
+		"total",
+		[
+			dict(fieldname="muhick_estimate_tab", fieldtype="Tab Break", label="Cost Estimate"),
+			dict(
+				fieldname="muhick_estimate", label="Cost Estimate", fieldtype="Table", options="Project Budget Line",
+				description="What the works will cost, line by line: equipment and materials, import costs, labour, tools, preliminaries and administration, in the company's currency without VAT. When the project is handed over it becomes the project's budget.",
+			),
+			_sec("muhick_estimate_summary_section", "Summary by Stage"),
+			dict(fieldname="muhick_estimate_summary", label="Summary by Stage", fieldtype="HTML"),
 		],
 	),
 }
@@ -433,6 +450,7 @@ OPPORTUNITY_ORDER = [
 	"address_contact_section", "address_html", "customer_address", "address_display", "column_break3", "contact_html",
 	"contact_display",
 	"items_section", "items", "section_break_32", "base_total", "column_break_33", "total",
+	"muhick_estimate_tab", "muhick_estimate", "muhick_estimate_summary_section", "muhick_estimate_summary",
 	"activities_tab", "open_activities_html", "all_activities_section", "all_activities_html",
 	"notes_tab", "notes_html", "notes",
 	"dashboard_tab",

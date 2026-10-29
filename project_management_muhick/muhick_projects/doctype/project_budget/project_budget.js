@@ -1,6 +1,8 @@
 // Copyright (c) 2026, CyveTech and contributors
 // For license information, please see license.txt
 
+// a line's amount and the summary by stage come from muhick.cost_lines (muhick_common.js), shared with
+// the bid's cost estimate
 frappe.ui.form.on("Project Budget", {
 	setup(frm) {
 		frm.set_query("cost_code", "lines", () => ({ filters: { disabled: 0 } }));
@@ -15,9 +17,17 @@ frappe.ui.form.on("Project Budget", {
 	},
 
 	refresh(frm) {
-		show_phase_summary(frm);
+		muhick.cost_lines.render_summary(frm);
 		if (frm.doc.docstatus === 0 && frm.doc.project) {
-			frm.add_custom_button(__("Get Items from Activity Plan"), () => get_plan_items(frm));
+			frm.add_custom_button(__("Get Lines from the Bid Estimate"), () => get_lines(frm, "estimate"));
+			frm.add_custom_button(__("Get Items from Activity Plan"), () => get_lines(frm, "plan"));
+		}
+		if (!frm.is_new()) {
+			frm.add_custom_button(
+				__("Cash Plan by Month"),
+				() => frappe.set_route("query-report", "Budget Cash Plan", { project: frm.doc.project }),
+				__("View")
+			);
 		}
 		if (frm.doc.docstatus !== 1) {
 			return;
@@ -42,14 +52,8 @@ frappe.ui.form.on("Project Budget", {
 			__("View")
 		);
 	},
-});
 
-frappe.ui.form.on("Project Budget Line", {
-	qty: (frm, cdt, cdn) => muhick.set_row_amount(cdt, cdn),
-	rate: (frm, cdt, cdn) => muhick.set_row_amount(cdt, cdn),
-	amount: show_phase_summary,
-	phase: show_phase_summary,
-	lines_remove: show_phase_summary,
+	contract_value: (frm) => muhick.cost_lines.render_summary(frm),
 });
 
 frappe.ui.form.on("Project Budget Cost Code", {
@@ -57,47 +61,25 @@ frappe.ui.form.on("Project Budget Cost Code", {
 	estimate_to_complete: (frm, cdt, cdn) => frappe.model.set_value(cdt, cdn, "etc_is_manual", 1),
 });
 
-// lines for the items of the approved activity plan, skipping items already budgeted in that milestone
-function get_plan_items(frm) {
-	frappe
-		.xcall("project_management_muhick.muhick_projects.doctype.project_budget.project_budget.get_plan_items", {
-			project: frm.doc.project,
-		})
-		.then((rows) => {
-			(frm.doc.lines || []).filter((r) => !r.item_code).forEach((r) => frappe.model.clear_doc(r.doctype, r.name));
-			const present = new Set((frm.doc.lines || []).map((r) => `${r.phase || ""}|${r.item_code}`));
-			const added = rows.filter((row) => !present.has(`${row.phase || ""}|${row.item_code}`));
-			added.forEach((row) => frm.add_child("lines", { ...row, amount: flt(row.qty) * flt(row.rate) }));
-			frm.refresh_field("lines");
-			show_phase_summary(frm);
+// lines from the won bid's cost estimate, or for the items of the approved activity plan, skipping lines
+// already in the budget
+function get_lines(frm, source) {
+	const method =
+		source === "estimate"
+			? "project_management_muhick.muhick_projects.estimate.get_estimate_lines"
+			: "project_management_muhick.muhick_projects.doctype.project_budget.project_budget.get_plan_items";
+	const key = (r) => [r.stage || "", r.item_code || "", r.item_code ? "" : r.description || ""].join("|");
+	frappe.xcall(method, { project: frm.doc.project }).then((rows) => {
+		(frm.doc.lines || []).filter((r) => !r.item_code && !r.description).forEach((r) => frappe.model.clear_doc(r.doctype, r.name));
+		const present = new Set((frm.doc.lines || []).map(key));
+		const added = rows.filter((row) => !present.has(key(row)));
+		muhick.cost_lines.add_rows(frm, added).then(() =>
 			frappe.show_alert({
 				message: added.length
 					? __("{0} line(s) added. Check the rates and cost codes.", [added.length])
-					: __("Every item of the plan is already in the budget."),
+					: __("Every line is already in the budget."),
 				indicator: added.length ? "green" : "orange",
-			});
-		});
-}
-
-// the budget totalled by milestone, below the lines
-function show_phase_summary(frm) {
-	const totals = {};
-	(frm.doc.lines || []).forEach((r) => {
-		totals[r.phase || ""] = (totals[r.phase || ""] || 0) + flt(r.amount);
-	});
-	const phases = Object.keys(totals).filter(Boolean);
-	const render = (names) => {
-		const rows = Object.keys(totals)
-			.sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1))
-			.map((key) => {
-				const label = key ? names[key] || key : __("No milestone");
-				const amount = format_currency(totals[key], frm.doc.currency);
-				return `<tr><td>${frappe.utils.escape_html(label)}</td><td class="text-right">${amount}</td></tr>`;
 			})
-			.join("");
-		frm.get_field("phase_summary").$wrapper.html(
-			rows ? `<table class="table table-bordered table-condensed"><tbody>${rows}</tbody></table>` : ""
 		);
-	};
-	muhick.milestone_names(phases).then(render);
+	});
 }

@@ -19,6 +19,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, flt, getdate, nowdate, strip_html
 
+from project_management_muhick.muhick_projects import estimate
 from project_management_muhick.muhick_projects.utils import ensure_milestone
 from project_management_muhick.overrides import project as project_api
 
@@ -177,6 +178,8 @@ class ProjectActivityPlan(Document):
 			frappe.flags.muhick_applying_plan = False
 		frappe.get_doc("Project", self.project).update_project()
 		project_api.update_progress(self.project)
+		# budget lines made from the bid's estimate had only a stage until now
+		estimate.link_budget_phases(self.project)
 		frappe.db.set_value(
 			"Project Activity Plan",
 			{"project": self.project, "is_current": 1, "name": ("!=", self.name)},

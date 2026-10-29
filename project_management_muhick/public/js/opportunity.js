@@ -4,6 +4,8 @@
 frappe.ui.form.on("Opportunity", {
 	setup(frm) {
 		frm.set_query("milestone", "muhick_milestones", () => ({ filters: { disabled: 0 } }));
+		frm.set_query("cost_code", "muhick_estimate", () => ({ filters: { disabled: 0 } }));
+		frm.set_query("item_code", "muhick_estimate", () => ({ filters: { disabled: 0 } }));
 		// "Sales" stays only as ERPNext's fallback; the types of work are the business's own
 		frm.set_query("opportunity_type", () => ({ filters: { name: ["!=", "Sales"] } }));
 		// from a qualified lead or an existing customer, not from a prospect
@@ -29,6 +31,7 @@ frappe.ui.form.on("Opportunity", {
 
 	refresh(frm) {
 		toggle_bid_price(frm);
+		setup_estimate(frm);
 		// the milestones start from the list and are the opportunity's own: Reset to the List goes back to it
 		const milestones = frm.fields_dict.muhick_milestones.grid;
 		milestones.clear_custom_buttons();
@@ -135,6 +138,152 @@ function show_preparation(frm) {
 // with BOQ lines, the bid price is their total
 function toggle_bid_price(frm) {
 	frm.toggle_enable("opportunity_amount", !(frm.doc.items || []).length);
+}
+
+// the cost estimate: its summary by stage, and the lines it can take from the BOQ, the bid's supplier
+// quotations and the import costs of its imported lines
+function setup_estimate(frm) {
+	if (!frm.fields_dict.muhick_estimate) {
+		return; // until the site is migrated
+	}
+	muhick.cost_lines.render_summary(frm);
+	const grid = frm.fields_dict.muhick_estimate.grid;
+	grid.clear_custom_buttons();
+	if (frm.is_new() || !frm.perm[0].write) {
+		return;
+	}
+	grid.add_custom_button(__("Get Lines from the BOQ"), () => get_boq_lines(frm));
+	grid.add_custom_button(__("Get Supplier Prices"), () => get_supplier_prices(frm));
+	grid.add_custom_button(__("Add Import Costs"), () => add_import_costs(frm));
+}
+
+function get_boq_lines(frm) {
+	const present = new Set((frm.doc.muhick_estimate || []).map((r) => `${r.stage || ""}|${r.item_code || ""}`));
+	const items = (frm.doc.items || [])
+		.filter((r) => r.item_code && !present.has(`${r.muhick_stage || ""}|${r.item_code}`))
+		.map((r) => [r.item_code, r.uom, r.qty, r.muhick_stage]);
+	if (!items.length) {
+		frappe.show_alert({ message: __("Every BOQ item is already in the estimate."), indicator: "orange" });
+		return;
+	}
+	frappe.xcall("project_management_muhick.muhick_projects.estimate.get_boq_lines", { opportunity: frm.doc.name, items }).then((rows) =>
+		muhick.cost_lines.add_rows(frm, rows).then(() =>
+			frappe.show_alert({
+				message: __("{0} line(s) added from the BOQ. Check their rates and cost codes, then add labour, tools and administration.", [
+					rows.length,
+				]),
+				indicator: "green",
+			})
+		)
+	);
+}
+
+// each line with an item at the lowest valid quotation for the bid, in a currency the estimate already
+// uses at its rate
+function get_supplier_prices(frm) {
+	const lines = (frm.doc.muhick_estimate || []).filter((r) => r.item_code);
+	frappe
+		.xcall("project_management_muhick.muhick_projects.estimate.get_supplier_prices", { opportunity: frm.doc.name, items: lines.map((r) => [r.item_code, r.uom]) })
+		.then((prices) =>
+			muhick.cost_lines.settings(frm).then((settings) => {
+				let priced = 0;
+				lines.forEach((row) => {
+					const price = prices[`${row.item_code}|${row.uom || ""}`];
+					if (!price) {
+						return;
+					}
+					Object.assign(row, price, { rate_includes_vat: 0 });
+					if (muhick.cost_lines.foreign(frm, row)) {
+						row.exchange_rate = muhick.cost_lines.used_rate(frm, row) || row.exchange_rate;
+					}
+					row.amount = muhick.cost_lines.amount(frm, row, settings);
+					priced += 1;
+				});
+				frm.dirty();
+				frm.refresh_field("muhick_estimate");
+				muhick.cost_lines.render_summary(frm);
+				frappe.show_alert({
+					message: priced
+						? __("{0} line(s) priced from the supplier quotations for this bid.", [priced])
+						: __("No supplier has quoted the estimate's items for this bid yet."),
+					indicator: priced ? "green" : "orange",
+				});
+			})
+		);
+}
+
+// insurance, freight, import duty and infrastructure levy on the goods of one supplier, from the
+// estimate's lines marked International
+function add_import_costs(frm) {
+	const imported = (frm.doc.muhick_estimate || []).filter((r) => r.procurement_type === "International");
+	if (!imported.length) {
+		frappe.msgprint(__("Set the Procurement Type of the imported lines to International first; their import costs are worked out from them."));
+		return;
+	}
+	const suppliers = [...new Set(imported.map((r) => r.supplier || ""))];
+	const goods = (supplier) => imported.filter((r) => (r.supplier || "") === supplier);
+	const currency = (lines) => {
+		const foreign = [...new Set(lines.filter((r) => muhick.cost_lines.foreign(frm, r)).map((r) => r.currency))];
+		return foreign.length === 1 ? lines.find((r) => r.currency === foreign[0]) : null;
+	};
+	muhick.cost_lines.settings(frm).then((settings) => {
+		const dialog = new frappe.ui.Dialog({
+			title: __("Add Import Costs"),
+			fields: [
+				{
+					fieldname: "supplier",
+					fieldtype: "Select",
+					label: __("Goods From"),
+					options: suppliers.map((s) => ({ value: s, label: s || __("Lines without a supplier") })),
+					default: suppliers[0],
+					onchange: () => show_goods(),
+				},
+				{ fieldname: "goods_value", fieldtype: "Currency", label: __("Value of the Goods"), read_only: 1 },
+				{ fieldname: "freight", fieldtype: "Float", label: __("Freight") },
+				{ fieldtype: "Column Break" },
+				{ fieldname: "insurance_percent", fieldtype: "Percent", label: __("Insurance %"), default: settings.import_insurance_percent },
+				{
+					fieldname: "duty_percent",
+					fieldtype: "Percent",
+					label: __("Import Duty %"),
+					default: settings.import_duty_percent,
+					description: __("Zero for goods made in the East African Community"),
+				},
+				{ fieldname: "levy_percent", fieldtype: "Percent", label: __("Infrastructure Levy %"), default: settings.import_levy_percent },
+			],
+			primary_action_label: __("Add"),
+			primary_action(values) {
+				const lines = goods(values.supplier || "");
+				const priced_in = currency(lines);
+				const stages = lines.map((r) => r.stage).filter(Boolean);
+				const stage = stages.sort((a, b) => stages.filter((s) => s === b).length - stages.filter((s) => s === a).length)[0];
+				frappe
+					.xcall("project_management_muhick.muhick_projects.estimate.get_import_costs", {
+						goods_value: lines.reduce((sum, r) => sum + flt(r.amount), 0),
+						freight: flt(values.freight) * (priced_in ? flt(priced_in.exchange_rate) || 1 : 1),
+						insurance_percent: values.insurance_percent,
+						duty_percent: values.duty_percent,
+						levy_percent: values.levy_percent,
+						stage: stage || null,
+						supplier: values.supplier || null,
+					})
+					.then((rows) => muhick.cost_lines.add_rows(frm, rows))
+					.then(() => dialog.hide());
+			},
+		});
+		const show_goods = () => {
+			const lines = goods(dialog.get_value("supplier") || "");
+			const priced_in = currency(lines);
+			dialog.set_value("goods_value", lines.reduce((sum, r) => sum + flt(r.amount), 0));
+			dialog.set_df_property(
+				"freight",
+				"label",
+				priced_in ? __("Freight ({0})", [priced_in.currency]) : __("Freight ({0})", [erpnext.get_currency(frm.doc.company)])
+			);
+		};
+		dialog.show();
+		show_goods();
+	});
 }
 
 // the outcome report on its way to approval or, once the bid is in, Won and Lost to raise one: the

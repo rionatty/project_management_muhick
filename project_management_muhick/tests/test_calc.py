@@ -28,6 +28,44 @@ class TestBudget(unittest.TestCase):
 		self.assertEqual(calc.forecast_final_cost(300, 270, 50), 320)
 		self.assertEqual(calc.forecast_final_cost(300, 270, 0), 270)
 
+
+class TestCostLines(unittest.TestCase):
+	def test_people_by_qty_by_rate(self):
+		# 4 plumbers for 3 months at 1.5m a month
+		self.assertEqual(calc.line_amount(3, 1_500_000, people=4), 18_000_000)
+
+	def test_foreign_currency_at_the_line_rate(self):
+		self.assertEqual(calc.line_amount(2, 10_000, exchange_rate=3_700), 74_000_000)
+
+	def test_rate_quoted_with_vat_is_taken_without_it(self):
+		self.assertAlmostEqual(calc.line_amount(10, 118, includes_vat=True, vat_percent=18), 1_000)
+		self.assertEqual(calc.line_amount(10, 118, vat_percent=18), 1_180)
+
+	def test_share_of_the_contract_value(self):
+		self.assertEqual(calc.line_amount(5, 100, contract_percent=1, contract_value=2_000_000_000), 20_000_000)
+
+	def test_people_and_exchange_rate_at_zero_count_as_one(self):
+		self.assertEqual(calc.line_amount(2, 50, people=0, exchange_rate=0), 100)
+
+	def test_import_costs_on_the_customs_value(self):
+		costs = calc.import_costs(100_000, freight=10_000, insurance_percent=1.5, duty_percent=10, levy_percent=1.5)
+		self.assertAlmostEqual(costs["insurance"], 1_500)
+		self.assertAlmostEqual(costs["customs_value"], 111_500)
+		self.assertAlmostEqual(costs["duty"], 11_150)
+		self.assertAlmostEqual(costs["levy"], 1_672.5)
+		self.assertAlmostEqual(costs["total"], 24_322.5)
+
+	def test_goods_without_duty_or_freight_add_nothing(self):
+		self.assertEqual(calc.import_costs(25_000)["total"], 0)
+
+	def test_month_shares(self):
+		shares = calc.month_shares("2026-10-10", "2026-11-09")
+		self.assertAlmostEqual(shares[(2026, 10)], 22 / 31)
+		self.assertAlmostEqual(shares[(2026, 11)], 9 / 31)
+		self.assertEqual(set(calc.month_shares("2026-12-20", "2027-01-10")), {(2026, 12), (2027, 1)})
+		self.assertEqual(calc.month_shares("2026-10-05", None), {(2026, 10): 1.0})
+		self.assertEqual(calc.month_shares(None, "2026-10-05"), {})
+
 	def test_budget_status(self):
 		self.assertEqual(calc.budget_status(30, 30), "Within Budget")
 		self.assertEqual(calc.budget_status(30.01, 30), "Exceeds Budget")

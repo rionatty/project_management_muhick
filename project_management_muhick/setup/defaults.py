@@ -5,6 +5,7 @@
 
 import frappe
 
+from project_management_muhick.muhick_projects.estimate import DEFAULTS as ESTIMATE_DEFAULTS
 from project_management_muhick.setup.custom_fields import TYPES_OF_WORK
 
 # the mandatory handover pack
@@ -30,10 +31,13 @@ COST_CODES = [
 	("MAT-300", "Materials - Mechanical / HVAC", "Materials", "Materials"),
 	("MAT-400", "Materials - Civil and Finishes", "Materials", "Materials"),
 	("MAT-500", "Equipment for Installation (Pumps, Generators, Panels)", "Materials", "Materials"),
+	# what importing adds: insurance, freight, import duty, levies and clearing
+	("MAT-600", "Import Duty, Insurance, Freight and Clearing", "Materials", "Transport and Logistics"),
 	("MAT-900", "Consumables", "Materials", "Materials"),
 	("WRK-100", "Casual Labour", "Works", "Casual Labour"),
+	("WRK-150", "Project Staff (Salaries, Allowances and Per Diem)", "Works", "Staff"),
 	("WRK-200", "Subcontracted Works", "Works", "Subcontract"),
-	("WRK-300", "Equipment and Tools Hire", "Works", "Equipment and Tools"),
+	("WRK-300", "Equipment and Tools (Hire or Purchase)", "Works", "Equipment and Tools"),
 	("ADM-100", "Transport and Logistics", "Administrative", "Transport and Logistics"),
 	("ADM-200", "Site Visits and Mobilization", "Administrative", "Site Expenses"),
 	("ADM-300", "PPE and Site Safety", "Administrative", "Site Expenses"),
@@ -41,8 +45,11 @@ COST_CODES = [
 	("ADM-500", "Commissions", "Administrative", "Other"),
 	# a won bid's sales requisitions and bid security charges, carried to its project
 	("ADM-600", "Cost of Winning the Bid", "Administrative", "Other"),
+	("ADM-700", "Contingency, Rework and Miscellaneous", "Administrative", "Other"),
 	("ADM-900", "Other Site Expenses", "Administrative", "Site Expenses"),
 ]
+
+IMPORT_COST_CODE = "MAT-600"
 
 # what a new supplier must provide before it can be approved
 SUPPLIER_ONBOARDING = [
@@ -129,6 +136,11 @@ def setup_defaults():
 		if not settings.get(table):
 			for item, mandatory in rows:
 				settings.append(table, {"checklist_item": item, "is_mandatory": mandatory})
+			changed = True
+	# the rates cost estimates work with, and where their import costs go, until Muhick sets its own
+	for field, value in (*ESTIMATE_DEFAULTS.items(), ("import_cost_code", IMPORT_COST_CODE)):
+		if settings.get(field) is None and (field != "import_cost_code" or frappe.db.exists("Cost Code", value)):
+			settings.set(field, value)
 			changed = True
 	if changed:
 		settings.flags.ignore_mandatory = True

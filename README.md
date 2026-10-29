@@ -16,8 +16,22 @@ and certificates, retention, payments and the controls around them.
 - Bill of Quantities as a list of items from the Item master (stock or non-stock), each with its
   milestone and the quantities requested, purchased and consumed so far in the item's stock unit,
   kept current as requests, orders and issues are submitted. Variation order lines are items too.
-- A project budget built by phase and cost code from Item-master items,
-  taken from the activity plan's items or typed in.
+- A bid's cost estimate on the opportunity (its Cost Estimate tab), on the same lines as the project
+  budget: each a stage from the shared milestone list, an item or a lump sum, its supplier, brand and
+  cost code, and an amount in the company's currency without VAT (people x qty x rate at the line's
+  exchange rate, a rate quoted with VAT taken without it, or a share of the contract value). Lines
+  come from the BOQ, are priced from the bid's supplier quotations, and import costs (insurance,
+  freight, import duty and infrastructure levy on the customs value) are added for the imported
+  lines. Its total is the estimated cost and gives the margin at bid; a summary by stage and budget
+  section sits under it.
+- A project budget built by stage, milestone and cost code. When the project is handed over, the
+  bid's cost estimate becomes its draft budget, assigned to the Project Manager to adjust before
+  approval; lines can also be taken from the activity plan's items or typed in. A line takes the
+  project's milestone of its stage once the activity plan creates it. The budget shows its margin
+  and margin %, a summary by stage and section, the Budget Summary print (cost codes by section
+  against the stages and their months, contract value, margin and signatures) and a cash plan by
+  month. A purchase request is checked against its milestone's budgeted quantities, and one for
+  items the budget places only under another stage needs a justification.
 - Commitments: approved purchase orders, subcontracts, requisitions and labour reduce the available
   budget at once, before anything is paid. Original Budget, Approved Variations, Current Budget and
   Forecast Final Cost are kept separately; an approved budget is changed only by a revision.
@@ -146,9 +160,9 @@ and certificates, retention, payments and the controls around them.
 
 **Reports, dashboard and printing**
 
-- Twenty-two reports: budget position, portfolio, material consumption, procurement status, phase
+- Twenty-four reports: budget position, budget cash plan, portfolio, material consumption, procurement status, phase
   plan, proposed against certified valuations, retention, pending approvals, price trends,
-  equipment history, subcontractor and freight forwarder performance, bid register, bank facility
+  equipment history, subcontractor and freight forwarder performance, bid register, bid margin comparison, bank facility
   utilisation, resource envelope, payment plan execution, withholding tax register, fuel
   consumption and vehicle maintenance.
 - A workspace with six number cards and two charts.

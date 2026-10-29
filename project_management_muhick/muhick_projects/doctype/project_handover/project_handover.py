@@ -5,7 +5,7 @@
 
 A won bid becomes an active project only after the Project Manager accepts a complete
 handover pack. Every mandatory item must be provided, or waived with a reason. What winning the bid
-cost goes to the project's cost.
+cost goes to the project's cost, and the bid's cost estimate becomes the project's draft budget.
 """
 
 import frappe
@@ -13,7 +13,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import fmt_money, now_datetime
 
-from project_management_muhick.muhick_projects import budget_engine
+from project_management_muhick.muhick_projects import budget_engine, estimate
 from project_management_muhick.muhick_projects.utils import validate_dates
 from project_management_muhick.muhick_sales.bids import bid_spent
 from project_management_muhick.overrides.crm import refresh_bid_status, requirement_kinds
@@ -71,6 +71,7 @@ class ProjectHandover(Document):
 	def on_submit(self):
 		project = frappe.get_doc("Project", self.project) if self.project else self.make_project()
 		self.update_project(project)
+		estimate.make_budget(self)
 		budget_engine.refresh_projects([project.name])
 		# the opportunity's Handed Over to Projects milestone
 		refresh_bid_status(self.opportunity)

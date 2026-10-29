@@ -6,7 +6,7 @@
 Nothing in this module imports frappe, so the rules can be unit tested without a site.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 FULL_ROUTE = "Full Route"
 SECOND_APPROVER = "Up to Second Approver"
@@ -56,6 +56,57 @@ def budget_status(amount, available, budgeted=True) -> str:
 	if not budgeted:
 		return "Not Budgeted"
 	return "Within Budget" if _f(amount) <= _f(available) + 0.005 else "Exceeds Budget"
+
+
+# ------------------------------------------------------------------ cost estimates and budget lines
+def line_amount(qty, rate, people=1, exchange_rate=1, includes_vat=False, vat_percent=0, contract_percent=0, contract_value=0) -> float:
+	"""A cost estimate or budget line in the company's currency, without VAT.
+
+	People x qty x rate at the line's exchange rate: 4 plumbers for 3 months at 1.5m -> 18m. A rate
+	quoted with VAT is taken without it: 118 at 18% -> 100. A line priced as a share of the contract
+	value is that share alone: 1% of 2,000m -> 20m. People or an exchange rate left at zero count as one.
+	"""
+	if _f(contract_percent):
+		return _f(contract_value) * _f(contract_percent) / 100
+	amount = _f(qty) * _f(rate) * (_f(people) or 1) * (_f(exchange_rate) or 1)
+	return amount / (1 + _f(vat_percent) / 100) if includes_vat else amount
+
+
+def import_costs(goods_value, freight=0, insurance_percent=0, duty_percent=0, levy_percent=0) -> dict:
+	"""What importing goods adds to their price, VAT apart (it is claimed back).
+
+	Insurance is a share of the goods' value; import duty and the infrastructure levy are shares of
+	the customs value, which is goods, insurance and freight: goods 100,000, freight 10,000, insurance
+	1.5%, duty 10%, levy 1.5% -> insurance 1,500, customs value 111,500, duty 11,150, levy 1,672.50.
+	"""
+	goods_value, freight = _f(goods_value), _f(freight)
+	insurance = goods_value * _f(insurance_percent) / 100
+	customs_value = goods_value + insurance + freight
+	duty = customs_value * _f(duty_percent) / 100
+	levy = customs_value * _f(levy_percent) / 100
+	return {
+		"insurance": insurance, "freight": freight, "customs_value": customs_value, "duty": duty, "levy": levy,
+		"total": insurance + freight + duty + levy,
+	}
+
+
+def month_shares(start, end) -> dict:
+	"""{(year, month): share} of a period's days that fall in each month, adding up to one: 10 October
+	to 9 November -> October 22/31, November 9/31. Without an end, or with the end before the start,
+	the period is its first day."""
+	start, end = _d(start), _d(end)
+	if not start:
+		return {}
+	if not end or end < start:
+		end = start
+	days = (end - start).days + 1
+	shares, day = {}, start
+	while day <= end:
+		next_month = date(day.year + (day.month == 12), day.month % 12 + 1, 1)
+		last = min(end, next_month - timedelta(days=1))
+		shares[(day.year, day.month)] = ((last - day).days + 1) / days
+		day = last + timedelta(days=1)
+	return shares
 
 
 def paid_share(total, outstanding) -> float:

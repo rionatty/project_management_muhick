@@ -1,29 +1,9 @@
 {#- Approval form: the document as the standard format prints it, then the record of who approved
-    it and when, then the signature boxes. Shared by the "... Approval Form" print formats. -#}
+    it and when, then the signature boxes (approval_record.html). Shared by the "... Approval Form"
+    print formats. -#}
 {%- from "templates/print_formats/standard_macros.html" import add_header, render_field with context -%}
-{%- set steps = frappe.get_all("Approval Turnaround Log", filters={"reference_doctype": doc.doctype, "reference_name": doc.name, "is_open": 0}, fields=["workflow_state", "next_state", "actioned_by", "exited_on"], order_by="entered_on asc") if doc.name else [] -%}
-{%- set approved = doc.docstatus == 1 and steps|length > 0 -%}
-
-{%- macro signature(role, user, on) -%}
-<td>
-	<div class="sign-line"></div>
-	<div class="sign-role">{{ role }}</div>
-	<div>{{ _("Name") }}: {{ frappe.get_fullname(user) if user else "" }}</div>
-	<div>{{ _("Date") }}: {{ frappe.utils.format_date(on) if on else "" }}</div>
-</td>
-{%- endmacro -%}
-
 <style>
 	.approval-form .form-status { margin: 0 0 10px; font-size: 12px; color: #555; }
-	.approval-form h5.block-title { margin: 22px 0 6px; font-weight: bold; }
-	.approval-form table.trail { width: 100%; border-collapse: collapse; }
-	.approval-form table.trail th,
-	.approval-form table.trail td { border: 1px solid #d1d8dd; padding: 5px 8px; font-size: 12px; text-align: left; }
-	.approval-form table.trail th { background: #f4f5f6; }
-	.approval-form table.signatures { width: 100%; margin-top: 30px; border-collapse: separate; border-spacing: 14px 0; page-break-inside: avoid; }
-	.approval-form table.signatures td { width: 33%; vertical-align: top; font-size: 12px; }
-	.approval-form .sign-line { border-bottom: 1px solid #333; height: 48px; margin-bottom: 4px; }
-	.approval-form .sign-role { font-weight: bold; }
 </style>
 
 {% for page in layout %}
@@ -54,47 +34,7 @@
 	{% endfor %}
 
 	{% if loop.last %}
-	{% if steps %}
-	<h5 class="block-title">{{ _("Approval Record") }}</h5>
-	<table class="trail">
-		<thead>
-			<tr>
-				<th style="width: 6%">{{ _("No") }}</th>
-				<th style="width: 28%">{{ _("Step") }}</th>
-				<th style="width: 24%">{{ _("Decision") }}</th>
-				<th style="width: 24%">{{ _("By") }}</th>
-				<th style="width: 18%">{{ _("On") }}</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for step in steps %}
-			<tr>
-				<td>{{ loop.index }}</td>
-				<td>{{ _(step.workflow_state) }}</td>
-				<td>{{ _(step.next_state) if step.next_state else "" }}</td>
-				<td>{{ frappe.get_fullname(step.actioned_by) if step.actioned_by else "" }}</td>
-				<td>{{ frappe.utils.format_datetime(step.exited_on) if step.exited_on else "" }}</td>
-			</tr>
-			{% endfor %}
-		</tbody>
-	</table>
-	{% endif %}
-
-	<table class="signatures">
-		<tr>
-			{{ signature(_("Prepared by"), doc.owner, doc.creation) }}
-			{% if approved and steps|length > 1 %}
-			{{ signature(_("Checked by"), steps[-2].actioned_by, steps[-2].exited_on) }}
-			{% else %}
-			{{ signature(_("Checked by"), None, None) }}
-			{% endif %}
-			{% if approved %}
-			{{ signature(_("Approved by"), steps[-1].actioned_by, steps[-1].exited_on) }}
-			{% else %}
-			{{ signature(_("Approved by"), None, None) }}
-			{% endif %}
-		</tr>
-	</table>
+	{% include "project_management_muhick/templates/print_formats/approval_record.html" %}
 	{% endif %}
 
 	<div {% if print_settings.repeat_header_footer %} id="footer-html" class="visible-pdf" {% endif %}>

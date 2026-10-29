@@ -1,0 +1,94 @@
+{#- Budget summary: the budget's cost codes, section by section, against its stages (the project's
+    milestones, each with its months), in the company's currency without VAT; then the contract value
+    and the margin, the approval record and the signatures. -#}
+{%- from "templates/print_formats/standard_macros.html" import add_header with context -%}
+{%- set summary = budget_summary(doc) -%}
+{%- set currency = frappe.db.get_value("Company", doc.company, "default_currency") if doc.company else None -%}
+{%- macro money(value) -%}{{ frappe.utils.fmt_money(value, currency=currency) if value else "" }}{%- endmacro -%}
+
+<style>
+	.budget-summary h3 { margin: 4px 0 8px; }
+	.budget-summary table.facts { width: 100%; margin-bottom: 12px; font-size: 12px; }
+	.budget-summary table.facts td { padding: 2px 0; }
+	.budget-summary table.grid { width: 100%; border-collapse: collapse; font-size: 11px; }
+	.budget-summary table.grid th,
+	.budget-summary table.grid td { border: 1px solid #d1d8dd; padding: 4px 6px; }
+	.budget-summary table.grid th { background: #f4f5f6; text-align: center; }
+	.budget-summary .num { text-align: right; white-space: nowrap; }
+	.budget-summary tr.section td { background: #f9fafb; font-weight: bold; }
+	.budget-summary tr.subtotal td,
+	.budget-summary tr.total td { font-weight: bold; }
+	.budget-summary tr.total td { border-top: 2px solid #333; }
+	.budget-summary table.position { margin: 12px 0 0 auto; font-size: 12px; }
+	.budget-summary table.position td { padding: 3px 8px; }
+</style>
+
+<div class="budget-summary">
+	{{ add_header(1, 1, doc, letter_head, no_letterhead, footer, print_settings, print_heading_template) }}
+
+	<h3>{{ _("Budget Summary") }}</h3>
+	<table class="facts">
+		<tr>
+			<td>{{ _("Project") }}: <b>{{ doc.project_name or doc.project }}</b></td>
+			<td>{{ _("Budget") }}: <b>{{ doc.name }}</b></td>
+		</tr>
+		<tr>
+			<td>{{ _("Client") }}: {{ frappe.db.get_value("Project", doc.project, "customer") or "" }}</td>
+			<td>{{ _("Date") }}: {{ frappe.utils.format_date(doc.budget_date) }}</td>
+		</tr>
+		<tr>
+			<td>{{ _("Amounts in {0}, without VAT").format(currency or "") }}</td>
+			<td>{% if doc.workflow_state %}{{ _("Status") }}: <b>{{ _(doc.workflow_state) }}</b>{% endif %}</td>
+		</tr>
+	</table>
+
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="text-align: left">{{ _("Cost Code") }}</th>
+				{% for stage in summary.stages %}
+				<th>{{ stage.name or _("No stage") }}{% if stage.period %}<br><small>{{ stage.period }}</small>{% endif %}</th>
+				{% endfor %}
+				<th>{{ _("Total") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for block in summary.sections %}
+			<tr class="section"><td colspan="{{ summary.stages|length + 2 }}">{{ _(block.section) }}</td></tr>
+			{% for row in block.rows %}
+			<tr>
+				<td>{{ row.cost_code }} {{ row.name }}</td>
+				{% for value in row.amounts %}<td class="num">{{ money(value) }}</td>{% endfor %}
+				<td class="num">{{ money(row.total) }}</td>
+			</tr>
+			{% endfor %}
+			<tr class="subtotal">
+				<td>{{ _("Total {0}").format(_(block.section)) }}</td>
+				{% for value in block.amounts %}<td class="num">{{ money(value) }}</td>{% endfor %}
+				<td class="num">{{ money(block.total) }}</td>
+			</tr>
+			{% endfor %}
+			<tr class="total">
+				<td>{{ _("Budget") }}</td>
+				{% for value in summary.amounts %}<td class="num">{{ money(value) }}</td>{% endfor %}
+				<td class="num">{{ money(summary.total) }}</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<table class="position">
+		{% if summary.variations %}
+		<tr><td>{{ _("Approved Variations") }}</td><td class="num">{{ money(summary.variations) }}</td></tr>
+		<tr><td><b>{{ _("Current Budget") }}</b></td><td class="num"><b>{{ money(summary.current) }}</b></td></tr>
+		{% endif %}
+		<tr><td>{{ _("Contract Value, without VAT") }}</td><td class="num">{{ money(summary.contract_value) }}</td></tr>
+		{% if summary.contract_value %}
+		<tr>
+			<td><b>{{ _("Planned Margin") }}</b></td>
+			<td class="num"><b>{{ money(summary.margin) }} ({{ frappe.utils.flt(summary.margin_percent, 1) }}%)</b></td>
+		</tr>
+		{% endif %}
+	</table>
+
+	{% include "project_management_muhick/templates/print_formats/approval_record.html" %}
+</div>

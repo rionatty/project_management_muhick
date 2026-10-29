@@ -44,6 +44,7 @@ CARDS = [
 	("Budget and Cost Control", [
 		("Project Budget", "Project Budget", D), ("Budget Revision / Cost Control Sheet", "Project Budget Revision", D),
 		("Material Request", "Material Request", D), ("Cash Requisition", "Project Requisition", D),
+		("Budget Cash Plan", "Budget Cash Plan", R),
 	]),
 	("Procurement", [
 		("Supplier Quotation", "Supplier Quotation", D), ("Procurement Requisition", "Procurement Requisition", D),

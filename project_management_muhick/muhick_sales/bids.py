@@ -87,13 +87,15 @@ def project_bid(project) -> str | None:
 
 def boq_quotes(opportunity) -> dict:
 	"""{item_code: [quote]} from the supplier quotations of a bid, latest first. Each quote carries its
-	price per stock unit in the company currency (stock_rate) and whether it has expired."""
+	price per stock unit in the company currency (stock_rate) and in its own currency (price, with the
+	quotation's currency and exchange rate), and whether it has expired."""
 	today = getdate(nowdate())
 	quotes = defaultdict(list)
 	for q in frappe.db.sql(
 		"""
 		select quotation.name as supplier_quotation, quotation.supplier, quotation.transaction_date,
-			quotation.valid_till, quotation.status, item.item_code, item.base_net_rate, item.conversion_factor
+			quotation.valid_till, quotation.status, quotation.currency, quotation.conversion_rate,
+			item.item_code, item.net_rate, item.base_net_rate, item.conversion_factor
 		from `tabSupplier Quotation Item` item
 		inner join `tabSupplier Quotation` quotation on quotation.name = item.parent
 		where quotation.opportunity = %(opportunity)s and quotation.docstatus < 2
@@ -104,6 +106,7 @@ def boq_quotes(opportunity) -> dict:
 		as_dict=True,
 	):
 		q.stock_rate = flt(q.base_net_rate) / (flt(q.conversion_factor) or 1)
+		q.price = flt(q.net_rate) / (flt(q.conversion_factor) or 1)
 		q.expired = q.status == "Expired" or bool(q.valid_till and getdate(q.valid_till) < today)
 		quotes[q.item_code].append(q)
 	return quotes

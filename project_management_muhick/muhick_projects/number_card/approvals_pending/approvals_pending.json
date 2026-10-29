@@ -1,6 +1,6 @@
 {
  "aggregate_function_based_on": "",
- "creation": "2026-10-26 13:48:29.073148",
+ "creation": "2026-10-28 23:41:57.265571",
  "currency": "",
  "docstatus": 0,
  "doctype": "Number Card",
@@ -12,7 +12,7 @@
  "is_public": 1,
  "is_standard": 1,
  "label": "Approvals Pending",
- "modified": "2026-10-26 13:48:29.073148",
+ "modified": "2026-10-28 23:41:57.265571",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Approvals Pending",
