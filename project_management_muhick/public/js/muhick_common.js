@@ -340,7 +340,7 @@ frappe.ui.form.on("Project Budget Line", {
 		muhick.cost_lines.set_amount(frm, cdt, cdn);
 	},
 	...Object.fromEntries(
-		["amount", "section", "stage", "budget_section", "lines_remove", "muhick_estimate_remove"].map((field) => [
+		["amount", "section", "stage", "lines_remove", "muhick_estimate_remove"].map((field) => [
 			field,
 			(frm) => muhick.cost_lines.render_summary(frm),
 		])

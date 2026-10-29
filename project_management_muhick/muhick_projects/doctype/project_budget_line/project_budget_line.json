@@ -188,7 +188,7 @@
    "fetch_from": "cost_code.budget_section",
    "fieldname": "budget_section",
    "fieldtype": "Data",
-   "label": "Section",
+   "label": "Budget Section",
    "read_only": 1
   },
   {
@@ -232,7 +232,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-29 16:00:00.000000",
+ "modified": "2026-10-29 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget Line",

@@ -40,7 +40,7 @@ def by_cost_code(project):
 	columns = [
 		{"fieldname": "cost_code", "label": _("Cost Code"), "fieldtype": "Link", "options": "Cost Code", "width": 110},
 		{"fieldname": "cost_code_name", "label": _("Description"), "fieldtype": "Data", "width": 220},
-		{"fieldname": "budget_section", "label": _("Section"), "fieldtype": "Data", "width": 110},
+		{"fieldname": "budget_section", "label": _("Budget Section"), "fieldtype": "Data", "width": 110},
 		*money_columns(),
 	]
 	budget = budget_engine.update_budget(project)
