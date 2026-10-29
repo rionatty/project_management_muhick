@@ -12,6 +12,7 @@
   "column_break_1",
   "reached_on",
   "reached_by",
+  "set_by_hand",
   "note"
  ],
  "fields": [
@@ -44,13 +45,12 @@
   {
    "columns": 2,
    "default": "Pending",
-   "description": "Set as the record shows; only a milestone ticked by hand is set here",
+   "description": "Moves by itself as the record shows; choose another status to set it by hand",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Pending\nReached\nNot Applicable",
-   "read_only_depends_on": "eval:doc.reached_when!='Ticked by Hand'"
+   "options": "Pending\nReached\nNot Applicable"
   },
   {
    "fieldname": "column_break_1",
@@ -62,7 +62,7 @@
    "fieldtype": "Date",
    "in_list_view": 1,
    "label": "Reached On",
-   "read_only_depends_on": "eval:doc.reached_when!='Ticked by Hand'"
+   "read_only_depends_on": "eval:doc.reached_when!='Ticked by Hand' && !doc.set_by_hand"
   },
   {
    "columns": 2,
@@ -72,6 +72,13 @@
    "label": "By",
    "options": "User",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "Ticked when the status is set by hand, so the record no longer changes it. Untick to let the record decide again.",
+   "fieldname": "set_by_hand",
+   "fieldtype": "Check",
+   "label": "Set by Hand"
   },
   {
    "fieldname": "note",
@@ -84,7 +91,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-26 11:01:00.544703",
+ "modified": "2026-10-29 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Opportunity Milestone Line",

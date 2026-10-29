@@ -273,28 +273,35 @@ def set_bid_status(doc):
 
 
 def set_milestones(doc):
-	"""The opportunity's milestones, each carrying its weight: reached as the record shows (or ticked by
-	hand), and its progress the weight reached out of the weight that applies. They start from the
+	"""The opportunity's milestones, each carrying its weight: reached as the record shows, or set by
+	hand, and its progress the weight reached out of the weight that applies. They start from the
 	Opportunity Milestones list and are the opportunity's own after that: lines added, removed or
-	reweighted for its tender."""
+	reweighted for its tender. A status someone chooses stays as they set it until they untick Set by
+	Hand."""
 	if not doc.get("muhick_milestones"):
 		follow_milestone_list(doc)
 	rules = dict(frappe.get_all("Opportunity Milestone", fields=["name", "reached_when"], as_list=True))
+	# a status changed by whoever saves the opportunity; not when the record moves it (refresh_bid_status)
+	before = doc.get_doc_before_save()
+	watching = before is not None or doc.is_new()
+	stored = {row.name: row.status for row in before.get("muhick_milestones") or []} if before else {}
 	listed = set()
 	for row in doc.get("muhick_milestones"):
 		if row.milestone in listed:
 			frappe.throw(_("Milestones row {0}: {1} is already one of this opportunity's milestones.").format(row.idx, row.milestone))
 		listed.add(row.milestone)
 		row.reached_when = rules.get(row.milestone, row.reached_when)
+		if watching and row.status != stored.get(row.name, "Pending"):
+			row.set_by_hand = 1
 	facts = milestone_facts(doc)
 	# who reached a milestone: nobody is named for those found reached when the milestones were first drawn up
 	who = None if frappe.flags.in_patch else frappe.session.user
 	for row in doc.get("muhick_milestones"):
-		if row.reached_when == BY_HAND:
+		if row.reached_when == BY_HAND or row.get("set_by_hand"):
 			if row.status == "Reached":
-				row.update({"reached_on": row.reached_on or today(), "reached_by": row.reached_by or who, "note": _("Ticked by hand")})
+				row.update({"reached_on": row.reached_on or today(), "reached_by": row.reached_by or who, "note": _("Set by hand")})
 			else:
-				row.update({"reached_on": None, "reached_by": None, "note": None})
+				row.update({"reached_on": None, "reached_by": None, "note": _("Set by hand") if row.status == "Not Applicable" else None})
 			continue
 		applies, reached_on, note = milestone_state(doc, row, facts)
 		status = "Reached" if applies and reached_on else ("Pending" if applies else "Not Applicable")
@@ -312,7 +319,7 @@ def set_milestones(doc):
 
 def follow_milestone_list(doc):
 	"""The milestones of the list, in its order and with its weights; those already reached keep their
-	date."""
+	date, and none is set by hand any more."""
 	milestones = frappe.get_all(
 		"Opportunity Milestone", filters={"disabled": 0}, fields=["name", "weight", "reached_when"], order_by="sequence asc, name asc"
 	)
@@ -321,7 +328,7 @@ def follow_milestone_list(doc):
 	rows = []
 	for m in milestones:
 		row = kept.get(m.name) or frappe._dict(milestone=m.name, status="Pending")
-		row.update({"weight": m.weight, "reached_when": m.reached_when})
+		row.update({"weight": m.weight, "reached_when": m.reached_when, "set_by_hand": 0})
 		rows.append(row)
 	doc.set("muhick_milestones", rows)
 	for idx, row in enumerate(doc.get("muhick_milestones"), 1):
@@ -452,7 +459,8 @@ def refresh_bid_status(opportunity):
 		if not row.name or row.name not in stored:
 			row.db_insert()
 		elif any(
-			stored[row.name].get(f) != row.get(f) for f in ("idx", "weight", "reached_when", "status", "reached_on", "reached_by", "note")
+			stored[row.name].get(f) != row.get(f)
+			for f in ("idx", "weight", "reached_when", "status", "reached_on", "reached_by", "set_by_hand", "note")
 		):
 			row.db_update()
 		kept.add(row.name)

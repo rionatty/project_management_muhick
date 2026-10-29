@@ -16,6 +16,7 @@ frappe.ui.form.on("Opportunity", {
 		if (!frm.is_new()) {
 			return;
 		}
+		follow_milestone_list(frm);
 		// instead of ERPNext's "Sales", the type of work comes from the lead or is chosen
 		if (frm.doc.opportunity_type === undefined) {
 			frm.doc.opportunity_type = "";
@@ -37,10 +38,12 @@ frappe.ui.form.on("Opportunity", {
 		milestones.clear_custom_buttons();
 		if (!frm.is_new() && frm.perm[0].write) {
 			milestones.add_custom_button(__("Reset to the List"), () =>
-				frappe.confirm(__("Replace this opportunity's milestones with those of the Opportunity Milestones list?"), () =>
-					frappe
-						.xcall("project_management_muhick.overrides.crm.reset_milestones", { opportunity: frm.doc.name })
-						.then(() => frm.reload_doc())
+				frappe.confirm(
+					__("Replace this opportunity's milestones with those of the Opportunity Milestones list? Statuses set by hand go back to following the record."),
+					() =>
+						frappe
+							.xcall("project_management_muhick.overrides.crm.reset_milestones", { opportunity: frm.doc.name })
+							.then(() => frm.reload_doc())
 				)
 			);
 		}
@@ -80,6 +83,39 @@ frappe.ui.form.on("Opportunity Item", {
 	items_add: toggle_bid_price,
 	items_remove: toggle_bid_price,
 });
+
+frappe.ui.form.on("Opportunity Milestone Line", {
+	// a status chosen here is set by hand: it stays as set, reached on the day given
+	status(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.reached_when !== "Ticked by Hand" && !row.set_by_hand) {
+			frappe.model.set_value(cdt, cdn, "set_by_hand", 1);
+		}
+		frappe.model.set_value(cdt, cdn, "reached_on", row.status === "Reached" ? row.reached_on || frappe.datetime.get_today() : null);
+	},
+});
+
+// a new opportunity shows the milestones of the list at once, with their weights, to be adjusted before
+// it is saved
+function follow_milestone_list(frm) {
+	if ((frm.doc.muhick_milestones || []).some((r) => r.milestone)) {
+		return;
+	}
+	frappe.db
+		.get_list("Opportunity Milestone", {
+			filters: { disabled: 0 },
+			fields: ["name", "weight", "reached_when"],
+			order_by: "sequence asc, name asc",
+			limit: 0,
+		})
+		.then((milestones) => {
+			frm.clear_table("muhick_milestones");
+			milestones.forEach((m) =>
+				frm.add_child("muhick_milestones", { milestone: m.name, weight: m.weight, reached_when: m.reached_when, status: "Pending" })
+			);
+			frm.refresh_field("muhick_milestones");
+		});
+}
 
 // at the top of a bid still being prepared: when it is due, and the documents on its checklist overdue,
 // not started or in progress
