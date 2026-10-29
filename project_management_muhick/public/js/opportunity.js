@@ -149,6 +149,7 @@ function setup_estimate(frm) {
 	muhick.cost_lines.render_summary(frm);
 	const grid = frm.fields_dict.muhick_estimate.grid;
 	grid.clear_custom_buttons();
+	muhick.cost_lines.excel_buttons(frm, frm.perm[0].write);
 	if (frm.is_new() || !frm.perm[0].write) {
 		return;
 	}

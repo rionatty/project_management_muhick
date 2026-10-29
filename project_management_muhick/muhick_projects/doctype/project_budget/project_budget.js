@@ -18,6 +18,8 @@ frappe.ui.form.on("Project Budget", {
 
 	refresh(frm) {
 		muhick.cost_lines.render_summary(frm);
+		frm.fields_dict.lines.grid.clear_custom_buttons();
+		muhick.cost_lines.excel_buttons(frm, frm.doc.docstatus === 0 && frm.perm[0].write);
 		if (frm.doc.docstatus === 0 && frm.doc.project) {
 			frm.add_custom_button(__("Get Lines from the Bid Estimate"), () => get_lines(frm, "estimate"));
 			frm.add_custom_button(__("Get Items from Activity Plan"), () => get_lines(frm, "plan"));

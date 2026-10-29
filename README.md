@@ -24,6 +24,11 @@ and certificates, retention, payments and the controls around them.
   freight, import duty and infrastructure levy on the customs value) are added for the imported
   lines. Its total is the estimated cost and gives the margin at bid; a summary by stage and budget
   section sits under it.
+- Estimates and budgets prepared in Excel: Download Excel gives the lines in an Excel file with the
+  amounts worked out and lists to pick stages, cost codes, currencies and procurement types from;
+  Upload from Excel (.xlsx, .xls or .csv) reads every sheet with a heading row, recognises the
+  usual headings and units, takes the currency from columns such as "Amount (USD)", and checks
+  every row first: with any mistake nothing changes and each one is listed by sheet and row.
 - A project budget built by stage, milestone and cost code. When the project is handed over, the
   bid's cost estimate becomes its draft budget, assigned to the Project Manager to adjust before
   approval; lines can also be taken from the activity plan's items or typed in. A line takes the

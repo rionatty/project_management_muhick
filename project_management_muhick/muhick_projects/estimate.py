@@ -11,13 +11,16 @@ contract value. When the project is handed over, the estimate becomes the projec
 which the Project Manager adjusts before sending it for approval. A budget line takes the project's
 milestone (phase) of its stage once the activity plan has created it."""
 
+import base64
+import io
+import re
 from collections import defaultdict
 
 import frappe
 from frappe import _
 from frappe.utils import flt, formatdate, getdate
 
-from project_management_muhick.muhick_projects.utils import get_phases
+from project_management_muhick.muhick_projects.utils import ensure_milestone, get_phases
 from project_management_muhick.muhick_sales.bids import boq_factor, boq_quotes, last_purchase_rate, latest_by_supplier, lowest, project_bid
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import get_settings, setting
@@ -313,3 +316,315 @@ def _period(phase) -> str:
 	if (start.year, start.month) == (end.year, end.month):
 		return formatdate(start, "MMM yyyy")
 	return f"{formatdate(start, 'MMM yyyy' if start.year != end.year else 'MMM')} - {formatdate(end, 'MMM yyyy')}"
+
+
+# ------------------------------------------------------------------ to and from Excel
+# a budget prepared in Excel comes in through the Excel file the system gives out: one row per line
+TABLES = {"Opportunity": "muhick_estimate", "Project Budget": "lines"}
+EXCEL_COLUMNS = (
+	# "Item Code", not "Item": budget sheets often number their rows in an Item column
+	("stage", "Stage"), ("item_code", "Item Code"), ("description", "Description"), ("uom", "UOM"), ("brand", "Brand"),
+	("supplier", "Supplier"), ("people", "People"), ("qty", "Qty"), ("rate", "Rate"), ("currency", "Currency"),
+	("exchange_rate", "Exchange Rate"), ("rate_includes_vat", "Rate Includes VAT"), ("contract_percent", "% of Contract Value"),
+	("cost_code", "Cost Code"), ("procurement_type", "Procurement Type"), ("remarks", "Remarks"),
+)
+# other headings budget sheets use for the same columns
+HEADING_ALIASES = {
+	"milestone": "stage", "phase": "stage", "details": "description", "unit": "uom",
+	"quantity": "qty", "vatinclusive": "rate_includes_vat", "includesvat": "rate_includes_vat", "comments": "remarks",
+	"contractvalue": "contract_percent",
+}
+# units as budget sheets write them, for the units of the unit list
+UNIT_ALIASES = {
+	"pcs": "Nos", "pce": "Nos", "no": "Nos", "number": "Nos", "piece": "Nos", "pieces": "Nos",
+	"m": "Meter", "meters": "Meter", "metres": "Meter", "ltrs": "Litre", "litres": "Litre", "liters": "Litre",
+}
+PROCUREMENT_TYPES = ("Local", "International", "From Stock", "Not Applicable")
+YES = ("yes", "y", "true", "1", "x")
+
+
+def _cost_doc(doctype, name, ptype):
+	"""The estimate or budget the lines belong to, once the user may read or change it; None while unsaved."""
+	if doctype not in TABLES:
+		frappe.throw(_("Cost lines belong to an opportunity or a project budget."))
+	if not name:
+		frappe.has_permission(doctype, "create" if ptype == "write" else "read", throw=True)
+		return None
+	doc = frappe.get_doc(doctype, name)
+	doc.check_permission(ptype)
+	return doc
+
+
+@frappe.whitelist()
+def download_cost_lines(doctype: str, name: str | None = None):
+	"""An Excel file of an estimate's or a budget's lines, to prepare or change in Excel and upload again:
+	each line's amount worked out as on screen, lists to pick the stage, cost code, currency, procurement
+	type and VAT from, and those lists on a sheet of their own."""
+	from openpyxl import Workbook
+	from openpyxl.styles import Font
+	from openpyxl.worksheet.datavalidation import DataValidation
+
+	doc = _cost_doc(doctype, name, "read")
+	lines = doc.get(TABLES[doctype]) if doc else []
+	book = Workbook()
+	sheet = book.active
+	sheet.title = "Cost Lines"
+	sheet.append([heading for _field, heading in EXCEL_COLUMNS] + ["Amount"])
+	for line in lines:
+		sheet.append([(_yes(line.get(f)) if f == "rate_includes_vat" else line.get(f)) for f, _heading in EXCEL_COLUMNS])
+	vat = flt(setting("vat_percent", DEFAULTS["vat_percent"]))
+	last = len(lines) + 300
+	for r in range(2, last + 1):
+		# G people, H qty, I rate, K exchange rate, L rate includes VAT, M % of contract value
+		sheet[f"Q{r}"] = (
+			f'=IF(N(M{r})>0,"",IF(N(G{r})>0,G{r},1)*N(H{r})*N(I{r})*IF(N(K{r})>0,K{r},1)'
+			f'/IF(UPPER(L{r})="YES",1+{vat}/100,1))'
+		)
+		for column in "HIKQ":
+			sheet[f"{column}{r}"].number_format = "#,##0.00"
+	for cell in sheet[1]:
+		cell.font = Font(bold=True)
+	sheet.freeze_panes = "A2"
+	for column, width in zip("ABCDEFGHIJKLMNOPQ", (22, 18, 40, 8, 14, 22, 8, 10, 14, 9, 12, 10, 12, 12, 16, 24, 16)):
+		sheet.column_dimensions[column].width = width
+
+	lists = book.create_sheet("Lists")
+	values = {
+		"A": ["Stage", *frappe.get_all("Task Type", pluck="name", order_by="name asc")],
+		"B": ["Cost Code", *frappe.get_all("Cost Code", filters={"disabled": 0}, pluck="name", order_by="name asc")],
+		"E": ["Currency", *frappe.get_all("Currency", filters={"enabled": 1}, pluck="name", order_by="name asc")],
+		"F": ["Procurement Type", *PROCUREMENT_TYPES],
+		"G": ["Rate Includes VAT", "Yes", "No"],
+	}
+	codes = frappe.get_all("Cost Code", filters={"disabled": 0}, fields=["name", "cost_code_name", "budget_section"], order_by="name asc")
+	values["C"] = ["Description", *[c.cost_code_name for c in codes]]
+	values["D"] = ["Section", *[c.budget_section for c in codes]]
+	for column, items in values.items():
+		for r, value in enumerate(items, 1):
+			lists[f"{column}{r}"] = value
+		lists[f"{column}1"].font = Font(bold=True)
+		lists.column_dimensions[column].width = 40 if column == "C" else 20
+	for target, column in (("A", "A"), ("N", "B"), ("J", "E"), ("O", "F"), ("L", "G")):
+		rule = DataValidation(type="list", formula1=f"Lists!${column}$2:${column}${max(len(values[column]), 2)}", allow_blank=True)
+		rule.add(f"{target}2:{target}{last}")
+		sheet.add_data_validation(rule)
+
+	out = io.BytesIO()
+	book.save(out)
+	frappe.response["filename"] = f"{name or _(doctype)} - Cost Lines.xlsx"
+	frappe.response["filecontent"] = out.getvalue()
+	frappe.response["type"] = "binary"
+
+
+@frappe.whitelist()
+def read_cost_lines(doctype: str, filename: str, content: str, name: str | None = None, company: str | None = None) -> dict:
+	"""The cost lines of an uploaded Excel (.xlsx or .xls) or CSV file, checked row by row: {rows, errors,
+	notes}. Every sheet with a heading row (Description or Item, and Qty, Rate or % of Contract Value) is
+	read; rows with neither a qty, a rate nor a percentage are headings or totals and are skipped. With
+	any error nothing is taken, so the file can be corrected and uploaded again."""
+	doc = _cost_doc(doctype, name, "write")
+	raw, skipped, without_codes = [], 0, set()
+	for sheet, rows in _read_sheets(filename, base64.b64decode(content.split(",", 1)[-1])):
+		header, columns, money = _heading_row(rows)
+		if header is None:
+			continue
+		if "cost_code" not in columns.values():
+			without_codes.add(sheet)
+		for number, row in enumerate(rows[header + 1 :], header + 2):
+			values = {field: row[c] if c < len(row) else None for c, field in columns.items()}
+			if not any(_text(values.get(f)) for f in ("qty", "rate", "contract_percent")):
+				skipped += any(_text(v) for v in values.values())
+				continue
+			# a sheet without a Currency column may keep each line's amount under "Amount (USD)" or "Amount (UGX)"
+			priced_in = {code for c, code in money.items() if c < len(row) and _number(row[c])}
+			if not _text(values.get("currency")) and len(priced_in) == 1:
+				values["currency"] = priced_in.pop()
+			raw.append((_("{0} row {1}").format(sheet, number), values, sheet))
+	if not raw:
+		return {
+			"rows": [], "notes": [],
+			"errors": [_("No cost lines found. The first row needs headings such as Description, Qty, Rate and Cost Code, as in the Excel file downloaded from here.")],
+		}
+
+	wanted = lambda field: {_text(v.get(field)) for _w, v, _s in raw if _text(v.get(field))}  # noqa: E731
+	items, suppliers = _named("Item", wanted("item_code"), "item_name"), _named("Supplier", wanted("supplier"), "supplier_name")
+	codes = {}
+	for code in frappe.get_all("Cost Code", filters={"disabled": 0}, fields=["name", "cost_code_name"]):
+		codes[code.name.lower()] = code.name
+		codes.setdefault((code.cost_code_name or "").lower(), code.name)
+	lists = {
+		doctype_: {n.lower(): n for n in frappe.get_all(doctype_, pluck="name")}
+		for doctype_ in ("Task Type", "Currency", "UOM", "Brand")
+	}
+	company = doc.company if doc else company
+	company_currency = frappe.get_cached_value("Company", company, "default_currency") if company else None
+	may_add_stages = frappe.has_permission("Task Type", "create")
+	errors, rows, new_stages, unknown, uncoded = [], [], set(), defaultdict(set), defaultdict(int)
+	for where, values, sheet in raw:
+		row, problems, extra = {"people": 1}, [], []
+		item = _text(values.get("item_code"))
+		if item and not items.get(item.lower()):
+			problems.append(_("item {0} is not in the item list").format(item))
+		row["item_code"] = items.get(item.lower()) if item else None
+		stage = _text(values.get("stage"))
+		if stage:
+			row["stage"] = lists["Task Type"].get(stage.lower()) or stage
+			listed = stage.lower() in lists["Task Type"]
+			if not listed and may_add_stages:
+				new_stages.add(stage)
+			elif not listed:
+				problems.append(_("stage {0} is not in the milestone list").format(stage))
+		row["description"] = _text(values.get("description")) or (
+			frappe.get_cached_value("Item", row["item_code"], "item_name") if row["item_code"] else ""
+		)
+		if not row["description"]:
+			problems.append(_("give an item or a description"))
+		unit = _text(values.get("uom"))
+		if unit:
+			row["uom"] = lists["UOM"].get(unit.lower()) or lists["UOM"].get(UNIT_ALIASES.get(unit.lower().rstrip("."), "").lower())
+			if not row["uom"]:
+				unknown[_("Units not in the unit list, left blank")].add(unit)
+		for field, records, label in (("brand", lists["Brand"], _("Brand")), ("supplier", suppliers, _("Supplier"))):
+			value = _text(values.get(field))
+			row[field] = records.get(value.lower()) if value else None
+			if value and not row[field]:
+				unknown[_("Not in the {0} list, kept in the remarks").format(label.lower())].add(value)
+				extra.append(f"{label}: {value}")
+		for field in ("people", "qty", "rate", "exchange_rate", "contract_percent"):
+			value = values.get(field)
+			if _text(value):
+				number = _number(value)
+				if number is None:
+					problems.append(_("{0} is not a number").format(value))
+				else:
+					row[field] = number
+		row["people"] = int(row["people"]) or 1
+		row["qty"] = row.get("qty", 1) if not row.get("contract_percent") else 1
+		currency = _text(values.get("currency"))
+		if currency and currency.lower() != (company_currency or "").lower():
+			row["currency"] = lists["Currency"].get(currency.lower())
+			if not row["currency"]:
+				problems.append(_("currency {0} is not in the currency list").format(currency))
+		else:
+			row["currency"], row["exchange_rate"] = None, 1
+		row["rate_includes_vat"] = 1 if _text(values.get("rate_includes_vat")).lower() in YES else 0
+		code = _text(values.get("cost_code"))
+		row["cost_code"] = codes.get(code.lower()) if code else (
+			frappe.get_cached_value("Item", row["item_code"], "muhick_cost_code") if row["item_code"] else None
+		)
+		if not row["cost_code"] and not code and sheet in without_codes:
+			uncoded[sheet] += 1  # one message for the sheet, below
+		elif not row["cost_code"]:
+			problems.append(_("cost code {0} is not in the cost code list").format(code) if code else _("give a cost code"))
+		kind = _text(values.get("procurement_type"))
+		row["procurement_type"] = next((k for k in PROCUREMENT_TYPES if k.lower() == kind.lower()), None) if kind else None
+		if kind and not row["procurement_type"]:
+			problems.append(_("procurement type {0} is not one of {1}").format(kind, ", ".join(PROCUREMENT_TYPES)))
+		row["remarks"] = "; ".join(filter(None, [_text(values.get("remarks")), *extra])) or None
+		if problems:
+			errors.append(f"{where}: {'; '.join(problems)}")
+		rows.append(row)
+
+	# a row in a currency without a rate takes the rate its currency has elsewhere in the file, or else on
+	# the lines already here
+	given, used, missing = {}, {}, set()
+	for row in rows:
+		if row.get("currency") and flt(row.get("exchange_rate")):
+			given.setdefault(row["currency"], row["exchange_rate"])
+	for line in doc.get(TABLES[doctype]) if doc else []:
+		if line.currency and flt(line.exchange_rate):
+			used.setdefault(line.currency, line.exchange_rate)
+	for row in rows:
+		if not row.get("currency"):
+			row["exchange_rate"] = 1
+		elif not flt(row.get("exchange_rate")):
+			row["exchange_rate"] = given.get(row["currency"]) or used.get(row["currency"])
+			if not row["exchange_rate"]:
+				missing.add(row["currency"])
+	errors += [_("Give the exchange rate of {0} on at least one of its rows.").format(c) for c in sorted(missing)]
+	errors += [
+		_("{0}: {1} row(s) have no cost code and the sheet has no Cost Code column. Add one, as in the Excel file downloaded from here.").format(sheet, count)
+		for sheet, count in uncoded.items()
+	]
+	if errors:
+		more = [_("... and {0} more.").format(len(errors) - 40)] if len(errors) > 40 else []
+		return {"rows": [], "errors": errors[:40] + more, "notes": []}
+
+	for stage in new_stages:
+		ensure_milestone(stage)
+	notes = [f"{label}: {', '.join(sorted(values))}" for label, values in unknown.items()]
+	if new_stages:
+		notes.append(_("Stages added to the milestone list: {0}").format(", ".join(sorted(new_stages))))
+	if skipped:
+		notes.append(_("{0} row(s) without a qty, rate or percentage were skipped as headings or totals.").format(skipped))
+	return {"rows": [{f: row.get(f) for f in LINE_FIELDS} for row in rows], "errors": [], "notes": notes}
+
+
+def _heading_row(rows):
+	"""(index, {column: field}, {column: currency}) of the heading row among a sheet's first rows: one
+	naming Description or Item Code, and Qty, Rate or % of Contract Value. The currencies are those of
+	amount columns such as "Amount (USD)". (None, None, None) for a sheet without lines."""
+	headings = {_key(f): f for f, _heading in EXCEL_COLUMNS} | {_key(h): f for f, h in EXCEL_COLUMNS} | HEADING_ALIASES
+	for index, row in enumerate(rows[:15]):
+		columns = {c: headings[_key(v)] for c, v in enumerate(row) if _key(v) in headings}
+		found = set(columns.values())
+		if found & {"description", "item_code"} and found & {"qty", "rate", "contract_percent"}:
+			money = {}
+			for c, v in enumerate(row):
+				code = re.search(r"\(\s*([A-Za-z]{3}|\$)\s*\)", _text(v)) if c not in columns else None
+				if code:
+					money[c] = "USD" if code.group(1) == "$" else code.group(1).upper()
+			return index, columns, money
+	return None, None, None
+
+
+def _read_sheets(filename, data) -> list:
+	"""[(sheet name, rows)] of an .xlsx, .xls or .csv file."""
+	extension = (filename or "").rsplit(".", 1)[-1].lower()
+	if extension == "csv":
+		from frappe.utils.csvutils import read_csv_content
+
+		return [("CSV", read_csv_content(data))]
+	if extension == "xls":
+		import xlrd
+
+		book = xlrd.open_workbook(file_contents=data)
+		return [(s.name, [s.row_values(i) for i in range(s.nrows)]) for s in book.sheets()]
+	from openpyxl import load_workbook
+
+	book = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+	return [(ws.title, [list(row) for row in ws.iter_rows(values_only=True)]) for ws in book.worksheets]
+
+
+def _named(doctype, values, title_field) -> dict:
+	"""{lowercased name or title: name} of the records of doctype named or titled as in values."""
+	found = {}
+	if not values:
+		return found
+	for field in ("name", title_field):
+		for record in frappe.get_all(doctype, filters={field: ("in", list(values))}, fields=["name", title_field]):
+			found.setdefault((record.get(field) or "").lower(), record.name)
+	return found
+
+
+def _key(value) -> str:
+	return re.sub(r"[^a-z]", "", str(value or "").lower())
+
+
+def _text(value) -> str:
+	if isinstance(value, float) and value.is_integer():
+		value = int(value)
+	return str(value).strip() if value is not None else ""
+
+
+def _number(value):
+	if isinstance(value, (int, float)):
+		return float(value)
+	try:
+		return float(_text(value).replace(",", "").replace("%", ""))
+	except ValueError:
+		return None
+
+
+def _yes(value) -> str:
+	return "Yes" if value else "No"

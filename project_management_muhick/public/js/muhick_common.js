@@ -191,6 +191,84 @@ muhick.cost_lines = {
 			muhick.cost_lines.render_summary(frm);
 		});
 	},
+	// the lines to and from Excel: a file of the saved lines to prepare or change in Excel, and an upload
+	// that checks every row first, so a file with mistakes changes nothing
+	excel_buttons(frm, can_upload) {
+		const grid = frm.fields_dict[muhick.cost_lines.table(frm)].grid;
+		grid.add_custom_button(__("Download Excel"), () => {
+			if (frm.is_dirty() && !frm.is_new()) {
+				frappe.msgprint(__("Save first, so the Excel file has the latest lines."));
+				return;
+			}
+			const args = new URLSearchParams({ doctype: frm.doctype, name: frm.is_new() ? "" : frm.doc.name });
+			window.open(`/api/method/project_management_muhick.muhick_projects.estimate.download_cost_lines?${args}`);
+		});
+		if (can_upload) {
+			grid.add_custom_button(__("Upload from Excel"), () => muhick.cost_lines.upload(frm));
+		}
+	},
+	upload(frm) {
+		new frappe.ui.FileUploader({
+			as_dataurl: true,
+			allow_multiple: false,
+			restrictions: { allowed_file_types: [".xlsx", ".xls", ".csv"] },
+			on_success: (file) =>
+				frappe
+					.xcall("project_management_muhick.muhick_projects.estimate.read_cost_lines", {
+						doctype: frm.doctype,
+						name: frm.is_new() ? null : frm.doc.name,
+						company: frm.doc.company,
+						filename: file.name,
+						content: file.dataurl,
+					})
+					.then((result) => muhick.cost_lines.take_upload(frm, result)),
+		});
+	},
+	take_upload(frm, result) {
+		const lines = (texts) => texts.map((t) => frappe.utils.escape_html(t)).join("<br>");
+		if (result.errors.length) {
+			frappe.msgprint({
+				title: __("Nothing was uploaded"),
+				indicator: "red",
+				message: __("Correct these in the Excel file and upload it again:") + "<br><br>" + lines(result.errors),
+			});
+			return;
+		}
+		const table = muhick.cost_lines.table(frm);
+		const take = (replace) => {
+			if (replace) {
+				frm.clear_table(table);
+			}
+			muhick.cost_lines.add_rows(frm, result.rows).then(() => {
+				frm.dirty();
+				frappe.msgprint({
+					title: __("Uploaded"),
+					indicator: "green",
+					message: lines([__("{0} line(s) taken from the Excel file. Save to keep them.", [result.rows.length]), ...result.notes]),
+				});
+			});
+		};
+		if (!(frm.doc[table] || []).length) {
+			take(true);
+			return;
+		}
+		frappe.prompt(
+			{
+				fieldname: "mode",
+				fieldtype: "Select",
+				label: __("The lines already here"),
+				options: [
+					{ value: "replace", label: __("Replace them with the Excel lines") },
+					{ value: "add", label: __("Keep them and add the Excel lines") },
+				],
+				default: "replace",
+				reqd: 1,
+			},
+			(values) => take(values.mode === "replace"),
+			__("Upload from Excel"),
+			__("Upload")
+		);
+	},
 	// the lines totalled by stage and budget section, then the contract value and the margin
 	render_summary(frm) {
 		const field = frm.fields_dict[frm.doctype === "Opportunity" ? "muhick_estimate_summary" : "phase_summary"];
