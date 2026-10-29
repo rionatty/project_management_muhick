@@ -1,7 +1,8 @@
 // Copyright (c) 2026, CyveTech and contributors
 // For license information, please see license.txt
 
-// Small helpers shared by the Muhick forms. Loaded on every desk page (see hooks.py).
+// Small helpers shared by the Muhick forms. Loaded on every desk page as a bundle (see hooks.py): what
+// other scripts use hangs on the muhick namespace or is a form event, as the bundle's own names stay in it.
 frappe.provide("muhick");
 
 // On a document, every button its form adds to the header, and every group of them (Create, View...),

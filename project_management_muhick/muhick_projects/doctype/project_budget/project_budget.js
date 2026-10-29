@@ -1,8 +1,8 @@
 // Copyright (c) 2026, CyveTech and contributors
 // For license information, please see license.txt
 
-// a line's amount and the summary by stage come from muhick.cost_lines (muhick_common.js), shared with
-// the bid's cost estimate
+// a line's amount and the budget summary come from muhick.cost_lines (muhick_common.bundle.js), shared
+// with the bid's cost estimate
 frappe.ui.form.on("Project Budget", {
 	setup(frm) {
 		frm.set_query("cost_code", "lines", () => ({ filters: { disabled: 0 } }));

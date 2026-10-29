@@ -28,8 +28,10 @@ before_uninstall = "project_management_muhick.install.before_uninstall"
 # Client scripts
 # --------------
 
-# helpers shared by the Muhick forms, and one colour for the header buttons of every document
-app_include_js = "/assets/project_management_muhick/js/muhick_common.js"
+# helpers shared by the Muhick forms, and one colour for the header buttons of every document; a bundle, so
+# its file name changes with each version and browsers take the new one (a plain /assets file is cached
+# for a year)
+app_include_js = "muhick_common.bundle.js"
 
 # scripts added to standard ERPNext forms
 

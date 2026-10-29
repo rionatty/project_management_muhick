@@ -257,7 +257,7 @@ again: it only creates what is missing.
   (`FOREIGN_DESCRIPTIONS` in `setup/custom_fields.py`).
 - **One colour for the buttons.** On every document, standard ones included, the buttons a form adds
   to its header (Create, View and the other groups, Close, Issue Funds and so on) have the colour of
-  its Save button (`public/js/muhick_common.js`).
+  its Save button (`public/js/muhick_common.bundle.js`).
 
 - **Milestones come from one shared list**, ERPNext's Task Type ("Milestones (Master List)" in the
   menu). BOQ lines and the activity plan pick from it; Get Milestones adds names it does not know.
