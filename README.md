@@ -16,35 +16,45 @@ and certificates, retention, payments and the controls around them.
 - Bill of Quantities as a list of items from the Item master (stock or non-stock), each with its
   milestone and the quantities requested, purchased and consumed so far in the item's stock unit,
   kept current as requests, orders and issues are submitted. Variation order lines are items too.
-- A bid's cost estimate on the opportunity (its Cost Estimate tab), on the same lines as the project
-  budget and in the sections of the business's budget sheets: Equipment, Installation Materials,
-  Taxes and Freight, Labour, Tools and Equipment, Preliminaries and Administrative. Each line has
-  its section, a stage from the shared milestone list (the system or phase it is for), an item or a
-  lump sum, its supplier, brand and cost code, and an amount in the company's currency without VAT
-  (people x qty x rate at the line's exchange rate, a rate quoted with VAT taken without it, or a
-  share of the contract value). Lines come from the BOQ, are priced from the bid's supplier
-  quotations, and import costs (insurance, freight, import duty and infrastructure levy on the
-  customs value) are added for the imported lines. Its total is the estimated cost; under it the
-  budget summary (each section against the stages) and the profitability (bid price, cost, margin
-  and margin %).
-- Estimates and budgets prepared in Excel: Download Excel gives a sheet per section with the
-  amounts worked out and lists to pick stages, cost codes, currencies and procurement types from.
-  Upload from Excel (.xlsx, .xls or .csv) also reads the business's own budget workbooks: the
-  section from the sheet or the heading above the lines, the stage from the system headings (a
-  misspelt one still finds its milestone, a new one is added to the list) or from a phase's sheet,
-  the number of people from a labour sheet's No column, the currency from columns such as "Amount
-  (USD)", rows copied in another sheet's layout checked against their own amount, and a tax
-  computation sheet as its insurance, duty, levy and freight (VAT apart, as it is claimed back).
-  Every row is checked first: with any mistake nothing changes and each one is listed by sheet and
-  row.
+- A bid's cost estimate on the opportunity, laid out sheet by sheet as the business's budget
+  workbook, each sheet a tab: Equipment, Installation Materials, Taxes and Freight, Labour, Tools and
+  Equipment, Preliminaries and Administrative, Budget Summary and Profitability. Each table has the
+  columns of its sheet (system, description, brand, unit, people, qty, rate, amount as quoted,
+  amount without VAT, supplier) and its sub totals by system under it. Its lines are those of the
+  project budget: a stage from the shared milestone list (the system or phase it is for), an item or
+  a lump sum, its supplier, brand and cost code, its amount as quoted in its currency and its amount
+  in the company's currency without VAT (people x qty x rate at the line's exchange rate, a rate
+  quoted with VAT taken without it, or a share of the contract value).
+- The tax computation of the imported goods, as the Taxes sheet: each good's total, insurance,
+  customs value (C.I), import duty (ID), VAT, infrastructure levy (IL) and total tax, at its own
+  rates (goods from the East African Community pay VAT only), with the freight and clearing lines,
+  the total with freight (CFR) and what the imports cost the budget (insurance, duty, levy and
+  freight; the VAT is claimed back).
+- The Budget Summary tab (equipment and materials system by system with their suppliers, the origin,
+  shipment and taxes of the imported ones, then taxes and freight, installation costs and overheads,
+  the grand total, contract value, project cost and profit) and the Profitability tab (the contract
+  value less each part without VAT, the margin and its percentage). The actions are under Cost
+  Estimate at the top: lines from the BOQ, prices from the bid's supplier quotations, the imported
+  goods into the tax computation, and Excel.
+- Estimates and budgets prepared in Excel: Download Excel gives a sheet per section and the Tax
+  Computation sheet, with the amounts worked out and lists to pick stages, cost codes, currencies,
+  procurement types, countries and shipment from. Upload from Excel (.xlsx, .xls or .csv) also reads
+  the business's own budget workbooks: each line into its tab by the sheet or the heading above it,
+  the stage from the system headings (a misspelt one still finds its milestone, a new one is added to
+  the list) or from a phase's sheet, the number of people from a labour sheet's No column, the
+  currency from columns such as "Amount (USD)", rows copied in another sheet's layout checked
+  against their own amount, and the Taxes sheet good by good with its rates. Every row is checked
+  first: with any mistake nothing changes and each one is listed by sheet and row.
 - A project budget built by stage, milestone and cost code. When the project is handed over, the
   bid's cost estimate becomes its draft budget, assigned to the Project Manager to adjust before
   approval; lines can also be taken from the activity plan's items or typed in. A line takes the
   project's milestone of its stage once the activity plan creates it. The budget keeps the
-  estimate's sections and shows its margin and margin %, the budget summary (each section against
-  the stages), the Budget Summary print (sections against the stages and their months, contract
-  value, margin, cost codes and signatures) and a cash plan by month. A purchase request is checked against its milestone's budgeted quantities, and one for
-  items the budget places only under another stage needs a justification.
+  estimate's sections, with the tax computation as its insurance, duty and levy, and shows its
+  margin and margin %, the budget summary (each section against the stages), the Budget Summary
+  print (sections against the stages and their months, contract value, margin, cost codes and
+  signatures) and a cash plan by month. A purchase request is checked against its milestone's
+  budgeted quantities, and one for items the budget places only under another stage needs a
+  justification.
 - Commitments: approved purchase orders, subcontracts, requisitions and labour reduce the available
   budget at once, before anything is paid. Original Budget, Approved Variations, Current Budget and
   Forecast Final Cost are kept separately; an approved budget is changed only by a revision.

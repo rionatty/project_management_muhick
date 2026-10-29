@@ -47,16 +47,20 @@ class TestCostLines(unittest.TestCase):
 	def test_people_and_exchange_rate_at_zero_count_as_one(self):
 		self.assertEqual(calc.line_amount(2, 50, people=0, exchange_rate=0), 100)
 
-	def test_import_costs_on_the_customs_value(self):
-		costs = calc.import_costs(100_000, freight=10_000, insurance_percent=1.5, duty_percent=10, levy_percent=1.5)
-		self.assertAlmostEqual(costs["insurance"], 1_500)
-		self.assertAlmostEqual(costs["customs_value"], 111_500)
-		self.assertAlmostEqual(costs["duty"], 11_150)
-		self.assertAlmostEqual(costs["levy"], 1_672.5)
-		self.assertAlmostEqual(costs["total"], 24_322.5)
+	def test_import_taxes_as_the_tax_computation(self):
+		taxes = calc.import_taxes(6_720, insurance_percent=1.5, duty_percent=10, vat_percent=18, levy_percent=1.5)
+		self.assertAlmostEqual(taxes["insurance"], 100.8)
+		self.assertAlmostEqual(taxes["customs_value"], 6_820.8)
+		self.assertAlmostEqual(taxes["duty"], 682.08)
+		self.assertAlmostEqual(taxes["vat"], 1_350.52, places=2)
+		self.assertAlmostEqual(taxes["levy"], 102.31, places=2)
+		self.assertAlmostEqual(taxes["total_tax"], 2_134.91, places=2)
+		self.assertAlmostEqual(taxes["cost"], 100.8 + 682.08 + 102.312, places=2)
 
-	def test_goods_without_duty_or_freight_add_nothing(self):
-		self.assertEqual(calc.import_costs(25_000)["total"], 0)
+	def test_goods_from_the_community_pay_vat_only(self):
+		taxes = calc.import_taxes(12_554, vat_percent=18)
+		self.assertAlmostEqual(taxes["total_tax"], 2_259.72)
+		self.assertEqual(taxes["cost"], 0)
 
 	def test_section_from_the_cost_code(self):
 		self.assertEqual(calc.section_of_cost_code("MAT-500"), "Equipment")

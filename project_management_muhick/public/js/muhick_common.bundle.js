@@ -107,12 +107,34 @@ muhick.set_project_queries = function (frm, tables) {
 	});
 };
 
-// A bid's cost estimate (on the opportunity) and a project budget have the same lines. A line's amount is
-// in the company's currency without VAT: people x qty x rate at its exchange rate, a rate quoted with VAT
-// taken without it, or a share of the contract value. The server works it out the same way on saving.
+// A bid's cost estimate (on the opportunity, a table per sheet of the budget workbook) and a project budget have
+// the same lines. A line's amount is in the company's currency without VAT: people x qty x rate at its
+// exchange rate, a rate quoted with VAT taken without it, or a share of the contract value; its amount as
+// quoted is people x qty x rate in its own currency. The server works them out the same way on saving.
 muhick.cost_lines = {
-	table(frm) {
-		return frm.doctype === "Opportunity" ? "muhick_estimate" : "lines";
+	// the opportunity's tables of estimate lines, one per section as the sheets of the budget workbook (see
+	// estimate.py); a budget has the one table
+	sections: {
+		muhick_equipment: "Equipment",
+		muhick_materials: "Installation Materials",
+		muhick_freight: "Taxes and Freight",
+		muhick_labour: "Labour",
+		muhick_tools: "Tools and Equipment",
+		muhick_preliminaries: "Preliminaries",
+		muhick_administrative: "Administrative",
+	},
+	tables(frm) {
+		return frm.doctype === "Opportunity" ? Object.keys(muhick.cost_lines.sections) : ["lines"];
+	},
+	table_of(frm, section) {
+		if (frm.doctype !== "Opportunity") {
+			return "lines";
+		}
+		const sections = muhick.cost_lines.sections;
+		return Object.keys(sections).find((field) => sections[field] === section) || "muhick_materials";
+	},
+	rows(frm) {
+		return muhick.cost_lines.tables(frm).flatMap((field) => frm.doc[field] || []);
 	},
 	// the value a share is taken of: the bid price, or the project's revised contract value
 	contract_value(frm) {
@@ -133,30 +155,37 @@ muhick.cost_lines = {
 			return (muhick.cost_lines.contract_value(frm) * flt(row.contract_percent)) / 100;
 		}
 		const rate = muhick.cost_lines.foreign(frm, row) ? flt(row.exchange_rate) || 1 : 1;
-		const amount = flt(row.qty) * flt(row.rate) * (cint(row.people) || 1) * rate;
+		const amount = muhick.cost_lines.quoted(row) * rate;
 		return row.rate_includes_vat ? amount / (1 + flt(settings.vat_percent) / 100) : amount;
+	},
+	// the amount as the budget sheets show it: people x qty x rate in the line's currency, VAT as quoted
+	quoted(row) {
+		return flt(row.qty) * flt(row.rate) * (cint(row.people) || 1);
 	},
 	set_amount(frm, cdt, cdn) {
 		muhick.cost_lines.settings(frm).then((settings) => {
 			const row = locals[cdt][cdn];
 			const amount = muhick.cost_lines.amount(frm, row, settings);
-			frappe.model.set_value(cdt, cdn, flt(row.contract_percent) ? { amount, qty: 1, rate: amount } : { amount });
+			frappe.model.set_value(
+				cdt,
+				cdn,
+				flt(row.contract_percent) ? { amount, qty: 1, rate: amount, quoted_amount: amount } : { amount, quoted_amount: muhick.cost_lines.quoted(row) }
+			);
 		});
 	},
-	// one rate per currency on a budget: the one its other lines in that currency already use
+	// one rate per currency on an estimate or budget: the one its other lines in that currency already use
 	used_rate(frm, row) {
-		const other = (frm.doc[muhick.cost_lines.table(frm)] || []).find(
-			(r) => r !== row && r.currency === row.currency && flt(r.exchange_rate)
-		);
+		const others = [...muhick.cost_lines.rows(frm), ...(frm.doc.muhick_import_taxes || [])];
+		const other = others.find((r) => r !== row && r.currency === row.currency && flt(r.exchange_rate));
 		return other ? flt(other.exchange_rate) : 0;
 	},
-	// a rate changed on one line is the budget's rate for that currency: its other lines take it too
+	// a rate changed on one line is the rate for that currency: the other lines take it too
 	share_rate(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
 		if (!muhick.cost_lines.foreign(frm, row) || !flt(row.exchange_rate)) {
 			return;
 		}
-		(frm.doc[muhick.cost_lines.table(frm)] || [])
+		[...muhick.cost_lines.rows(frm), ...(frm.doc.muhick_import_taxes || [])]
 			.filter((r) => r !== row && r.currency === row.currency && flt(r.exchange_rate) !== flt(row.exchange_rate))
 			.forEach((r) => frappe.model.set_value(r.doctype, r.name, "exchange_rate", row.exchange_rate));
 	},
@@ -178,32 +207,38 @@ muhick.cost_lines = {
 			})
 			.then((rate) => rate && frappe.model.set_value(cdt, cdn, "exchange_rate", rate));
 	},
-	// lines from the server: in a currency the budget already uses, at its rate; then amounts and summary
+	// lines from the server, each into its section's table: in a currency already used, at its rate; then
+	// their amounts and the summary
 	add_rows(frm, rows) {
 		return muhick.cost_lines.settings(frm).then((settings) => {
+			const touched = new Set();
 			rows.forEach((values) => {
-				const row = frm.add_child(muhick.cost_lines.table(frm), values);
+				const table = muhick.cost_lines.table_of(frm, values.section);
+				const row = frm.add_child(table, { ...values, currency: values.currency || erpnext.get_currency(frm.doc.company) });
 				if (muhick.cost_lines.foreign(frm, row)) {
 					row.exchange_rate = muhick.cost_lines.used_rate(frm, row) || row.exchange_rate;
 				}
 				row.amount = muhick.cost_lines.amount(frm, row, settings);
+				row.quoted_amount = flt(row.contract_percent) ? row.amount : muhick.cost_lines.quoted(row);
+				touched.add(table);
 			});
-			frm.refresh_field(muhick.cost_lines.table(frm));
+			touched.forEach((table) => frm.refresh_field(table));
 			muhick.cost_lines.render_summary(frm);
 		});
 	},
 	// the lines to and from Excel: a file of the saved lines to prepare or change in Excel, and an upload
 	// that checks every row first, so a file with mistakes changes nothing
+	download(frm) {
+		if (frm.is_dirty() && !frm.is_new()) {
+			frappe.msgprint(__("Save first, so the Excel file has the latest lines."));
+			return;
+		}
+		const args = new URLSearchParams({ doctype: frm.doctype, name: frm.is_new() ? "" : frm.doc.name });
+		window.open(`/api/method/project_management_muhick.muhick_projects.estimate.download_cost_lines?${args}`);
+	},
 	excel_buttons(frm, can_upload) {
-		const grid = frm.fields_dict[muhick.cost_lines.table(frm)].grid;
-		grid.add_custom_button(__("Download Excel"), () => {
-			if (frm.is_dirty() && !frm.is_new()) {
-				frappe.msgprint(__("Save first, so the Excel file has the latest lines."));
-				return;
-			}
-			const args = new URLSearchParams({ doctype: frm.doctype, name: frm.is_new() ? "" : frm.doc.name });
-			window.open(`/api/method/project_management_muhick.muhick_projects.estimate.download_cost_lines?${args}`);
-		});
+		const grid = frm.fields_dict.lines.grid;
+		grid.add_custom_button(__("Download Excel"), () => muhick.cost_lines.download(frm));
 		if (can_upload) {
 			grid.add_custom_button(__("Upload from Excel"), () => muhick.cost_lines.upload(frm));
 		}
@@ -235,21 +270,26 @@ muhick.cost_lines = {
 			});
 			return;
 		}
-		const table = muhick.cost_lines.table(frm);
+		const taxes = frm.doctype === "Opportunity" ? result.tax_rows || [] : [];
+		const tables = [...muhick.cost_lines.tables(frm), ...(frm.doctype === "Opportunity" ? ["muhick_import_taxes"] : [])];
 		const take = (replace) => {
 			if (replace) {
-				frm.clear_table(table);
+				tables.forEach((table) => frm.clear_table(table));
 			}
+			taxes.forEach((values) =>
+				frm.add_child("muhick_import_taxes", { ...values, currency: values.currency || erpnext.get_currency(frm.doc.company) })
+			);
 			muhick.cost_lines.add_rows(frm, result.rows).then(() => {
+				tables.forEach((table) => frm.refresh_field(table));
 				frm.dirty();
-				frappe.msgprint({
-					title: __("Uploaded"),
-					indicator: "green",
-					message: lines([__("{0} line(s) taken from the Excel file. Save to keep them.", [result.rows.length]), ...result.notes]),
-				});
+				frm.trigger("render_estimate");
+				const counted = taxes.length
+					? __("{0} line(s) and {1} imported good(s) taken from the Excel file. Save to keep them.", [result.rows.length, taxes.length])
+					: __("{0} line(s) taken from the Excel file. Save to keep them.", [result.rows.length]);
+				frappe.msgprint({ title: __("Uploaded"), indicator: "green", message: lines([counted, ...result.notes]) });
 			});
 		};
-		if (!(frm.doc[table] || []).length) {
+		if (!tables.some((table) => (frm.doc[table] || []).length)) {
 			take(true);
 			return;
 		}
@@ -270,17 +310,22 @@ muhick.cost_lines = {
 			__("Upload")
 		);
 	},
-	// the lines totalled section by section (A Equipment, B Installation Materials...) against the stages, as the
-	// budget summary sheets lay them out, then the bid price or contract value, the cost and the margin
+	// a budget's lines totalled section by section (A Equipment, B Installation Materials...) against the
+	// stages, as the budget summary sheets lay them out, then the contract value, the cost and the margin; an
+	// opportunity shows its estimate sheet by sheet (opportunity.js)
 	render_summary(frm) {
-		const field = frm.fields_dict[frm.doctype === "Opportunity" ? "muhick_estimate_summary" : "phase_summary"];
+		if (frm.doctype === "Opportunity") {
+			frm.trigger("render_estimate");
+			return;
+		}
+		const field = frm.fields_dict.phase_summary;
 		if (!field) {
 			return;
 		}
 		const order = ["Equipment", "Installation Materials", "Taxes and Freight", "Labour", "Tools and Equipment", "Preliminaries", "Administrative"];
 		const cells = {};
 		const stages = [];
-		(frm.doc[muhick.cost_lines.table(frm)] || []).forEach((r) => {
+		muhick.cost_lines.rows(frm).forEach((r) => {
 			const stage = r.stage || "";
 			if (!stages.includes(stage)) {
 				stages.push(stage);
@@ -308,10 +353,9 @@ muhick.cost_lines = {
 		const by_stage = stages.map((stage) => sections.reduce((sum, section) => sum + amount(section, stage), 0));
 		const cost = by_stage.reduce((sum, value) => sum + value, 0);
 		const contract = muhick.cost_lines.contract_value(frm);
-		const price = frm.doctype === "Opportunity" ? __("Bid Price, without VAT") : __("Revised Contract Value, without VAT");
 		const position = contract
 			? `<table class="table table-condensed" style="width: auto"><tbody>` +
-			  `<tr><td>${price}</td>${right(money(contract))}</tr>` +
+			  `<tr><td>${__("Revised Contract Value, without VAT")}</td>${right(money(contract))}</tr>` +
 			  `<tr><td>${__("Total Cost, without VAT")}</td>${right(money(cost))}</tr>` +
 			  `<tr class="bold"><td>${__("Margin")}</td>${right(`${format_currency(contract - cost, currency)} (${flt(((contract - cost) / contract) * 100, 1)}%)`)}</tr>` +
 			  `</tbody></table>`
@@ -340,11 +384,17 @@ frappe.ui.form.on("Project Budget Line", {
 		muhick.cost_lines.set_exchange_rate(frm, cdt, cdn);
 		muhick.cost_lines.set_amount(frm, cdt, cdn);
 	},
+	// a new line is in the company's currency until another is chosen, so its amounts show in it
 	...Object.fromEntries(
-		["amount", "section", "stage", "lines_remove", "muhick_estimate_remove"].map((field) => [
-			field,
-			(frm) => muhick.cost_lines.render_summary(frm),
+		["lines", ...Object.keys(muhick.cost_lines.sections)].map((table) => [
+			`${table}_add`,
+			(frm, cdt, cdn) => locals[cdt][cdn].currency || frappe.model.set_value(cdt, cdn, "currency", erpnext.get_currency(frm.doc.company)),
 		])
+	),
+	...Object.fromEntries(
+		["amount", "section", "stage", "supplier", "lines_remove", ...Object.keys(muhick.cost_lines.sections).map((t) => `${t}_remove`)].map(
+			(field) => [field, (frm) => muhick.cost_lines.render_summary(frm)]
+		)
 	),
 });
 

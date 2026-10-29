@@ -72,21 +72,25 @@ def line_amount(qty, rate, people=1, exchange_rate=1, includes_vat=False, vat_pe
 	return amount / (1 + _f(vat_percent) / 100) if includes_vat else amount
 
 
-def import_costs(goods_value, freight=0, insurance_percent=0, duty_percent=0, levy_percent=0) -> dict:
-	"""What importing goods adds to their price, VAT apart (it is claimed back).
+def import_taxes(value, insurance_percent=0, duty_percent=0, vat_percent=0, levy_percent=0) -> dict:
+	"""The taxes on imported goods worth value, as the business's tax computation works them out.
 
-	Insurance is a share of the goods' value; import duty and the infrastructure levy are shares of
-	the customs value, which is goods, insurance and freight: goods 100,000, freight 10,000, insurance
-	1.5%, duty 10%, levy 1.5% -> insurance 1,500, customs value 111,500, duty 11,150, levy 1,672.50.
+	The insurance is a share of the value, and the customs value (C.I) is the value with the insurance;
+	import duty (ID) and the infrastructure levy (IL) are shares of the customs value, and VAT a share
+	of the customs value with the duty: 6,720 at 1.5% insurance, 10% duty, 18% VAT and 1.5% levy ->
+	insurance 100.80, customs value 6,820.80, duty 682.08, VAT 1,350.52, levy 102.31, total tax
+	2,134.91. What the goods cost the budget besides their price is the insurance, the duty and the
+	levy, as the VAT is claimed back.
 	"""
-	goods_value, freight = _f(goods_value), _f(freight)
-	insurance = goods_value * _f(insurance_percent) / 100
-	customs_value = goods_value + insurance + freight
+	value = _f(value)
+	insurance = value * _f(insurance_percent) / 100
+	customs_value = value + insurance
 	duty = customs_value * _f(duty_percent) / 100
+	vat = (customs_value + duty) * _f(vat_percent) / 100
 	levy = customs_value * _f(levy_percent) / 100
 	return {
-		"insurance": insurance, "freight": freight, "customs_value": customs_value, "duty": duty, "levy": levy,
-		"total": insurance + freight + duty + levy,
+		"insurance": insurance, "customs_value": customs_value, "duty": duty, "vat": vat, "levy": levy,
+		"total_tax": duty + vat + levy, "cost": insurance + duty + levy,
 	}
 
 

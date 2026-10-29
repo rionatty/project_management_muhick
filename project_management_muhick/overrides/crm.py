@@ -98,15 +98,16 @@ def validate_opportunity(doc, method=None):
 
 
 def set_estimate(doc):
-	"""The cost estimate's amounts, in the company's currency without VAT, and its total as the
-	estimated cost in the bid's currency. A line priced as a share of the contract value takes it
-	of the bid price."""
-	lines = doc.get("muhick_estimate") or []
-	if not lines:
+	"""The cost estimate, sheet by sheet: each line's amounts as quoted and in the company's currency
+	without VAT, each imported good's taxes, and what they all come to as the estimated cost in the bid's
+	currency (the insurance, duty and levy of the imports, not their VAT, which is claimed back). A line
+	priced as a share of the contract value takes it of the bid price."""
+	lines, taxes = estimate.estimate_lines(doc), doc.get(estimate.TAX_TABLE) or []
+	if not lines and not taxes:
 		return
-	estimate.arrange(lines)
 	rate = flt(doc.conversion_rate) or 1
-	doc.set("muhick_estimated_cost", estimate.set_amounts(doc, lines, flt(doc.opportunity_amount) * rate) / rate)
+	cost = estimate.set_amounts(doc, lines, flt(doc.opportunity_amount) * rate) + estimate.set_import_taxes(doc, taxes)
+	doc.set("muhick_estimated_cost", cost / rate)
 
 
 def set_checklist(doc):

@@ -29,6 +29,12 @@ FINANCIAL_REQUIREMENTS = dict(
 	description="What the bid needs in money, one line each. The bid security and the sales requisition are filled in from these lines.",
 )
 COST_CODE = dict(fieldname="muhick_cost_code", label="Cost Code", fieldtype="Link", options="Cost Code", insert_after="project")
+# the opportunity's tables of cost estimate lines, one per sheet of the budget workbook, and the tax computation
+ESTIMATE_LINES = dict(fieldtype="Table", options="Project Budget Line")
+ESTIMATE_TABLES = [
+	"muhick_equipment", "muhick_materials", "muhick_import_taxes", "muhick_freight", "muhick_labour", "muhick_tools",
+	"muhick_preliminaries", "muhick_administrative",
+]
 
 
 def _chain(after, fields):
@@ -320,7 +326,7 @@ CUSTOM_FIELDS = {
 			_sec("muhick_preparation_section", "Bid Preparation", description="A bid is complete with all three parts, and only a complete bid is submitted"),
 			dict(
 				fieldname="muhick_estimated_cost", label="Estimated Cost", fieldtype="Currency", options="currency",
-				read_only_depends_on="eval:(doc.muhick_estimate || []).length",
+				read_only_depends_on=f"eval:{json.dumps(ESTIMATE_TABLES)}.some((table) => (doc[table] || []).length)",
 				description="Without VAT: the total of the cost estimate when it has lines",
 			),
 			_ro("muhick_margin_percent", "Margin %", "Percent"),
@@ -378,17 +384,60 @@ CUSTOM_FIELDS = {
 			),
 		],
 	)
-	# what the works will cost, on the same lines as the project budget it becomes at handover
+	# what the works will cost, sheet by sheet as the business's budget workbook: a table of lines per section (the
+	# lines of the project budget it becomes at handover), the tax computation, the budget summary and the
+	# profitability
 	+ _chain(
 		"total",
 		[
-			dict(fieldname="muhick_estimate_tab", fieldtype="Tab Break", label="Cost Estimate"),
+			dict(fieldname="muhick_equipment_tab", fieldtype="Tab Break", label="Equipment"),
 			dict(
-				fieldname="muhick_estimate", label="Cost Estimate", fieldtype="Table", options="Project Budget Line",
-				description="What the works will cost, line by line, in the sections of the budget sheets: Equipment, Installation Materials, Taxes and Freight, Labour, Tools and Equipment, Preliminaries and Administrative, each line under its stage (the system or phase it is for), in the company's currency without VAT. A budget prepared in Excel, the business's own workbook included, comes in with Upload from Excel. When the project is handed over it becomes the project's budget.",
+				ESTIMATE_LINES, fieldname="muhick_equipment", label="Equipment",
+				description="The equipment to install, system by system as the Equipment sheet: brand, unit, qty, rate and supplier, the amount as quoted (VAT included where the quote has it) and without VAT in the company's currency.",
 			),
-			_sec("muhick_estimate_summary_section", "Budget Summary and Profitability"),
-			dict(fieldname="muhick_estimate_summary", label="Budget Summary and Profitability", fieldtype="HTML"),
+			dict(fieldname="muhick_equipment_totals", label="Equipment Totals", fieldtype="HTML"),
+			dict(fieldname="muhick_materials_tab", fieldtype="Tab Break", label="Installation Materials"),
+			dict(
+				ESTIMATE_LINES, fieldname="muhick_materials", label="Installation Materials",
+				description="Pipes, fittings, cables and the other materials of the installation, system by system as the Installation Materials sheet.",
+			),
+			dict(fieldname="muhick_materials_totals", label="Installation Materials Totals", fieldtype="HTML"),
+			dict(fieldname="muhick_taxes_tab", fieldtype="Tab Break", label="Taxes and Freight"),
+			dict(
+				fieldname="muhick_import_taxes", label="Tax Computation", fieldtype="Table", options="Import Tax Line",
+				description="The imported goods with their insurance, customs value (C.I), import duty (ID), VAT and infrastructure levy (IL), as the Taxes sheet. Get Imported Goods (under Cost Estimate at the top) fills it from the equipment and materials bought abroad. Goods made in the East African Community pay VAT only.",
+			),
+			dict(
+				ESTIMATE_LINES, fieldname="muhick_freight", label="Freight and Clearing",
+				description="Sea, air or road freight, clearing and the other charges of bringing the goods in",
+			),
+			dict(fieldname="muhick_taxes_totals", label="Taxes and Freight Totals", fieldtype="HTML"),
+			dict(fieldname="muhick_labour_tab", fieldtype="Tab Break", label="Labour"),
+			dict(
+				ESTIMATE_LINES, fieldname="muhick_labour", label="Labour Requirements",
+				description="Staff, trades, casuals and subcontracted installation as the Labour sheet: people × qty (months, days or a lump sum) × rate.",
+			),
+			dict(fieldname="muhick_labour_totals", label="Labour Totals", fieldtype="HTML"),
+			dict(fieldname="muhick_tools_tab", fieldtype="Tab Break", label="Tools and Equipment"),
+			dict(
+				ESTIMATE_LINES, fieldname="muhick_tools", label="Tools and Equipment",
+				description="The tools and plant the works need, bought or hired, as the Tools & Equipment sheet",
+			),
+			dict(fieldname="muhick_tools_totals", label="Tools and Equipment Totals", fieldtype="HTML"),
+			dict(fieldname="muhick_overheads_tab", fieldtype="Tab Break", label="Preliminaries and Administrative"),
+			dict(
+				ESTIMATE_LINES, fieldname="muhick_preliminaries", label="Preliminaries",
+				description="Transport, loading and site safety gear, as the Preliminaries of the Administrative sheet",
+			),
+			dict(
+				ESTIMATE_LINES, fieldname="muhick_administrative", label="Administrative Costs",
+				description="Per diems, fuel, site visits, handover, commissions and miscellaneous; a line can be a percentage of the contract value",
+			),
+			dict(fieldname="muhick_overheads_totals", label="Preliminaries and Administrative Totals", fieldtype="HTML"),
+			dict(fieldname="muhick_summary_tab", fieldtype="Tab Break", label="Budget Summary"),
+			dict(fieldname="muhick_budget_summary", label="Budget Summary", fieldtype="HTML"),
+			dict(fieldname="muhick_profitability_tab", fieldtype="Tab Break", label="Profitability"),
+			dict(fieldname="muhick_profitability", label="Profitability", fieldtype="HTML"),
 		],
 	),
 }
@@ -450,7 +499,13 @@ OPPORTUNITY_ORDER = [
 	"address_contact_section", "address_html", "customer_address", "address_display", "column_break3", "contact_html",
 	"contact_display",
 	"items_section", "items", "section_break_32", "base_total", "column_break_33", "total",
-	"muhick_estimate_tab", "muhick_estimate", "muhick_estimate_summary_section", "muhick_estimate_summary",
+	"muhick_equipment_tab", "muhick_equipment", "muhick_equipment_totals",
+	"muhick_materials_tab", "muhick_materials", "muhick_materials_totals",
+	"muhick_taxes_tab", "muhick_import_taxes", "muhick_freight", "muhick_taxes_totals",
+	"muhick_labour_tab", "muhick_labour", "muhick_labour_totals",
+	"muhick_tools_tab", "muhick_tools", "muhick_tools_totals",
+	"muhick_overheads_tab", "muhick_preliminaries", "muhick_administrative", "muhick_overheads_totals",
+	"muhick_summary_tab", "muhick_budget_summary", "muhick_profitability_tab", "muhick_profitability",
 	"activities_tab", "open_activities_html", "all_activities_section", "all_activities_html",
 	"notes_tab", "notes_html", "notes",
 	"dashboard_tab",

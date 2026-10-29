@@ -22,6 +22,7 @@
   "exchange_rate",
   "rate_includes_vat",
   "contract_percent",
+  "quoted_amount",
   "amount",
   "cost_code",
   "budget_section",
@@ -43,7 +44,7 @@
    "options": "\nEquipment\nInstallation Materials\nTaxes and Freight\nLabour\nTools and Equipment\nPreliminaries\nAdministrative"
   },
   {
-   "columns": 2,
+   "columns": 1,
    "description": "From the shared milestone list. The line takes the project's milestone of this name once the activity plan creates it.",
    "fieldname": "stage",
    "fieldtype": "Link",
@@ -91,7 +92,8 @@
    "fieldname": "uom",
    "fieldtype": "Link",
    "label": "UOM",
-   "options": "UOM"
+   "options": "UOM",
+   "columns": 1
   },
   {
    "fetch_from": "item_code.brand",
@@ -99,14 +101,16 @@
    "fieldname": "brand",
    "fieldtype": "Link",
    "label": "Brand",
-   "options": "Brand"
+   "options": "Brand",
+   "columns": 1
   },
   {
    "description": "Who the line is priced from",
    "fieldname": "supplier",
    "fieldtype": "Link",
    "label": "Supplier",
-   "options": "Supplier"
+   "options": "Supplier",
+   "columns": 1
   },
   {
    "fieldname": "column_break_1",
@@ -117,7 +121,8 @@
    "description": "For labour and allowances: the amount is people × qty × rate",
    "fieldname": "people",
    "fieldtype": "Int",
-   "label": "People"
+   "label": "People",
+   "columns": 1
   },
   {
    "columns": 1,
@@ -138,7 +143,7 @@
    "reqd": 1
   },
   {
-   "description": "Leave blank for the company's currency",
+   "description": "The currency it is quoted in; the company's when left blank",
    "fieldname": "currency",
    "fieldtype": "Link",
    "label": "Currency",
@@ -146,7 +151,7 @@
   },
   {
    "default": "1",
-   "depends_on": "eval:doc.currency",
+   "depends_on": "eval:doc.currency && doc.currency != erpnext.get_currency(parent.company)",
    "description": "The rate to the company's currency this budget uses",
    "fieldname": "exchange_rate",
    "fieldtype": "Float",
@@ -163,15 +168,25 @@
    "description": "For a line worth a share of the contract value, such as miscellaneous",
    "fieldname": "contract_percent",
    "fieldtype": "Percent",
-   "label": "% of Contract Value"
+   "label": "% of Contract Value",
+   "columns": 1
   },
   {
-   "columns": 2,
-   "description": "In the company's currency, without VAT",
+   "columns": 1,
+   "description": "People × qty × rate in the line's currency, VAT included where the rate has it: the amount the budget sheets show",
+   "fieldname": "quoted_amount",
+   "fieldtype": "Currency",
+   "label": "Amount as Quoted",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "description": "In the company's currency, without VAT: what the line costs the budget",
    "fieldname": "amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Amount",
+   "label": "Amount without VAT",
    "read_only": 1
   },
   {
@@ -232,7 +247,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-29 18:00:00.000000",
+ "modified": "2026-10-30 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget Line",

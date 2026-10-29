@@ -3,17 +3,17 @@
 
 """A bid's cost estimate, and the project budget it becomes.
 
-The estimate is built on the opportunity with the very lines of a project budget (Project Budget
-Line), in the sections of the business's budget sheets: Equipment, Installation Materials, Taxes and
-Freight, Labour, Tools and Equipment, Preliminaries and Administrative. Each line has its section, a
-stage from the shared milestone list (the system or phase it is for), an item or a description, its
-supplier and brand, its cost code, and an amount in the company's currency without VAT: people x qty x
+The estimate is built on the opportunity sheet by sheet, as the business's budget workbook: a table for
+each of Equipment, Installation Materials, Freight and Clearing, Labour, Tools and Equipment,
+Preliminaries and Administrative, with the very lines of a project budget (Project Budget Line), and
+the tax computation of the imported goods (Import Tax Line). Each line has a stage from the shared
+milestone list (the system or phase it is for), an item or a description, its supplier and brand, its
+cost code, its amount as quoted and its amount in the company's currency without VAT: people x qty x
 rate at the line's exchange rate (a rate quoted with VAT taken without it), or a share of the contract
-value. The summary reads like the business's budget summary and profitability sheets: each section by
-stage, then the bid price, the margin and its percentage. When the project is handed over, the
-estimate becomes the project's draft budget, which the Project Manager adjusts before sending it for
-approval. A budget line takes the project's milestone (phase) of its stage once the activity plan has
-created it."""
+value. The budget summary and profitability read like the workbook's. When the project is handed
+over, the estimate becomes the project's draft budget, the tax computation as its insurance, duty and
+levy, and the Project Manager adjusts it before sending it for approval. A budget line takes the
+project's milestone (phase) of its stage once the activity plan has created it."""
 
 import base64
 import difflib
@@ -49,6 +49,29 @@ DESCRIPTION_CODES = (
 	(r"contingen|miscell|correction of works|rework", "ADM-700"), (r"helmet|gumboot|glove|mask|jacket|safety|ppe", "ADM-300"),
 	(r"per diem|site visit|relocation|handover", "ADM-200"), (r"fuel|transport|loading|car service", "ADM-100"),
 )
+# the opportunity's tables of estimate lines, one per section as the sheets of the budget workbook, and its tax
+# computation
+ESTIMATE_TABLES = {
+	"muhick_equipment": "Equipment", "muhick_materials": "Installation Materials", "muhick_freight": "Taxes and Freight",
+	"muhick_labour": "Labour", "muhick_tools": "Tools and Equipment", "muhick_preliminaries": "Preliminaries",
+	"muhick_administrative": "Administrative",
+}
+TAX_TABLE = "muhick_import_taxes"
+TAX_FIELDS = (
+	"stage", "description", "supplier", "country_of_origin", "mode_of_shipment", "qty", "uom", "rate", "currency",
+	"exchange_rate", "insurance_percent", "duty_percent", "vat_percent", "levy_percent",
+)
+TAX_AMOUNTS = ("value", "insurance", "customs_value", "duty", "vat", "levy", "total_tax", "cost")
+
+
+def estimate_lines(doc) -> list:
+	"""An opportunity's estimate lines, table by table, each in its table's section."""
+	lines = []
+	for field, section in ESTIMATE_TABLES.items():
+		for line in doc.get(field) or []:
+			line.section = section
+			lines.append(line)
+	return lines
 
 
 def arrange(lines):
@@ -79,26 +102,68 @@ def propose_cost_code(section, description, item_code, enabled) -> str | None:
 
 
 def set_amounts(doc, lines, contract_value) -> float:
-	"""Each line's amount in the company's currency without VAT; returns their total. A line priced as
-	a share of the contract value reads as one lot at that amount."""
-	company_currency = frappe.get_cached_value("Company", doc.company, "default_currency") if doc.get("company") else None
+	"""Each line's amount as quoted and in the company's currency without VAT; returns the total of the
+	latter. A line priced as a share of the contract value reads as one lot at that amount."""
 	vat = flt(setting("vat_percent", DEFAULTS["vat_percent"]))
-	label = _(doc.meta.get_label(lines[0].parentfield)) if lines else ""
 	total = 0.0
 	for line in lines:
-		if line.currency and line.currency != company_currency:
-			if not flt(line.exchange_rate):
-				frappe.throw(_("{0} row {1}: give the exchange rate of {2}.").format(label, line.idx, line.currency))
-		else:
-			line.currency, line.exchange_rate = None, 1
+		company_currency = _check_currency(doc, line)
 		line.people = line.people or 1
 		line.amount = calc.line_amount(
 			line.qty, line.rate, line.people, line.exchange_rate, line.rate_includes_vat, vat, line.contract_percent, contract_value
 		)
 		if flt(line.contract_percent):
-			line.update({"qty": 1, "rate": line.amount, "people": 1, "currency": None, "exchange_rate": 1, "rate_includes_vat": 0})
+			line.update({"qty": 1, "rate": line.amount, "people": 1, "currency": company_currency, "exchange_rate": 1, "rate_includes_vat": 0})
+		line.quoted_amount = flt(line.qty) * flt(line.rate) * line.people
 		total += flt(line.amount)
 	return total
+
+
+def set_import_taxes(doc, rows) -> float:
+	"""Each imported good's taxes in its currency, as the business's tax computation works them out (see
+	calc.import_taxes); returns what they cost the budget in the company's currency."""
+	total = 0.0
+	for row in rows:
+		_check_currency(doc, row)
+		row.value = flt(row.qty) * flt(row.rate)
+		taxes = calc.import_taxes(row.value, row.insurance_percent, row.duty_percent, row.vat_percent, row.levy_percent)
+		row.update({field: taxes[field] for field in ("insurance", "customs_value", "duty", "vat", "levy", "total_tax")})
+		row.cost = taxes["cost"] * flt(row.exchange_rate)
+		total += row.cost
+	return total
+
+
+def _check_currency(doc, row) -> str | None:
+	"""A row in another currency has its exchange rate; any other is in the company's currency, named so its
+	amounts show in it, at one. Returns the company's currency."""
+	company_currency = frappe.get_cached_value("Company", doc.company, "default_currency") if doc.get("company") else None
+	if row.currency and row.currency != company_currency:
+		if not flt(row.exchange_rate):
+			label = _(doc.meta.get_label(row.parentfield)) if row.get("parentfield") else ""
+			frappe.throw(_("{0} row {1}: give the exchange rate of {2}.").format(label, row.idx, row.currency))
+	else:
+		row.currency, row.exchange_rate = company_currency, 1
+	return company_currency
+
+
+def tax_cost_lines(rows) -> list:
+	"""The budget lines a tax computation comes to: its insurance, import duty and infrastructure levy,
+	stage by stage, in the company's currency (the VAT is claimed back)."""
+	sums = defaultdict(float)
+	for row in rows:
+		for kind in ("insurance", "duty", "levy"):
+			sums[(row.get("stage") or "", kind)] += flt(row.get(kind)) * (flt(row.get("exchange_rate")) or 1)
+	enabled = set(frappe.get_all("Cost Code", filters={"disabled": 0}, pluck="name"))
+	code = propose_cost_code("Taxes and Freight", "", None, enabled)
+	labels = {"insurance": _("Insurance of the imported goods"), "duty": _("Import duty"), "levy": _("Infrastructure levy")}
+	return [
+		{
+			"section": "Taxes and Freight", "stage": stage or None, "description": labels[kind], "qty": 1, "rate": flt(amount, 2),
+			"people": 1, "exchange_rate": 1, "rate_includes_vat": 0, "cost_code": code, "procurement_type": "Not Applicable",
+		}
+		for (stage, kind), amount in sums.items()
+		if flt(amount, 2)
+	]
 
 
 def resolve_stages(project, lines):
@@ -161,7 +226,8 @@ def supplier_price(quotes, item_code, uom, company_currency) -> dict | None:
 @frappe.whitelist()
 def get_boq_lines(opportunity: str, items) -> list:
 	"""Estimate lines for BOQ items ([item_code, uom, qty, stage] each): the item at the lowest valid
-	supplier quotation for the bid, or else at its last purchase price, with its brand and cost code."""
+	supplier quotation for the bid, or else at its last purchase price, with its brand and cost code, in
+	the section its cost code gives (equipment for MAT-500, else installation materials)."""
 	bid = frappe.get_doc("Opportunity", opportunity)
 	bid.check_permission("write")
 	company_currency = frappe.get_cached_value("Company", bid.company, "default_currency")
@@ -172,8 +238,9 @@ def get_boq_lines(opportunity: str, items) -> list:
 		if not info:
 			continue
 		uom = uom or info.stock_uom
+		section = calc.section_of_cost_code(info.muhick_cost_code) if info.muhick_cost_code else None
 		row = {
-			"section": "Installation Materials",
+			"section": section if section in ("Equipment", "Tools and Equipment") else "Installation Materials",
 			"stage": stage, "item_code": item_code, "description": info.item_name, "uom": uom, "qty": flt(qty) or 1,
 			"brand": info.brand, "cost_code": info.muhick_cost_code, "people": 1, "exchange_rate": 1,
 		}
@@ -201,45 +268,25 @@ def get_supplier_prices(opportunity: str, items) -> dict:
 	return prices
 
 
-@frappe.whitelist()
-def get_import_costs(
-	goods_value: float, freight: float = 0, insurance_percent: float = 0, duty_percent: float = 0,
-	levy_percent: float = 0, stage: str | None = None, supplier: str | None = None,
-) -> list:
-	"""Estimate lines for importing goods worth goods_value in the company's currency: insurance,
-	freight, and import duty and infrastructure levy on the customs value (VAT is claimed back), under
-	the cost code for import costs."""
-	costs = calc.import_costs(goods_value, freight, insurance_percent, duty_percent, levy_percent)
-	whose = _(" on goods from {0}").format(supplier) if supplier else ""
-	rows = []
-	for key, label, percent in (
-		("insurance", _("Insurance"), insurance_percent),
-		("freight", _("Freight"), None),
-		("duty", _("Import duty"), duty_percent),
-		("levy", _("Infrastructure levy"), levy_percent),
-	):
-		if flt(costs[key]):
-			rate = f" {flt(percent):g}%" if percent is not None else ""
-			rows.append(
-				{
-					"section": "Taxes and Freight",
-					"stage": stage, "description": f"{label}{rate}{whose}", "qty": 1, "rate": costs[key], "people": 1,
-					"exchange_rate": 1, "cost_code": get_settings().get("import_cost_code"), "procurement_type": "Not Applicable",
-				}
-			)
-	return rows
-
-
 # ------------------------------------------------------------------ from the estimate to the budget
 def estimate_rows(opportunity) -> list:
-	"""The bid's cost estimate, line by line, ready to become budget lines."""
+	"""The bid's cost estimate, sheet by sheet and line by line, and the insurance, duty and levy of its tax
+	computation, ready to become budget lines."""
 	lines = frappe.get_all(
 		"Project Budget Line",
-		filters={"parent": opportunity, "parenttype": "Opportunity", "parentfield": "muhick_estimate"},
-		fields=list(LINE_FIELDS),
+		filters={"parent": opportunity, "parenttype": "Opportunity", "parentfield": ("in", list(ESTIMATE_TABLES))},
+		fields=["parentfield", "idx", *LINE_FIELDS],
+	)
+	order = {field: i for i, field in enumerate(ESTIMATE_TABLES)}
+	lines.sort(key=lambda line: (order[line.parentfield], line.idx))
+	rows = [{**{f: line.get(f) for f in LINE_FIELDS}, "section": ESTIMATE_TABLES[line.parentfield]} for line in lines]
+	taxes = frappe.get_all(
+		"Import Tax Line",
+		filters={"parent": opportunity, "parenttype": "Opportunity", "parentfield": TAX_TABLE},
+		fields=["stage", "exchange_rate", "insurance", "duty", "levy"],
 		order_by="idx asc",
 	)
-	return [{f: line.get(f) for f in LINE_FIELDS} for line in lines]
+	return rows + tax_cost_lines(taxes)
 
 
 @frappe.whitelist()
@@ -358,8 +405,9 @@ def _period(phase) -> str:
 
 # ------------------------------------------------------------------ to and from Excel
 # an estimate or budget prepared in Excel comes in through the workbook the system gives out, laid out as the
-# business's budget sheets (a sheet per section, one row per line), or through the business's own workbook
-TABLES = {"Opportunity": "muhick_estimate", "Project Budget": "lines"}
+# business's budget sheets (a sheet per section, one row per line, and the tax computation), or through the
+# business's own workbook
+TABLES = {"Opportunity": [*ESTIMATE_TABLES, TAX_TABLE], "Project Budget": ["lines"]}
 EXCEL_COLUMNS = (
 	# "Item Code", not "Item": budget sheets often number their rows in an Item column
 	("stage", "Stage"), ("item_code", "Item Code"), ("description", "Description"), ("uom", "UOM"), ("brand", "Brand"),
@@ -377,8 +425,8 @@ HEADING_ALIASES = {
 SECTION_NAMES = {
 	"equipment": "Equipment", "installationequipment": "Equipment",
 	"installationmaterials": "Installation Materials", "materials": "Installation Materials",
-	"taxesandfreight": "Taxes and Freight", "taxes": "Taxes and Freight", "taxcomputations": "Taxes and Freight",
-	"importcosts": "Taxes and Freight",
+	"taxesandfreight": "Taxes and Freight", "taxes": "Taxes and Freight", "taxcomputation": "Taxes and Freight",
+	"taxcomputations": "Taxes and Freight", "importcosts": "Taxes and Freight", "freightandclearing": "Taxes and Freight",
 	"labour": "Labour", "labor": "Labour", "labourrequirement": "Labour", "labourrequirements": "Labour",
 	"toolsandequipment": "Tools and Equipment", "toolsequipment": "Tools and Equipment", "tools": "Tools and Equipment",
 	"preliminaries": "Preliminaries",
@@ -392,11 +440,21 @@ UNIT_ALIASES = {
 }
 # other units budget sheets write, telling a unit from a brand in a row laid out unlike its heading row
 UNIT_WORDS = ("month", "months", "lump", "lumpsum", "ls", "item", "items", "trip", "trips", "bag", "bags", "packet", "packets", "roll", "lot")
-# the columns of a tax computation, as the business's Taxes sheet heads them
-TAX_COLUMNS = {
-	"insurance": "insurance", "id": "duty", "duty": "duty", "importduty": "duty", "il": "levy", "levy": "levy",
-	"infrastructurelevy": "levy", "vat": "vat",
+# the columns of a tax computation, as the business's Taxes sheet and the Tax Computation sheet given out here
+# head them
+TAX_HEADINGS = {
+	"total": "value", "insurance": "insurance", "ci": "customs_value", "customsvalue": "customs_value", "id": "duty",
+	"importduty": "duty", "vat": "vat", "il": "levy", "infrastructurelevy": "levy", "totaltax": "total_tax",
+	"insurancerate": "insurance_percent", "dutyrate": "duty_percent", "vatrate": "vat_percent", "levyrate": "levy_percent",
+	"countryoforigin": "country_of_origin", "modeofshipment": "mode_of_shipment",
 }
+TAX_EXCEL_COLUMNS = (
+	("stage", "Stage"), ("description", "Description"), ("supplier", "Supplier"), ("country_of_origin", "Country of Origin"),
+	("mode_of_shipment", "Mode of Shipment"), ("qty", "Qty"), ("uom", "UOM"), ("rate", "Rate"), ("currency", "Currency"),
+	("exchange_rate", "Exchange Rate"), ("insurance_percent", "Insurance Rate %"), ("duty_percent", "Duty Rate %"),
+	("vat_percent", "VAT Rate %"), ("levy_percent", "Levy Rate %"),
+)
+SHIPMENT_MODES = ("Sea Freight", "Air Freight", "Road Freight", "Sea and Air Freight")
 PROCUREMENT_TYPES = ("Local", "International", "From Stock", "Not Applicable")
 YES = ("yes", "y", "true", "1", "x")
 # a heading's numbering (A., 1., 1.2), a sheet or heading naming a phase (Phase 1), and a share of the contract
@@ -423,18 +481,21 @@ def _cost_doc(doctype, name, ptype):
 @frappe.whitelist()
 def download_cost_lines(doctype: str, name: str | None = None):
 	"""A workbook of an estimate's or a budget's lines to prepare or change in Excel and upload again: a sheet
-	per section, as in the business's budget sheets, each line's amount worked out as on screen, and lists
-	to pick the stage, cost code, currency, procurement type and VAT from, on a sheet of their own."""
+	per section, as in the business's budget sheets, each line's amount worked out as on screen, an
+	estimate's tax computation with its formulas, and lists to pick the stage, cost code, currency,
+	procurement type, VAT, country and shipment from, on a sheet of their own."""
 	from openpyxl import Workbook
 
 	doc = _cost_doc(doctype, name, "read")
-	lines = doc.get(TABLES[doctype]) if doc else []
+	lines = _doc_lines(doctype, doc)
 	book = Workbook()
 	book.remove(book.active)
 	lists = _lists(book)
 	vat = flt(setting("vat_percent", DEFAULTS["vat_percent"]))
 	unplaced = [line for line in lines if line.section not in SECTIONS]
 	for section in [*SECTIONS, *(["Other"] if unplaced else [])]:
+		if section == "Taxes and Freight" and doctype == "Opportunity":
+			_tax_sheet(book, doc.get(TAX_TABLE) if doc else [], lists)
 		own = unplaced if section == "Other" else [line for line in lines if line.section == section]
 		_lines_sheet(book, section, own, vat, lists)
 	book.move_sheet("Lists", offset=len(book.sheetnames))
@@ -459,6 +520,8 @@ def _lists(book) -> dict:
 		"currency": ("E", ["Currency", *frappe.get_all("Currency", filters={"enabled": 1}, pluck="name", order_by="name asc")]),
 		"procurement_type": ("F", ["Procurement Type", *PROCUREMENT_TYPES]),
 		"rate_includes_vat": ("G", ["Rate Includes VAT", "Yes", "No"]),
+		"country_of_origin": ("H", ["Country of Origin", *frappe.get_all("Country", pluck="name", order_by="name asc")]),
+		"mode_of_shipment": ("I", ["Mode of Shipment", *SHIPMENT_MODES]),
 	}
 	for column, values in columns.values():
 		for r, value in enumerate(values, 1):
@@ -496,11 +559,49 @@ def _lines_sheet(book, title, lines, vat, lists):
 		sheet.add_data_validation(rule)
 
 
+def _tax_sheet(book, rows, lists):
+	"""The Tax Computation sheet, as the business's Taxes sheet: each imported good with its rates, and its
+	total, insurance, customs value (C.I), import duty (ID), VAT, levy (IL) and total tax as formulas."""
+	from openpyxl.styles import Font
+	from openpyxl.worksheet.datavalidation import DataValidation
+
+	sheet = book.create_sheet("Tax Computation")
+	sheet.append([heading for _field, heading in TAX_EXCEL_COLUMNS] + ["Total", "Insurance", "C.I", "ID", "VAT", "IL", "Total Tax"])
+	for row in rows:
+		sheet.append([row.get(f) for f, _heading in TAX_EXCEL_COLUMNS])
+	last = len(rows) + 100
+	for r in range(2, last + 1):
+		# F qty, H rate, K insurance rate, L duty rate, M VAT rate, N levy rate
+		for column, formula in zip(
+			"OPQRSTU",
+			(f"N(F{r})*N(H{r})", f"O{r}*N(K{r})/100", f"O{r}+P{r}", f"Q{r}*N(L{r})/100", f"(Q{r}+R{r})*N(M{r})/100", f"Q{r}*N(N{r})/100", f"R{r}+S{r}+T{r}"),
+		):
+			sheet[f"{column}{r}"] = f"={formula}"
+		for column in "HJOPQRSTU":
+			sheet[f"{column}{r}"].number_format = "#,##0.00"
+	for cell in sheet[1]:
+		cell.font = Font(bold=True)
+	sheet.freeze_panes = "C2"
+	for column, width in zip("ABCDEFGHIJKLMNOPQRSTU", (22, 40, 22, 16, 16, 8, 8, 12, 9, 10, 10, 10, 10, 10, 14, 12, 14, 12, 12, 12, 14)):
+		sheet.column_dimensions[column].width = width
+	for column, field in (("A", "stage"), ("D", "country_of_origin"), ("E", "mode_of_shipment"), ("I", "currency")):
+		rule = DataValidation(type="list", formula1=lists[field], allow_blank=True)
+		rule.add(f"{column}2:{column}{last}")
+		sheet.add_data_validation(rule)
+
+
+def _doc_lines(doctype, doc) -> list:
+	"""The estimate's or budget's lines, each in its section."""
+	if not doc:
+		return []
+	return estimate_lines(doc) if doctype == "Opportunity" else list(doc.get("lines") or [])
+
+
 @frappe.whitelist()
 def read_cost_lines(doctype: str, filename: str, content: str, name: str | None = None, company: str | None = None) -> dict:
-	"""The cost lines of an uploaded Excel (.xlsx or .xls) or CSV file, checked row by row: {rows, errors,
-	notes}. Every sheet with a heading row (Description or Item Code, and Qty, Rate or % of Contract Value)
-	is read: the workbook downloaded from here, and the business's own budget sheets.
+	"""The cost lines of an uploaded Excel (.xlsx or .xls) or CSV file, checked row by row: {rows, tax_rows,
+	errors, notes}. Every sheet with a heading row (Description or Item Code, and Qty, Rate or % of Contract
+	Value) is read: the workbook downloaded from here, and the business's own budget sheets.
 
 	A line's section is its Section column, else the heading row above it naming one (PRELIMINARIES,
 	LABOUR REQUIREMENT...), else its sheet's name (Equipment, Labour...). Its stage is its Stage column,
@@ -508,37 +609,45 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 	it naming a system (SOLAR WATER HEATING): the milestone of that name or nearly, else a new one for the
 	milestone list. In Labour, a No column is the number of people. A row laid out unlike its heading row,
 	as a labour block copied under the materials headings, is read from what its cells hold, as its own
-	amount bears out. A tax computation (the Taxes sheet) comes in as its insurance, import duty, levy and
-	freight. Other rows without a qty, rate or percentage are headings or totals. A line given no cost code
-	is proposed one; a sheet without a Rate Includes VAT column has local equipment, materials and tools
+	amount bears out. A tax computation (the Taxes sheet, or the Tax Computation sheet given out here)
+	comes in good by good with its rates, each in the stage of the line of its description, and its
+	freight as lines; a budget, which has no tax computation, takes its insurance, duty and levy as lines.
+	Other rows without a qty, rate or percentage are headings or totals. A line given no cost code is
+	proposed one; a sheet without a Rate Includes VAT column has local equipment, materials and tools
 	quoted with VAT. With any error nothing is taken, so the file can be corrected and uploaded again."""
 	doc = _cost_doc(doctype, name, "write")
 	lists = {
 		doctype_: {n.lower(): n for n in frappe.get_all(doctype_, pluck="name")}
-		for doctype_ in ("Task Type", "Currency", "UOM", "Brand")
+		for doctype_ in ("Task Type", "Currency", "UOM", "Brand", "Country")
 	}
 	milestones = _stage_index(lists["Task Type"].values())
-	raw, skipped, sheet_notes = [], 0, []
+	settings = get_estimate_settings()
+	tax_defaults = {
+		"insurance_percent": settings["import_insurance_percent"], "duty_percent": settings["import_duty_percent"],
+		"vat_percent": settings["vat_percent"], "levy_percent": settings["import_levy_percent"],
+	}
+	raw, goods, skipped = [], [], 0
 	for sheet, rows in _read_sheets(filename, base64.b64decode(content.split(",", 1)[-1])):
-		lines, sheet_skipped, note = _sheet_lines(sheet, rows, milestones, set(lists["UOM"]))
-		raw += lines
-		skipped += sheet_skipped
-		sheet_notes += [note] if note else []
-	if not raw:
+		found = _sheet_lines(sheet, rows, milestones, set(lists["UOM"]), tax_defaults)
+		raw += found["lines"]
+		goods += found["goods"]
+		skipped += found["skipped"]
+	if not raw and not goods:
 		return {
-			"rows": [], "notes": [],
+			"rows": [], "tax_rows": [], "notes": [],
 			"errors": [_("No cost lines found. A sheet needs a heading row naming Description, Qty and Rate, as in the Excel file downloaded from here.")],
 		}
 
 	# the stages named in the file, as milestones of the list; those not in it are added when the user may
-	stage_texts = Counter(_text(v.get("stage")) for _w, v, _g in raw if _text(v.get("stage")))
+	everything = [values for _where, values, _given in raw + goods]
+	stage_texts = Counter(_text(v.get("stage")) for v in everything if _text(v.get("stage")))
 	stages = {text: _match_stage(text, milestones) for text in stage_texts}
 	new_stages = _new_stages({text: count for text, count in stage_texts.items() if not stages[text]})
 	may_add_stages = frappe.has_permission("Task Type", "create")
 	if may_add_stages:
 		stages.update(new_stages)
 
-	wanted = lambda field: {_text(v.get(field)) for _w, v, _g in raw if _text(v.get(field))}  # noqa: E731
+	wanted = lambda field: {_text(v.get(field)) for v in everything if _text(v.get(field))}  # noqa: E731
 	items, suppliers = _named("Item", wanted("item_code"), "item_name"), _named("Supplier", wanted("supplier"), "supplier_name")
 	codes, budget_sections = {}, {}
 	for code in frappe.get_all("Cost Code", filters={"disabled": 0}, fields=["name", "cost_code_name", "budget_section"]):
@@ -566,38 +675,21 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 		)
 		if not row["description"]:
 			problems.append(_("give an item or a description"))
-		unit = _text(values.get("uom"))
-		if unit:
-			row["uom"] = lists["UOM"].get(unit.lower()) or lists["UOM"].get(UNIT_ALIASES.get(unit.lower().rstrip("."), "").lower())
-			if not row["uom"]:
-				unknown[_("Units not in the unit list, left blank")].add(unit)
+		row["uom"] = _unit(values, lists, unknown)
 		for field, records, label in (("brand", lists["Brand"], _("Brand")), ("supplier", suppliers, _("Supplier"))):
 			value = _text(values.get(field))
 			row[field] = records.get(value.lower()) if value else None
 			if value and not row[field]:
 				unknown[_("Not in the {0} list, kept in the remarks").format(label.lower())].add(value)
 				extra.append(f"{label}: {value}")
-		for field in ("people", "qty", "rate", "exchange_rate", "contract_percent"):
-			value = values.get(field)
-			if _text(value):
-				number = _number(value)
-				if number is None:
-					problems.append(_("{0} is not a number").format(value))
-				else:
-					row[field] = number
+		problems += _numbers(values, row, ("people", "qty", "rate", "exchange_rate", "contract_percent"))
 		share = CONTRACT_SHARE.search(row["description"]) if not row.get("rate") and not row.get("contract_percent") else None
 		if share:
 			row["contract_percent"] = flt(share.group(1))
 			shares += 1
 		row["people"] = int(row["people"]) or 1
 		row["qty"] = row.get("qty", 1) if not row.get("contract_percent") else 1
-		currency = _text(values.get("currency"))
-		if currency and currency.lower() != (company_currency or "").lower():
-			row["currency"] = lists["Currency"].get(currency.lower())
-			if not row["currency"]:
-				problems.append(_("currency {0} is not in the currency list").format(currency))
-		else:
-			row["currency"], row["exchange_rate"] = None, 1
+		problems += _currency(values, row, lists, company_currency)
 		code = _text(values.get("cost_code"))
 		if code:
 			row["cost_code"] = codes.get(code.lower())
@@ -629,16 +721,37 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 			errors.append(f"{where}: {'; '.join(problems)}")
 		rows.append(row)
 
+	# the tax computation's goods, each in the stage of the line of its description when it names none
+	staged = {_key(r["description"]): r["stage"] for r in rows if r.get("stage")}
+	tax_rows = []
+	for where, values, _given in goods:
+		row = {"description": _text(values.get("description"))}
+		row["stage"] = stages.get(_text(values.get("stage"))) or _staged(row["description"], staged)
+		row["uom"] = _unit(values, lists, unknown)
+		supplier, country, mode = (_text(values.get(f)) for f in ("supplier", "country_of_origin", "mode_of_shipment"))
+		row["supplier"] = suppliers.get(supplier.lower()) if supplier else None
+		row["country_of_origin"] = lists["Country"].get(country.lower()) if country else None
+		row["mode_of_shipment"] = next((m for m in SHIPMENT_MODES if m.lower() == mode.lower()), None) if mode else None
+		for value, found, label in ((supplier, row["supplier"], _("supplier")), (country, row["country_of_origin"], _("country"))):
+			if value and not found:
+				unknown[_("Imported goods: not in the {0} list, left blank").format(label)].add(value)
+		problems = _numbers(values, row, ("qty", "rate", "exchange_rate", *tax_defaults))
+		row["qty"] = row.get("qty", 1)
+		problems += _currency(values, row, lists, company_currency)
+		if problems:
+			errors.append(f"{where}: {'; '.join(problems)}")
+		tax_rows.append(row)
+
 	# a row in a currency without a rate takes the rate its currency has elsewhere in the file, else on the
 	# lines already here, else today's rate
 	given, used, today_rates = {}, {}, {}
-	for row in rows:
+	for row in rows + tax_rows:
 		if row.get("currency") and flt(row.get("exchange_rate")):
 			given.setdefault(row["currency"], row["exchange_rate"])
-	for line in doc.get(TABLES[doctype]) if doc else []:
+	for line in [*_doc_lines(doctype, doc), *((doc.get(TAX_TABLE) or []) if doc and doctype == "Opportunity" else [])]:
 		if line.currency and flt(line.exchange_rate):
 			used.setdefault(line.currency, line.exchange_rate)
-	for row in rows:
+	for row in rows + tax_rows:
 		if not row.get("currency"):
 			row["exchange_rate"] = 1
 		elif not flt(row.get("exchange_rate")):
@@ -648,14 +761,30 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 
 				today_rates[currency] = flt(get_exchange_rate(currency, company_currency)) if company_currency else 0
 			row["exchange_rate"] = given.get(currency) or used.get(currency) or today_rates.get(currency)
-	missing = sorted({r["currency"] for r in rows if r.get("currency") and not flt(r.get("exchange_rate"))})
+	missing = sorted({r["currency"] for r in rows + tax_rows if r.get("currency") and not flt(r.get("exchange_rate"))})
 	errors += [_("Give the exchange rate of {0} on at least one of its rows.").format(c) for c in missing]
 	if errors:
 		more = [_("... and {0} more.").format(len(errors) - 40)] if len(errors) > 40 else []
-		return {"rows": [], "errors": errors[:40] + more, "notes": []}
+		return {"rows": [], "tax_rows": [], "errors": errors[:40] + more, "notes": []}
 
-	added = sorted({ensure_milestone(n) for n in new_stages.values()}) if may_add_stages else []
 	notes = [f"{label}: {', '.join(sorted(values))}" for label, values in unknown.items()]
+	for row in tax_rows:
+		row["value"] = flt(row["qty"]) * flt(row.get("rate"))
+		taxes = calc.import_taxes(row["value"], *(row.get(f) for f in tax_defaults))
+		row.update({field: flt(taxes[field], 2) for field in ("insurance", "customs_value", "duty", "vat", "levy", "total_tax")})
+		row["cost"] = flt(taxes["cost"] * flt(row["exchange_rate"]), 2)
+	if doctype != "Opportunity" and tax_rows:
+		# a budget has no tax computation: what it comes to is lines of insurance, duty and levy
+		rows += tax_cost_lines(tax_rows)
+		vat = defaultdict(float)
+		for row in tax_rows:
+			vat[row.get("currency") or company_currency] += flt(row["vat"])
+		notes += [
+			_("The import VAT of {0} {1} was left out, as it is claimed back.").format(f"{amount:,.2f}", currency)
+			for currency, amount in vat.items() if flt(amount)
+		]
+		tax_rows = []
+	added = sorted({ensure_milestone(n) for n in new_stages.values()}) if may_add_stages else []
 	if added:
 		notes.append(_("Stages added to the milestone list: {0}").format(", ".join(added)))
 	elif new_stages:
@@ -668,30 +797,83 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 		notes.append(_("{0} local equipment, materials and tools line(s) were taken as quoted with VAT, as the budget sheets have them.").format(vat_assumed))
 	if shares:
 		notes.append(_("{0} line(s) were priced as the share of the contract value their description gives.").format(shares))
+	if tax_rows:
+		notes.append(_("{0} imported good(s) came into the tax computation with their rates.").format(len(tax_rows)))
 	notes += [
 		_("{0} lines are at today's rate of {1}; change it on one line and the others follow.").format(c, flt(r, 2))
 		for c, r in today_rates.items() if r
 	]
-	notes += sheet_notes
 	if skipped:
 		notes.append(_("{0} row(s) without a qty, rate or percentage were skipped as headings or totals.").format(skipped))
-	return {"rows": [{f: row.get(f) for f in LINE_FIELDS} for row in rows], "errors": [], "notes": notes}
+	return {
+		"rows": [{f: row.get(f) for f in LINE_FIELDS} for row in rows],
+		"tax_rows": [{f: row.get(f) for f in (*TAX_FIELDS, *TAX_AMOUNTS)} for row in tax_rows],
+		"errors": [],
+		"notes": notes,
+	}
 
 
-def _sheet_lines(sheet, rows, milestones, units):
-	"""([(where, values, whether the sheet gives the VAT)], rows skipped, a note) of one sheet: its lines with
-	the section and stage the sheet gives each (see read_cost_lines), or the costs of a tax computation."""
+def _unit(values, lists, unknown):
+	"""The unit list's unit an uploaded row names, as such or as budget sheets write it; None for none."""
+	unit = _text(values.get("uom"))
+	if not unit:
+		return None
+	found = lists["UOM"].get(unit.lower()) or lists["UOM"].get(UNIT_ALIASES.get(unit.lower().rstrip("."), "").lower())
+	if not found:
+		unknown[_("Units not in the unit list, left blank")].add(unit)
+	return found
+
+
+def _numbers(values, row, fields) -> list:
+	"""The numbers of an uploaded row put on the line; the problems of those that are not."""
+	problems = []
+	for field in fields:
+		value = values.get(field)
+		if _text(value):
+			number = _number(value)
+			if number is None:
+				problems.append(_("{0} is not a number").format(value))
+			else:
+				row[field] = number
+	return problems
+
+
+def _currency(values, row, lists, company_currency) -> list:
+	"""An uploaded row's currency on the line, none for the company's; the problem of one not in the list."""
+	currency = _text(values.get("currency"))
+	if currency and currency.lower() != (company_currency or "").lower():
+		row["currency"] = lists["Currency"].get(currency.lower())
+		if not row["currency"]:
+			return [_("currency {0} is not in the currency list").format(currency)]
+	else:
+		row["currency"], row["exchange_rate"] = None, 1
+	return []
+
+
+def _staged(description, staged):
+	"""The stage of the line of an imported good's description ({description key: stage}): the same
+	description, or one starting the other."""
+	key = _key(description)
+	if key in staged:
+		return staged[key]
+	return next((stage for other, stage in staged.items() if len(key) >= 12 and (other.startswith(key) or key.startswith(other))), None)
+
+
+def _sheet_lines(sheet, rows, milestones, units, tax_defaults):
+	"""{lines: [(where, values, whether the sheet gives the VAT)], goods: the imported goods of a tax
+	computation, skipped: rows skipped} of one sheet: its lines with the section and stage the sheet gives
+	each (see read_cost_lines)."""
 	header, columns, money, number_column = _heading_row(rows)
 	if header is None:
-		return [], 0, None
+		return {"lines": [], "goods": [], "skipped": 0}
 	titles = [t for t in (_heading_text(_row_text(r)) for r in rows[:header]) if t]
 	section = SECTION_NAMES.get(_key(_heading_text(sheet)))
 	above = next((SECTION_NAMES[_key(t)] for t in reversed(titles) if _key(t) in SECTION_NAMES), None)
 	if above and (not section or {section, above} <= {"Preliminaries", "Administrative"}):
 		section = above
-	taxes = _tax_lines(sheet, rows, header, money) if section == "Taxes and Freight" else None
+	taxes = _tax_lines(sheet, rows, header, columns, money, tax_defaults) if section == "Taxes and Freight" else None
 	if taxes:
-		return taxes
+		return {"lines": taxes[1], "goods": taxes[0], "skipped": 0}
 	# a phase's sheet (Phase 1), or one named after a milestone, gives all its lines that stage; on other sheets
 	# the headings of the systems do, the first possibly just above the heading row
 	fixed = sheet if not section and (_phase(_stage_words(sheet)) or _match_stage(sheet, milestones)) else None
@@ -736,7 +918,7 @@ def _sheet_lines(sheet, rows, milestones, units):
 		if not _text(values.get("currency")) and len(set(priced.values())) == 1:
 			values["currency"] = next(iter(priced.values()))
 		lines.append((_("{0} row {1}").format(sheet, number), values, vat_given))
-	return lines, skipped, None
+	return {"lines": lines, "goods": [], "skipped": skipped}
 
 
 def _fits(values, amount) -> bool:
@@ -774,36 +956,52 @@ def _realign(values, row, columns, amount, units):
 	return {**values, "people": people, "qty": qty, "uom": unit, "brand": next((t for t in texts if t != unit), None)}
 
 
-def _tax_lines(sheet, rows, header, money):
-	"""A tax computation, as the business's Taxes sheet (imported items with their insurance, import duty ID,
-	VAT and levy IL, the freight below them), as Taxes and Freight lines of the insurance, duty, levy and
-	freight it comes to in the sheet's currency, the VAT left out as it is claimed back: ([(where, values,
-	False)], 0, a note of the VAT left out). None for a sheet that is not one."""
-	kinds = {c: TAX_COLUMNS[_key(v)] for c, v in enumerate(rows[header]) if _key(v) in TAX_COLUMNS}
-	if len(set(kinds.values()) - {"vat"}) < 2:
+def _tax_lines(sheet, rows, header, columns, money, defaults):
+	"""A tax computation, as the business's Taxes sheet or the Tax Computation sheet given out here: (its
+	imported goods, each the values of a tax computation line, [(where, values, False)]; the freight below
+	them as lines of Taxes and Freight). None for a sheet that is not one. A sheet giving the taxes but not
+	their rates, as the Taxes sheet, has each good's rates worked out from its own figures, so they stand;
+	a good without figures takes the usual rates."""
+	heads = {}
+	for c, value in enumerate(rows[header]):
+		key = _key(_heading_text(value))
+		if c not in columns and key in TAX_HEADINGS:
+			heads[c] = TAX_HEADINGS[key]
+	if len({"insurance", "duty", "levy"} & set(heads.values())) < 2:
 		return None
 	currency = next(iter(money.values()), "")
-	sums, freight = defaultdict(float), []
-	for row in rows[header + 1 :]:
+	goods, freight = [], []
+	for number, row in enumerate(rows[header + 1 :], header + 2):
+		values = {field: row[c] if c < len(row) else None for c, field in {**columns, **heads}.items()}
 		text = _row_text(row)
-		if "freight" in text.lower():
+		where = _("{0} row {1}").format(sheet, number)
+		if "total" in text.lower():
+			continue
+		if "freight" in text.lower() and not _number(values.get("qty")):
 			amount = next((float(v) for v in reversed(row) if isinstance(v, (int, float)) and v), None)
 			if amount:
-				freight.append((re.split(r"[/(]", text)[0].strip() or _("Freight"), amount))
-		elif "total" not in text.lower():
-			for c, kind in kinds.items():
-				sums[kind] += (_number(row[c]) or 0) if c < len(row) else 0
-
-	def line(label, amount):
-		values = {"section": "Taxes and Freight", "description": label, "qty": 1, "rate": amount, "currency": currency}
-		return (f"{sheet}: {label}", values, False)
-
-	labels = (("insurance", _("Insurance")), ("duty", _("Import duty")), ("levy", _("Infrastructure levy")))
-	lines = [line(label, flt(sums[kind], 2)) for kind, label in labels if flt(sums[kind], 2)]
-	lines += [line(label, amount) for label, amount in freight]
-	vat = flt(sums["vat"], 2)
-	note = _("Import VAT of {0} {1} on sheet {2} was left out, as it is claimed back.").format(f"{vat:,.2f}", currency, sheet) if vat else None
-	return lines, 0, note
+				line = {"section": "Taxes and Freight", "description": re.split(r"[/(]", text)[0].strip() or _("Freight"), "qty": 1, "rate": amount}
+				freight.append((where, {**line, "currency": _text(values.get("currency")) or currency}, False))
+			continue
+		if not _text(values.get("description")):
+			continue
+		value = _number(values.get("value"))
+		if value is None:
+			value = (_number(values.get("qty")) or 1) * (_number(values.get("rate")) or 0)
+		insurance, duty = _number(values.get("insurance")), _number(values.get("duty"))
+		customs = _number(values.get("customs_value"))
+		if customs is None:
+			customs = value + (insurance or 0)
+		bases = {
+			"insurance_percent": (insurance, value), "duty_percent": (duty, customs),
+			"vat_percent": (_number(values.get("vat")), customs + (duty or 0)), "levy_percent": (_number(values.get("levy")), customs),
+		}
+		for field, (amount, base) in bases.items():
+			if _number(values.get(field)) is None:
+				values[field] = flt(amount / base * 100, 2) if amount is not None and base else defaults[field]
+		values["currency"] = _text(values.get("currency")) or currency
+		goods.append((where, values, False))
+	return goods, freight
 
 
 def _heading_row(rows):
