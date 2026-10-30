@@ -96,6 +96,8 @@
   "bids_section",
   "bid_deadline_alert_days",
   "bid_cost_code",
+  "bid_follow_up_days",
+  "big_bid_amount",
   "text_messages_section",
   "send_sms_alerts"
  ],
@@ -628,6 +630,19 @@
    "options": "Cost Code"
   },
   {
+   "default": "7",
+   "description": "Once a bid is submitted, its first follow-up is due this many days later",
+   "fieldname": "bid_follow_up_days",
+   "fieldtype": "Int",
+   "label": "First Follow-up After Submission (Days)"
+  },
+  {
+   "description": "A submitted bid worth at least this (in the company's currency) is followed up with management: a follow-up three days overdue goes to the Head of Sales, a week overdue to the General Manager",
+   "fieldname": "big_bid_amount",
+   "fieldtype": "Currency",
+   "label": "Big Bid Value"
+  },
+  {
    "fieldname": "text_messages_section",
    "fieldtype": "Section Break",
    "label": "Text Messages"
@@ -643,7 +658,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-28 20:00:00.000000",
+ "modified": "2026-10-30 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Settings",

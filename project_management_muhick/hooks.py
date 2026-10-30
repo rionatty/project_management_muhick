@@ -51,8 +51,13 @@ doctype_js = {
 # the opportunity list shows each bid's status
 doctype_list_js = {"Opportunity": "public/js/opportunity_list.js"}
 
-# for the Budget Summary print format
-jinja = {"methods": ["project_management_muhick.muhick_projects.estimate.budget_summary"]}
+# for the Budget Summary print of a project budget and the Bid Budget print of an opportunity
+jinja = {
+	"methods": [
+		"project_management_muhick.muhick_projects.estimate.budget_summary",
+		"project_management_muhick.muhick_projects.estimate.bid_budget",
+	]
+}
 
 override_doctype_dashboards = {
 	"Project": "project_management_muhick.overrides.dashboards.get_project_dashboard",

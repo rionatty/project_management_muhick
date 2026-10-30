@@ -8,8 +8,7 @@ frappe.ui.form.on("Lead", {
 		// requirements are answered on the opportunity, while the technical bid is prepared
 		const grid = frm.fields_dict.muhick_requirements && frm.fields_dict.muhick_requirements.grid;
 		if (grid) {
-			grid.toggle_display("compliance", false);
-			grid.toggle_display("remarks", false);
+			["item_code", "compliance", "remarks", "data_sheet"].forEach((field) => grid.toggle_display(field, false));
 		}
 		if (frm.doc.qualification_status === "Qualified" && !["Opportunity", "Quotation", "Converted"].includes(frm.doc.status)) {
 			frm.set_intro(__("Qualified. The next step is Create > Opportunity."), "blue");

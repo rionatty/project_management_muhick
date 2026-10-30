@@ -1,13 +1,14 @@
 # Copyright (c) 2026, CyveTech and contributors
 # For license information, please see license.txt
 
-"""Daily reminders: accountability, site reports, claims, warranties, phases, payables, shipments."""
+"""Daily reminders: accountability, site reports, claims, warranties, phases, payables, shipments, bids and
+their follow-ups."""
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, formatdate, getdate, nowdate
+from frappe.utils import add_days, flt, formatdate, getdate, nowdate
 
-from project_management_muhick.utils.common import FINANCE_ROLES, PRM, PRO, get_settings, notify, notify_roles, project_manager_of
+from project_management_muhick.utils.common import FINANCE_ROLES, GM, PRM, PRO, get_settings, notify, notify_roles, project_manager_of
 
 WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -224,18 +225,29 @@ def bids_needing_attention():
 			),
 			doc=frappe._dict(doctype="Opportunity", name=d.parent),
 		)
+	follow_ups_due(today)
+
+
+def follow_ups_due(today):
+	"""Submitted bids due for a follow-up: the sales engineer is reminded on the day and every three days
+	after; a big bid's follow-up overdue by three days goes to the Head of Sales too, and by a week to the
+	General Manager, as management follows up the big bids."""
+	big = flt(get_settings().big_bid_amount)
 	for o in frappe.get_all(
 		"Opportunity",
-		filters={"sales_stage": "Under Evaluation", "expected_closing": ("<", today)},
-		fields=["name", "customer_name", "opportunity_owner", "expected_closing"],
+		filters={"sales_stage": ("in", ("Submitted", "Under Evaluation")), "muhick_next_follow_up": ("<=", today)},
+		fields=["name", "customer_name", "opportunity_owner", "muhick_next_follow_up", "base_opportunity_amount"],
 	):
-		notify(
-			[o.opportunity_owner],
-			_("Follow up bid {0} ({1}): its award was expected on {2}. Report the outcome, or move the Expected Award Date to the next follow-up.").format(
-				o.name, o.customer_name, formatdate(o.expected_closing)
-			),
-			doc=frappe._dict(doctype="Opportunity", name=o.name),
+		late = (today - getdate(o.muhick_next_follow_up)).days
+		if late % 3 and late != 7:
+			continue
+		message = _("Follow up bid {0} ({1}): a follow-up was due on {2}. Record it on the bid with the next follow-up date.").format(
+			o.name, o.customer_name, formatdate(o.muhick_next_follow_up)
 		)
+		roles = []
+		if big and flt(o.base_opportunity_amount) >= big:
+			roles = ["Head of Sales"] if late == 3 else ["Head of Sales", GM] if late == 7 else []
+		notify_roles(roles, message, doc=frappe._dict(doctype="Opportunity", name=o.name), extra_users=[o.opportunity_owner])
 
 
 def bank_instruments_needing_attention():

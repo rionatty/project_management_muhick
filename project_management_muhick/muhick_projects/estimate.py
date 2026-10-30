@@ -440,6 +440,112 @@ def _period(phase) -> str:
 	return f"{formatdate(start, 'MMM yyyy' if start.year != end.year else 'MMM')} - {formatdate(end, 'MMM yyyy')}"
 
 
+# ------------------------------------------------------------------ the Bid Budget print
+def bid_budget(doc) -> dict:
+	"""For the Bid Budget print of an opportunity, laid out as the business's Budget Summary and Profitability
+	sheets: the equipment and materials system by system (their suppliers, the origin, shipment and taxes of the
+	imported goods, the amounts as quoted in each currency and without VAT), the taxes and freight, installation
+	costs and overheads; the grand total, contract value, project cost and profit; then the profitability, part by
+	part without VAT."""
+	company_currency = frappe.get_cached_value("Company", doc.company, "default_currency") if doc.get("company") else None
+	lines, goods, freight = estimate_lines(doc), doc.get(TAX_TABLE) or [], doc.get("muhick_freight") or []
+
+	def currency(row):
+		return row.currency or company_currency
+
+	def rate(row):
+		return 1 if currency(row) == company_currency else flt(row.exchange_rate) or 1
+
+	def part(rows, cost=0, **extra):
+		quoted = [sum(flt(r.quoted_amount) for r in rows if currency(r) == c) for c in currencies]
+		amount = sum(flt(r.amount) for r in rows) + flt(cost)
+		return {"quoted": quoted, "amount": amount, "supplier": "", "country": "", "shipment": "", "taxes": 0, **extra}
+
+	def stages(rows):
+		order = list(dict.fromkeys(r.stage or "" for r in rows))
+		return [s for s in order if s] + [s for s in order if not s]
+
+	def joined(values):
+		return ", ".join(dict.fromkeys(v for v in values if v))
+
+	def taxes(rows):
+		return sum(flt(r.total_tax) * rate(r) for r in rows)
+
+	def amount_of(field):
+		return sum(flt(r.amount) for r in doc.get(field) or [])
+
+	currencies = sorted({currency(line) for line in lines} | {company_currency}, key=lambda c: (c == company_currency, c or ""))
+	import_cost = sum(flt(g.cost) for g in goods)
+	blocks = []
+	for letter, field in (("A", "muhick_equipment"), ("B", "muhick_materials")):
+		rows = doc.get(field) or []
+		if not rows:
+			continue
+		equipment = field == "muhick_equipment"
+		items = []
+		for stage in stages(rows):
+			own = [r for r in rows if (r.stage or "") == stage]
+			# the origin, shipment and taxes of a system's imported goods go with its equipment
+			imported = [g for g in goods if (g.stage or "") == stage] if equipment else []
+			items.append(
+				part(
+					own, name=stage or _("No stage"), supplier=joined(r.supplier for r in own), taxes=taxes(imported),
+					country=joined(g.country_of_origin for g in imported), shipment=joined(g.mode_of_shipment for g in imported),
+				)
+			)
+		title = _(ESTIMATE_TABLES[field])
+		total = part(rows, name=_("Total Cost of {0}").format(title), taxes=taxes(goods) if equipment else 0)
+		blocks.append({"letter": letter, "title": title, "items": items, "total": total})
+	if goods or freight:
+		items = [
+			part([], cost=import_cost, name=_("Insurance, Import Duty and Levy")),
+			part(freight, name=_("Freight and Clearing"), supplier=joined(r.supplier for r in freight)),
+		]
+		blocks.append({"letter": "C", "title": _("Taxes and Freight"), "items": items, "total": None})
+	for letter, title, parts in (
+		("D", _("Installation Costs"), (("muhick_labour", _("Labour")), ("muhick_tools", _("Tools and Equipment")))),
+		("E", _("Preliminaries and Administrative Costs"), (("muhick_preliminaries", _("Preliminaries")), ("muhick_administrative", _("Administrative Costs")))),
+	):
+		if any(doc.get(field) for field, _name in parts):
+			items = [part(doc.get(field) or [], name=name) for field, name in parts]
+			blocks.append({"letter": letter, "title": title, "items": items, "total": None})
+
+	profitability = []
+	for title, items in (
+		(_("Installation Equipment, without VAT"), [(i["name"], i["amount"]) for b in blocks if b["letter"] == "A" for i in b["items"]]),
+		(_("Installation Materials, without VAT"), [(i["name"], i["amount"]) for b in blocks if b["letter"] == "B" for i in b["items"]]),
+		(_("Taxes and Freight"), [(_("Insurance, Import Duty and Levy"), import_cost), (_("Freight and Clearing"), amount_of("muhick_freight"))]),
+		(_("Installation Costs, without VAT"), [(_("Labour"), amount_of("muhick_labour")), (_("Tools and Equipment"), amount_of("muhick_tools"))]),
+		(
+			_("Preliminaries and Administrative Costs"),
+			[(_("Preliminaries"), amount_of("muhick_preliminaries")), (_("Administrative Costs"), amount_of("muhick_administrative"))],
+		),
+	):
+		shown = [(name, amount) for name, amount in items if flt(amount)]
+		if shown:
+			profitability.append({"title": title, "items": shown, "total": sum(amount for _name, amount in shown)})
+	cost = sum(flt(line.amount) for line in lines) + import_cost
+	contract = flt(doc.opportunity_amount) * (flt(doc.conversion_rate) or 1)
+	rates = {}
+	for line in lines:
+		if currency(line) != company_currency:
+			rates.setdefault(currency(line), flt(line.exchange_rate))
+	return {
+		"currency": company_currency,
+		"currencies": currencies,
+		"blocks": blocks,
+		"grand_total": sum(flt(line.quoted_amount) * rate(line) for line in lines)
+		+ sum((flt(g.insurance) + flt(g.total_tax)) * rate(g) for g in goods),
+		"rates": rates,
+		"contract": contract,
+		"contract_with_vat": contract * (1 + flt(setting("vat_percent", DEFAULTS["vat_percent"])) / 100),
+		"cost": cost,
+		"margin": contract - cost,
+		"margin_percent": calc.margin_percent(contract, cost),
+		"profitability": profitability,
+	}
+
+
 # ------------------------------------------------------------------ to and from Excel
 # an estimate or budget prepared in Excel comes in through the workbook the system gives out, laid out as the
 # business's budget sheets (a sheet per section, one row per line, and the tax computation), or through the

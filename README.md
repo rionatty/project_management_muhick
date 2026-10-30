@@ -18,7 +18,8 @@ and certificates, retention, payments and the controls around them.
   kept current as requests, orders and issues are submitted. Variation order lines are items too.
 - A bid's cost estimate on the opportunity, laid out sheet by sheet as the business's budget
   workbook, each sheet a tab: Equipment, Installation Materials, Taxes and Freight, Labour, Tools and
-  Equipment, Preliminaries and Administrative, Budget Summary and Profitability. Each table has the
+  Equipment, Preliminaries and Administrative, Budget Summary and Profitability (the tabs named as the
+  workbook's sheets: Taxes, Tools & Equipment, Administrative). Each table has the
   columns of its sheet (system, description, brand, unit, people, qty, rate, amount as quoted,
   amount without VAT, supplier) and its sub totals by system under it. Every line's item or service
   (equipment, materials, labour, transport, commissions...) is picked from the item master and brings
@@ -110,8 +111,14 @@ and certificates, retention, payments and the controls around them.
   with its acknowledgement), Under Evaluation (its deadline has passed), Outcome Pending Approval, then
   Won, Lost, Not Pursued or Cancelled (closed before or after it was submitted); a bid's approved
   outcome stays whatever happens to the sale afterwards. It opens the Bid tab with the expected award
-  date, and the sales engineer is reminded daily to follow up a bid still under evaluation after its
-  expected award date.
+  date.
+- Follow-up after submission: each contact with the procuring entity or client is logged on the Bid tab
+  (date, who was contacted, by whom, what was learned, the next step and the next follow-up date). The
+  next follow-up is due on the date the latest follow-up gives, else some days after the submission
+  (Muhick Settings). The sales engineer is reminded when it is due and every three days after; a bid
+  worth at least the Big Bid Value is followed up with management, its follow-up three days overdue
+  going to the Head of Sales and a week overdue to the General Manager. The Bid Register shows each
+  bid's next follow-up.
 - The opportunity's milestones, on its first tab, from the lead to the project, each carrying a weight
   from the Opportunity Milestones list (in the CRM menu's Setup): lead qualified, bid funds issued,
   site visit done, bid security issued, the three parts of the bid ready, bid submitted, bid won,
@@ -123,8 +130,10 @@ and certificates, retention, payments and the controls around them.
   ticked by hand when it is one the system cannot see; one that does not apply (no site visit, no bid
   security) counts for nothing. The Progress % is the weight reached out of the weight that applies,
   on the opportunity, its list and the Bid Register.
-- The opportunity is the bid, built on the standard Opportunity: its Bid tab holds the tender, the
-  client's requirements with a compliance answer for each (the technical bid check), the financial
+- The opportunity is the bid, built on the standard Opportunity: its Bid tab holds the tender (with the
+  site visit's report and findings), the client's requirements each with the item proposed from the
+  item master, its brand and the manufacturer's data sheet checked against it, the compliance answer
+  and, for a deviation, the date it was reported to the manufacturer (the technical bid check), the financial
   requirements, the three parts of the bid, its document checklist, the submission record (date and
   time, mode, copies, who delivered it, who received it and the acknowledgement, which marks the bid
   Submitted and is flagged if late), the bid security and the outcome. A bid is submitted only when
@@ -134,8 +143,10 @@ and certificates, retention, payments and the controls around them.
   given it), when it is needed by (the submission deadline unless an earlier date is set), its file,
   how long a licence or certificate is valid, and remarks. The checklist starts with the document
   types marked for every bid (and the bid security when the bid has one) and can be changed for the
-  tender. A part ticks itself as ready once every document of that part is ready (the technical part
-  also once every requirement is answered). The top of a bid being prepared shows the documents
+  tender, and Add the Usual Documents puts back those marked for every bid. A part ticks itself as
+  ready once every document of that part is ready (the technical part also once every requirement is
+  answered with the data sheet of its proposed item, its deviations reported to the manufacturer, and a
+  required site visit has its report). The top of a bid being prepared shows the documents
   overdue, not started and in progress, and whoever prepares a document is reminded as its date comes
   up. A document is ready only with its file, and a licence or certificate only if it is still valid
   on the submission deadline. Financial requirement types are a list sales can add to; each type's
@@ -143,7 +154,10 @@ and certificates, retention, payments and the controls around them.
   needed by), whether it is started from the opportunity or the opportunity is picked on it, the bid security line sets the bid security, and contract securities go to the
   handover; the project handover takes the requirements with
   any agreed deviations, the type of work and the securities the tender asks for. Create > Sales
-  Requisition raises the funds for the bid. The Bid Register reports every bid with its status and
+  Requisition raises the funds for the bid. The opportunity's list shows each bid's status,
+  progress, deadline, price and margin, and the Bid Budget print gives its budget summary and
+  profitability as the workbook lays them out, with the Sales, Finance and Management signatures. The
+  Bid Register reports every bid with its status and
   how long it has been in it, its margin at bid and at award, what was spent on it, the project it
   became and why it was won or lost, and deadlines are reminded ahead of time. ERPNext's CRM menu
   lists the sales requisitions, bid security requests, outcome reports, the bid register and the bid

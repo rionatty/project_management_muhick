@@ -33,6 +33,7 @@ def execute(filters=None):
 		{"fieldname": "acknowledged", "label": _("Acknowledged"), "fieldtype": "Check", "width": 100},
 		{"fieldname": "late", "label": _("Late"), "fieldtype": "Check", "width": 60},
 		{"fieldname": "days_waiting", "label": _("Days Since Submission"), "fieldtype": "Int", "width": 110},
+		{"fieldname": "muhick_next_follow_up", "label": _("Next Follow-up"), "fieldtype": "Date", "width": 110},
 		{"fieldname": "expected_closing", "label": _("Expected Award"), "fieldtype": "Date", "width": 110},
 		{"fieldname": "opportunity_amount", "label": _("Bid Price"), "fieldtype": "Currency", "width": 140},
 		{"fieldname": "muhick_margin_percent", "label": _("Margin at Bid %"), "fieldtype": "Percent", "width": 100},

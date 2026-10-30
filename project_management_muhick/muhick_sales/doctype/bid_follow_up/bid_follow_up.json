@@ -1,0 +1,85 @@
+{
+ "actions": [],
+ "creation": "2026-10-30 14:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "followed_up_on",
+  "contacted",
+  "followed_up_by",
+  "column_break_1",
+  "findings",
+  "next_step",
+  "next_follow_up"
+ ],
+ "fields": [
+  {
+   "columns": 1,
+   "default": "Today",
+   "fieldname": "followed_up_on",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "description": "At the procuring entity or the client: a name and role, or the office",
+   "fieldname": "contacted",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contacted"
+  },
+  {
+   "columns": 1,
+   "default": "__user",
+   "fieldname": "followed_up_by",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "By",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 3,
+   "description": "Where the evaluation stands, what was asked, what was promised",
+   "fieldname": "findings",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "What Was Learned",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "next_step",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Next Step"
+  },
+  {
+   "columns": 1,
+   "description": "The day the bid is followed up again; blank once nothing more is due",
+   "fieldname": "next_follow_up",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Next Follow-up On"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-30 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Sales",
+ "name": "Bid Follow-up",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

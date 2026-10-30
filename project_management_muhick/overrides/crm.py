@@ -18,12 +18,12 @@ security, because the bank charges for it until it is cancelled."""
 
 import frappe
 from frappe import _
-from frappe.utils import flt, format_datetime, formatdate, get_datetime, getdate, now_datetime, today
+from frappe.utils import add_days, flt, format_datetime, formatdate, get_datetime, getdate, now_datetime, today
 
 from project_management_muhick.muhick_projects import estimate
 from project_management_muhick.setup.workflows import PENDING_STATES
 from project_management_muhick.utils import calc
-from project_management_muhick.utils.common import FINANCE_ROLES, GM, notify_roles
+from project_management_muhick.utils.common import FINANCE_ROLES, GM, get_settings, notify_roles
 
 DECIDED = ("Qualified", "Not Pursued")
 DECIDERS = {"Head of Sales", "Sales Manager"}
@@ -91,6 +91,7 @@ def validate_opportunity(doc, method=None):
 	set_milestones(doc)
 	check_milestone_weights(doc)
 	set_bid_status(doc)
+	set_next_follow_up(doc)
 	if doc.sales_stage in IN_PROGRESS:
 		doc.set("muhick_outcome_date", None)
 	elif doc.status in ("Lost", "Closed") and not doc.get("muhick_outcome_date"):
@@ -154,17 +155,17 @@ def default_checklist(doc):
 
 def set_parts_ready(doc):
 	"""A part of the bid is ready once every document of that part on the checklist is ready; the
-	technical part also needs every requirement answered."""
-	answered = not open_requirements(doc)
+	technical part also needs what technical_gaps lists done."""
+	technical_done = not technical_gaps(doc)
 	for field, part in BID_PARTS:
 		rows = [r for r in doc.get("muhick_checklist") or [] if r.part == part]
-		ready = bool(rows) and all(r.status == "Ready" for r in rows) and (answered or part != "Technical")
+		ready = bool(rows) and all(r.status == "Ready" for r in rows) and (technical_done or part != "Technical")
 		doc.set(field, 1 if ready else 0)
 
 
 def parts_not_ready(doc) -> list:
 	"""What keeps each part of the bid from being ready, a line per part."""
-	unanswered = open_requirements(doc)
+	gaps = technical_gaps(doc)
 	lines = []
 	for field, part in BID_PARTS:
 		if doc.get(field):
@@ -176,14 +177,27 @@ def parts_not_ready(doc) -> list:
 			why.append(_("no {0} document is on the document checklist").format(_(part).lower()))
 		if waiting:
 			why.append(_("not ready yet: {0}").format(", ".join(waiting)))
-		if part == "Technical" and unanswered:
-			why.append(_("Requirements and Compliance, row {0}: answer Complies or Deviation").format(", ".join(unanswered)))
+		if part == "Technical":
+			why += gaps
 		lines.append(_("{0} part: {1}.").format(_(part), "; ".join(why)))
 	return lines
 
 
-def open_requirements(doc) -> list:
-	return [str(r.idx) for r in doc.get("muhick_requirements") or [] if r.compliance in (None, "", "Clarification Needed")]
+def technical_gaps(doc) -> list:
+	"""What keeps the technical part from being ready besides its documents: a requirement not answered
+	(Complies or Deviation), a proposed item without its data sheet, a deviation in a proposed item not yet
+	reported to the manufacturer, and a required site visit without its report."""
+	gaps = []
+	for r in doc.get("muhick_requirements") or []:
+		if r.compliance in (None, "", "Clarification Needed"):
+			gaps.append(_("Requirements and Compliance, row {0}: answer Complies or Deviation").format(r.idx))
+		elif r.get("item_code") and not r.get("data_sheet"):
+			gaps.append(_("Requirements and Compliance, row {0}: attach the data sheet of {1}").format(r.idx, r.item_code))
+		elif r.get("item_code") and r.compliance == "Deviation" and not r.get("deviation_sent_on"):
+			gaps.append(_("Requirements and Compliance, row {0}: give the date the deviation was reported to the manufacturer").format(r.idx))
+	if doc.get("muhick_site_visit_required") and not doc.get("muhick_site_visit_report"):
+		gaps.append(_("attach the site visit report"))
+	return gaps
 
 
 def record_submission(doc):
@@ -267,6 +281,26 @@ def bid_status(doc) -> str:
 		deadline = doc.get("muhick_submission_deadline")
 		return "Under Evaluation" if deadline and get_datetime(deadline) < now_datetime() else "Submitted"
 	return "In Preparation" if is_preparing(doc) else "Qualified"
+
+
+def set_next_follow_up(doc):
+	"""A submitted bid still being evaluated is followed up on the date its latest follow-up gives, else some
+	days after its submission (Muhick Settings); a bid decided or not submitted has none due. A follow-up
+	cannot be dated ahead, nor its next one before it."""
+	rows = doc.get("muhick_follow_ups") or []
+	for row in rows:
+		if row.followed_up_on and getdate(row.followed_up_on) > getdate(today()):
+			frappe.throw(_("Follow-ups row {0}: record a follow-up once it has happened.").format(row.idx))
+		if row.next_follow_up and row.followed_up_on and getdate(row.next_follow_up) < getdate(row.followed_up_on):
+			frappe.throw(_("Follow-ups row {0}: the next follow-up comes after this one.").format(row.idx))
+	due = None
+	if doc.sales_stage in ("Submitted", "Under Evaluation"):
+		latest = max(rows, key=lambda r: (getdate(r.followed_up_on or today()), r.idx), default=None)
+		if latest:
+			due = latest.next_follow_up
+		elif doc.get("muhick_submitted_at"):
+			due = add_days(getdate(doc.muhick_submitted_at), get_settings().bid_follow_up_days or 7)
+	doc.set("muhick_next_follow_up", due)
 
 
 def set_bid_status(doc):
@@ -415,9 +449,10 @@ def milestone_state(doc, row, facts) -> tuple:
 	if rule == "Opportunity Opened":
 		return True, getdate(doc.get("transaction_date") or today()), _("Opportunity opened")
 	if rule == "Site Visit Done":
+		# done once the day has come and its report is attached
 		visit = doc.get("muhick_site_visit_date")
-		done = bool(visit) and getdate(visit) <= getdate(today())
-		return bool(doc.get("muhick_site_visit_required")), getdate(visit) if done else None, _("Site visit on {0}").format(formatdate(visit))
+		done = bool(visit) and getdate(visit) <= getdate(today()) and bool(doc.get("muhick_site_visit_report"))
+		return bool(doc.get("muhick_site_visit_required")), getdate(visit) if done else None, _("Site visit on {0}, report attached").format(formatdate(visit))
 	if rule == "Funds Issued":
 		return bool(facts.costs or facts.requisitions), facts.funds_issued_on, _("Funds for the bid issued")
 	if rule == "Bid Security Issued":

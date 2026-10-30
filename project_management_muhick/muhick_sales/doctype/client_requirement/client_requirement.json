@@ -6,17 +6,40 @@
  "engine": "InnoDB",
  "field_order": [
   "requirement",
+  "item_code",
+  "brand",
   "compliance",
-  "remarks"
+  "remarks",
+  "data_sheet",
+  "deviation_sent_on"
  ],
  "fields": [
   {
-   "columns": 6,
+   "columns": 3,
    "fieldname": "requirement",
    "fieldtype": "Small Text",
    "in_list_view": 1,
    "label": "Requirement",
    "reqd": 1
+  },
+  {
+   "columns": 2,
+   "depends_on": "eval:parent.doctype=='Opportunity'",
+   "description": "From the item master: what the bid offers for this requirement",
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Proposed Item",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval:parent.doctype=='Opportunity'",
+   "fetch_from": "item_code.brand",
+   "fetch_if_empty": 1,
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
   },
   {
    "columns": 2,
@@ -34,13 +57,29 @@
    "in_list_view": 1,
    "label": "Deviation / Clarification",
    "mandatory_depends_on": "eval:in_list(['Deviation', 'Clarification Needed'], doc.compliance)"
+  },
+  {
+   "columns": 1,
+   "depends_on": "eval:parent.doctype=='Opportunity'",
+   "description": "The manufacturer's technical data sheet of the proposed item, checked against the requirement",
+   "fieldname": "data_sheet",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "Data Sheet"
+  },
+  {
+   "depends_on": "eval:parent.doctype=='Opportunity' && doc.compliance=='Deviation' && doc.item_code",
+   "description": "When the deviation was reported to the manufacturer",
+   "fieldname": "deviation_sent_on",
+   "fieldtype": "Date",
+   "label": "Deviation Sent to Manufacturer"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-25 10:04:19.966965",
+ "modified": "2026-10-30 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Client Requirement",

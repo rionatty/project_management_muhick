@@ -49,6 +49,11 @@ frappe.ui.form.on("Opportunity", {
 		if (frm.is_new()) {
 			return;
 		}
+		const checklist = frm.fields_dict.muhick_checklist.grid;
+		checklist.clear_custom_buttons();
+		if (frm.perm[0].write && ["Qualified", "In Preparation"].includes(frm.doc.sales_stage)) {
+			checklist.add_custom_button(__("Add the Usual Documents"), () => add_usual_documents(frm));
+		}
 		// the tag at the top shows where the sale stands; where the tender stands opens the Bid tab
 		const indicator = muhick.opportunity_status_indicator && muhick.opportunity_status_indicator(frm.doc);
 		if (indicator) {
@@ -169,18 +174,50 @@ function show_preparation(frm) {
 		lines.push(__("No {0} document on the checklist.", [parts.map((p) => __(p).toLowerCase()).join(", ")]));
 		colour = colour === "blue" ? "orange" : colour;
 	}
-	const unanswered = (frm.doc.muhick_requirements || []).filter((r) => !r.compliance || r.compliance === "Clarification Needed");
-	if (unanswered.length) {
-		lines.push(__("Requirements and Compliance, row {0}: answer Complies or Deviation.", [unanswered.map((r) => r.idx).join(", ")]));
+	// the requirements and the site visit report the technical part also waits on (crm.technical_gaps)
+	const requirements = frm.doc.muhick_requirements || [];
+	const rows = (test) => requirements.filter(test).map((r) => r.idx).join(", ");
+	const answered = (r) => r.compliance && r.compliance !== "Clarification Needed";
+	const gaps = [
+		[rows((r) => !answered(r)), __("answer Complies or Deviation")],
+		[rows((r) => answered(r) && r.item_code && !r.data_sheet), __("attach the data sheet of the proposed item")],
+		[rows((r) => r.compliance === "Deviation" && r.item_code && r.data_sheet && !r.deviation_sent_on), __("give the date the deviation was reported to the manufacturer")],
+	]
+		.filter(([idx]) => idx)
+		.map(([idx, what]) => __("Requirements and Compliance, row {0}: {1}.", [idx, what]));
+	if (frm.doc.muhick_site_visit_required && !frm.doc.muhick_site_visit_report) {
+		gaps.push(__("Attach the site visit report."));
+	}
+	if (gaps.length) {
+		lines.push(...gaps);
 		colour = colour === "blue" ? "orange" : colour;
 	}
-	if (checklist.length && !waiting.length && !parts.length && !unanswered.length) {
+	if (checklist.length && !waiting.length && !parts.length && !gaps.length) {
 		lines.push(__("Every document on the checklist is ready."));
 		colour = colour === "blue" ? "green" : colour;
 	}
 	if (lines.length) {
 		frm.set_intro(lines.join("<br>"), colour);
 	}
+}
+
+// the documents every bid needs (In Every Bid in the bid document list) that are not on the checklist, as a new
+// bid starts with them
+function add_usual_documents(frm) {
+	frappe.db.get_list("Bid Document Type", { filters: { in_every_bid: 1 }, fields: ["name", "part"], limit: 0 }).then((types) => {
+		const listed = new Set((frm.doc.muhick_checklist || []).map((r) => r.document_type));
+		const missing = types.filter((t) => !listed.has(t.name));
+		if (!missing.length) {
+			frappe.msgprint(
+				__("Every document marked In Every Bid is on the checklist already. The documents every bid needs are marked in the Bid Document Type list.")
+			);
+			return;
+		}
+		missing.forEach((t) => frm.add_child("muhick_checklist", { document_type: t.name, part: t.part, status: "Pending" }));
+		frm.refresh_field("muhick_checklist");
+		frm.dirty();
+		frappe.show_alert({ message: __("Added {0}. Save to keep them.", [missing.map((t) => t.name).join(", ")]), indicator: "green" });
+	});
 }
 
 // with BOQ lines, the bid price is their total

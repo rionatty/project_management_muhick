@@ -1,0 +1,148 @@
+{#- Bid Budget of an opportunity, laid out as the business's budget workbook: the Budget Summary (equipment and
+    materials system by system with their suppliers, the origin, shipment and taxes of the imported goods, the
+    amounts as quoted in each currency and without VAT, then taxes and freight, installation costs and
+    overheads, and the grand total, contract value, project cost and profit), the Profitability, and the
+    signatures. -#}
+{%- from "templates/print_formats/standard_macros.html" import add_header with context -%}
+{%- set b = bid_budget(doc) -%}
+{%- macro money(value, currency=None) -%}{{ frappe.utils.fmt_money(value, currency=currency or b.currency) if value else "" }}{%- endmacro -%}
+{%- set columns = 7 + b.currencies | length -%}
+
+<style>
+	.bid-budget h3 { margin: 4px 0 8px; }
+	.bid-budget h4 { margin: 18px 0 6px; }
+	.bid-budget table.facts { width: 100%; margin-bottom: 12px; font-size: 12px; }
+	.bid-budget table.facts td { padding: 2px 0; }
+	.bid-budget table.grid { width: 100%; border-collapse: collapse; font-size: 10px; }
+	.bid-budget table.grid th,
+	.bid-budget table.grid td { border: 1px solid #d1d8dd; padding: 3px 5px; vertical-align: top; }
+	.bid-budget table.grid th { background: #f4f5f6; }
+	.bid-budget .num { text-align: right; white-space: nowrap; }
+	.bid-budget tr.heading td { font-weight: bold; background: #fafbfc; }
+	.bid-budget tr.total td { font-weight: bold; }
+	.bid-budget table.position { margin: 10px 0 0 auto; font-size: 12px; }
+	.bid-budget table.position td { padding: 3px 8px; }
+	.bid-budget table.signatures { width: 100%; margin-top: 30px; font-size: 12px; }
+	.bid-budget table.signatures td { width: 33%; padding: 4px 10px 4px 0; vertical-align: top; }
+</style>
+
+<div class="bid-budget">
+	{{ add_header(1, 1, doc, letter_head, no_letterhead, footer, print_settings, print_heading_template) }}
+
+	<h3>{{ _("Bid Budget") }}</h3>
+	<table class="facts">
+		<tr>
+			<td>{{ _("Bid") }}: <b>{{ doc.name }}</b></td>
+			<td>{{ _("Organisation") }}: <b>{{ doc.customer_name or doc.party_name }}</b></td>
+		</tr>
+		<tr>
+			<td>{{ _("Tender Reference") }}: {{ doc.muhick_tender_reference or "" }}</td>
+			<td>{{ _("Type of Work") }}: {{ _(doc.opportunity_type) if doc.opportunity_type else "" }}</td>
+		</tr>
+		<tr>
+			<td>{{ _("Date") }}: {{ frappe.utils.format_date(frappe.utils.today()) }}</td>
+			<td>{{ _("Submission Deadline") }}: {{ frappe.utils.format_datetime(doc.muhick_submission_deadline) if doc.muhick_submission_deadline else "" }}</td>
+		</tr>
+	</table>
+
+	<h4>{{ _("Budget Summary") }}</h4>
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="width: 4%">{{ _("No.") }}</th>
+				<th>{{ _("Description") }}</th>
+				<th>{{ _("Supplier") }}</th>
+				<th>{{ _("Country of Origin") }}</th>
+				<th>{{ _("Mode of Shipment") }}</th>
+				{% for currency in b.currencies %}<th class="num">{{ _("Amount ({0})").format(currency) }}</th>{% endfor %}
+				<th class="num">{{ _("Taxes to URA ({0})").format(b.currency) }}</th>
+				<th class="num">{{ _("Without VAT ({0})").format(b.currency) }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for block in b.blocks %}
+			<tr class="heading"><td>{{ block.letter }}</td><td colspan="{{ columns - 1 }}">{{ block.title }}</td></tr>
+			{% for item in block["items"] %}
+			<tr>
+				<td>{{ loop.index }}</td>
+				<td>{{ item.name }}</td>
+				<td>{{ item.supplier or "" }}</td>
+				<td>{{ item.country or "" }}</td>
+				<td>{{ item.shipment or "" }}</td>
+				{% for value in item.quoted %}<td class="num">{{ money(value, b.currencies[loop.index0]) }}</td>{% endfor %}
+				<td class="num">{{ money(item.taxes) }}</td>
+				<td class="num">{{ money(item.amount) }}</td>
+			</tr>
+			{% endfor %}
+			{% if block.total %}
+			<tr class="total">
+				<td></td>
+				<td colspan="4">{{ block.total.name }}</td>
+				{% for value in block.total.quoted %}<td class="num">{{ money(value, b.currencies[loop.index0]) }}</td>{% endfor %}
+				<td class="num">{{ money(block.total.taxes) }}</td>
+				<td class="num">{{ money(block.total.amount) }}</td>
+			</tr>
+			{% endif %}
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<table class="position">
+		<tr><td>{{ _("Grand Total, VAT and import taxes included") }}</td><td class="num">{{ money(b.grand_total) }}</td></tr>
+		{% if b.rates %}
+		<tr>
+			<td>{{ _("Exchange rates used") }}</td>
+			<td class="num">{% for currency, rate in b.rates.items() %}{{ currency }} 1 = {{ money(rate) }}{% if not loop.last %}; {% endif %}{% endfor %}</td>
+		</tr>
+		{% endif %}
+		<tr><td>{{ _("Contract Value, VAT included") }}</td><td class="num">{{ money(b.contract_with_vat) }}</td></tr>
+		<tr><td>{{ _("Contract Value, without VAT") }}</td><td class="num">{{ money(b.contract) }}</td></tr>
+		<tr><td><b>{{ _("Total Project Cost, without VAT") }}</b></td><td class="num"><b>{{ money(b.cost) }}</b></td></tr>
+		{% if b.contract %}
+		<tr><td><b>{{ _("Profit Margin") }}</b></td><td class="num"><b>{{ frappe.utils.fmt_money(b.margin, currency=b.currency) }}</b></td></tr>
+		<tr><td><b>{{ _("% Profit") }}</b></td><td class="num"><b>{{ frappe.utils.flt(b.margin_percent, 1) }}%</b></td></tr>
+		{% endif %}
+	</table>
+
+	<h4>{{ _("Profitability") }}</h4>
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="width: 6%">{{ _("No.") }}</th>
+				<th>{{ _("Details") }}</th>
+				<th class="num" style="width: 25%">{{ _("Amount ({0})").format(b.currency) }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr class="total"><td></td><td>{{ _("Contract Value, without VAT") }}</td><td class="num">{{ money(b.contract) }}</td></tr>
+			<tr><td></td><td><i>{{ _("Less: Deductions") }}</i></td><td></td></tr>
+			{% for block in b.profitability %}
+			<tr class="heading"><td></td><td colspan="2">{{ block.title }}</td></tr>
+			{% for name, amount in block["items"] %}
+			<tr><td>{{ loop.index }}</td><td>{{ name }}</td><td class="num">{{ money(amount) }}</td></tr>
+			{% endfor %}
+			<tr class="total"><td></td><td><i>{{ _("Sub-Total") }}</i></td><td class="num">{{ money(block.total) }}</td></tr>
+			{% endfor %}
+			<tr class="total"><td></td><td>{{ _("Sub-Total Project Expenses, without VAT") }}</td><td class="num">{{ money(b.cost) }}</td></tr>
+			{% if b.contract %}
+			<tr class="total"><td></td><td>{{ _("Profit Margin") }}</td><td class="num">{{ frappe.utils.fmt_money(b.margin, currency=b.currency) }}</td></tr>
+			<tr class="total"><td></td><td>{{ _("% Margin") }}</td><td class="num">{{ frappe.utils.flt(b.margin_percent, 1) }}%</td></tr>
+			{% endif %}
+		</tbody>
+	</table>
+
+	<table class="signatures">
+		<tr>
+			<td><b>{{ _("Sales Team") }}</b></td>
+			<td><b>{{ _("Finance Team") }}</b></td>
+			<td><b>{{ _("Management") }}</b></td>
+		</tr>
+		<tr>
+			<td>{{ _("Prepared by") }}: {{ frappe.db.get_value("User", doc.opportunity_owner, "full_name") if doc.opportunity_owner else "" }}</td>
+			<td>{{ _("Checked by") }}:</td>
+			<td>{{ _("Authorised by") }}:</td>
+		</tr>
+		<tr><td>{{ _("Signature") }}: ____________________</td><td>{{ _("Signature") }}: ____________________</td><td>{{ _("Signature") }}: ____________________</td></tr>
+		<tr><td>{{ _("Date") }}: ____________________</td><td>{{ _("Date") }}: ____________________</td><td>{{ _("Date") }}: ____________________</td></tr>
+	</table>
+</div>
