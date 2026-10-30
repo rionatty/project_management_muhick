@@ -466,7 +466,9 @@ LEAD_ORDER = [
 	"dashboard_tab",
 ]
 # the opportunity reads like its lead: the organisation, what it wants, where it came from and who
-# runs it, then its progress and milestones; the bid's status (its sales stage) opens the Bid tab
+# runs it, then its progress and milestones, and its contact person and addresses at the bottom of the
+# Details tab (the Contacts tab, left empty, does not show); the bid's status (its sales stage) opens the
+# Bid tab
 OPPORTUNITY_ORDER = [
 	"naming_series", "opportunity_from", "party_name", "customer_name", "status",
 	"column_break0", "opportunity_type", "utm_source", "opportunity_owner",
@@ -480,6 +482,10 @@ OPPORTUNITY_ORDER = [
 	"utm_analytics_section", "utm_medium", "column_break_emai", "utm_campaign", "utm_content",
 	"more_info", "company", "column_break1", "language", "amended_from", "title", "first_response_time",
 	"lost_detail_section", "lost_reasons", "order_lost_reason", "column_break_56", "competitors",
+	"primary_contact_section", "contact_person", "job_title", "column_break_54", "contact_email",
+	"contact_mobile", "column_break_22", "whatsapp", "phone", "phone_ext",
+	"address_contact_section", "address_html", "customer_address", "address_display", "column_break3", "contact_html",
+	"contact_display",
 	"muhick_bid_tab", "muhick_status_section", "sales_stage", "muhick_stage_since", "muhick_status_column", "expected_closing",
 	"muhick_tender_section", "muhick_tender_reference", "muhick_advert", "muhick_tender_column",
 	"muhick_submission_deadline", "muhick_site_visit_required", "muhick_site_visit_date", "muhick_tender_column_2",
@@ -494,10 +500,7 @@ OPPORTUNITY_ORDER = [
 	"muhick_bid_security",
 	"muhick_outcome_section", "muhick_bid_outcome", "muhick_award_notice", "muhick_outcome_date", "muhick_outcome_column",
 	"muhick_outcome_notes",
-	"contact_info", "primary_contact_section", "contact_person", "job_title", "column_break_54", "contact_email",
-	"contact_mobile", "column_break_22", "whatsapp", "phone", "phone_ext",
-	"address_contact_section", "address_html", "customer_address", "address_display", "column_break3", "contact_html",
-	"contact_display",
+	"contact_info",
 	"items_section", "items", "section_break_32", "base_total", "column_break_33", "total",
 	"muhick_equipment_tab", "muhick_equipment", "muhick_equipment_totals",
 	"muhick_materials_tab", "muhick_materials", "muhick_materials_totals",
