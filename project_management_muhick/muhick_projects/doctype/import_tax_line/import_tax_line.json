@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "stage",
+  "item_code",
   "description",
   "supplier",
   "country_of_origin",
@@ -40,7 +41,18 @@
    "options": "Task Type"
   },
   {
+   "columns": 1,
+   "description": "The imported good, from the item master; its name and unit come with it",
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item"
+  },
+  {
    "columns": 2,
+   "fetch_from": "item_code.item_name",
+   "fetch_if_empty": 1,
    "fieldname": "description",
    "fieldtype": "Small Text",
    "in_list_view": 1,
@@ -80,6 +92,8 @@
    "reqd": 1
   },
   {
+   "fetch_from": "item_code.stock_uom",
+   "fetch_if_empty": 1,
    "fieldname": "uom",
    "fieldtype": "Link",
    "label": "UOM",
@@ -132,7 +146,6 @@
    "columns": 1,
    "fieldname": "insurance",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Insurance",
    "options": "currency",
    "read_only": 1
@@ -214,7 +227,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-30 09:00:00.000000",
+ "modified": "2026-10-30 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Import Tax Line",

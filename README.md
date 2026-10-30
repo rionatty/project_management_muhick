@@ -20,9 +20,12 @@ and certificates, retention, payments and the controls around them.
   workbook, each sheet a tab: Equipment, Installation Materials, Taxes and Freight, Labour, Tools and
   Equipment, Preliminaries and Administrative, Budget Summary and Profitability. Each table has the
   columns of its sheet (system, description, brand, unit, people, qty, rate, amount as quoted,
-  amount without VAT, supplier) and its sub totals by system under it. Its lines are those of the
-  project budget: a stage from the shared milestone list (the system or phase it is for), an item or
-  a lump sum, its supplier, brand and cost code, its amount as quoted in its currency and its amount
+  amount without VAT, supplier) and its sub totals by system under it. Every line's item or service
+  (equipment, materials, labour, transport, commissions...) is picked from the item master and brings
+  its name, unit, brand, default cost code and price (the bid's lowest supplier quotation, else the
+  last purchase price); a line still without a cost code is given its section's. Its lines are those
+  of the project budget: a stage from the shared milestone list (the system or phase it is for), its
+  supplier, brand and cost code, its amount as quoted in its currency and its amount
   in the company's currency without VAT (people x qty x rate at the line's exchange rate, a rate
   quoted with VAT taken without it, or a share of the contract value).
 - The tax computation of the imported goods, as the Taxes sheet: each good's total, insurance,
@@ -43,7 +46,8 @@ and certificates, retention, payments and the controls around them.
   the stage from the system headings (a misspelt one still finds its milestone, a new one is added to
   the list) or from a phase's sheet, the number of people from a labour sheet's No column, the
   currency from columns such as "Amount (USD)", rows copied in another sheet's layout checked
-  against their own amount, and the Taxes sheet good by good with its rates. Every row is checked
+  against their own amount, each line linked to the item its description names, and the Taxes sheet
+  good by good with its rates. Every row is checked
   first: with any mistake nothing changes and each one is listed by sheet and row.
 - A project budget built by stage, milestone and cost code. When the project is handed over, the
   bid's cost estimate becomes its draft budget, assigned to the Project Manager to adjust before

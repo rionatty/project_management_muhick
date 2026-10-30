@@ -190,16 +190,17 @@ function toggle_bid_price(frm) {
 
 // ---------------------------------------------------------------- the cost estimate, sheet by sheet
 // The estimate is laid out as the business's budget workbook: a tab per sheet, each table with the columns of
-// its sheet (widths as set on Project Budget Line), its sub totals by system under it, the tax computation,
-// and the Budget Summary and Profitability tabs. The actions are under Cost Estimate at the top.
-const GOODS_COLUMNS = ["stage", "description", "brand", "uom", "qty", "rate", "quoted_amount", "amount", "supplier"];
-const OVERHEAD_COLUMNS = ["description", "uom", "qty", "rate", "contract_percent", "quoted_amount", "amount", "supplier", "stage"];
+// its sheet (widths as set on Project Budget Line), every line's item or service picked from the item master,
+// its sub totals by system under it, the tax computation, and the Budget Summary and Profitability tabs. The
+// actions are under Cost Estimate at the top.
+const GOODS_COLUMNS = ["item_code", "description", "stage", "brand", "uom", "qty", "rate", "quoted_amount", "supplier"];
+const OVERHEAD_COLUMNS = ["item_code", "description", "uom", "qty", "rate", "contract_percent", "quoted_amount", "supplier", "stage"];
 const SHEET_COLUMNS = {
 	muhick_equipment: GOODS_COLUMNS,
 	muhick_materials: GOODS_COLUMNS,
-	muhick_freight: ["stage", "description", "supplier", "qty", "rate", "quoted_amount", "amount"],
-	muhick_labour: ["stage", "description", "people", "qty", "uom", "rate", "quoted_amount", "amount"],
-	muhick_tools: ["stage", "description", "uom", "qty", "rate", "quoted_amount", "amount", "supplier"],
+	muhick_freight: ["item_code", "description", "stage", "supplier", "qty", "rate", "quoted_amount", "amount"],
+	muhick_labour: ["item_code", "description", "stage", "people", "qty", "uom", "rate", "quoted_amount", "amount"],
+	muhick_tools: ["item_code", "description", "stage", "uom", "qty", "rate", "quoted_amount", "amount", "supplier"],
 	muhick_preliminaries: OVERHEAD_COLUMNS,
 	muhick_administrative: OVERHEAD_COLUMNS,
 };
@@ -216,6 +217,9 @@ const EAC = ["Burundi", "Congo, The Democratic Republic of the", "Kenya", "Rwand
 const TAX_AMOUNTS = ["value", "insurance", "customs_value", "duty", "vat", "levy", "total_tax"];
 
 function setup_sheets(frm) {
+	if (frm.get_field("muhick_import_taxes")) {
+		frm.set_query("item_code", "muhick_import_taxes", () => ({ filters: { disabled: 0 } }));
+	}
 	Object.entries(SHEET_COLUMNS).forEach(([table, columns]) => {
 		const field = frm.get_field(table);
 		if (!field) {
@@ -650,7 +654,7 @@ function get_imported_goods(frm) {
 	muhick.cost_lines.settings(frm).then((settings) => {
 		lines.forEach((r) => {
 			const row = frm.add_child("muhick_import_taxes", {
-				stage: r.stage, description: r.description, supplier: r.supplier, qty: r.qty, uom: r.uom, rate: r.rate,
+				stage: r.stage, item_code: r.item_code, description: r.description, supplier: r.supplier, qty: r.qty, uom: r.uom, rate: r.rate,
 				currency: r.currency || company_currency(frm), exchange_rate: r.exchange_rate, ...usual_rates(settings),
 			});
 			Object.assign(row, taxes_of(frm, row));

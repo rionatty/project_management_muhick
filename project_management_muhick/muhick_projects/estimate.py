@@ -58,7 +58,7 @@ ESTIMATE_TABLES = {
 }
 TAX_TABLE = "muhick_import_taxes"
 TAX_FIELDS = (
-	"stage", "description", "supplier", "country_of_origin", "mode_of_shipment", "qty", "uom", "rate", "currency",
+	"stage", "item_code", "description", "supplier", "country_of_origin", "mode_of_shipment", "qty", "uom", "rate", "currency",
 	"exchange_rate", "insurance_percent", "duty_percent", "vat_percent", "levy_percent",
 )
 TAX_AMOUNTS = ("value", "insurance", "customs_value", "duty", "vat", "levy", "total_tax", "cost")
@@ -99,6 +99,15 @@ def propose_cost_code(section, description, item_code, enabled) -> str | None:
 			return code
 	code = (setting("import_cost_code") if section == "Taxes and Freight" else None) or SECTION_CODES.get(section)
 	return code if code in enabled else None
+
+
+def propose_cost_codes(lines):
+	"""A line given no cost code takes the one its item, description or section points to (see SECTION_CODES)."""
+	missing = [line for line in lines if not line.cost_code]
+	if missing:
+		enabled = set(frappe.get_all("Cost Code", filters={"disabled": 0}, pluck="name"))
+		for line in missing:
+			line.cost_code = propose_cost_code(line.section, line.description, line.item_code, enabled)
 
 
 def set_amounts(doc, lines, contract_value) -> float:
@@ -250,6 +259,23 @@ def get_boq_lines(opportunity: str, items) -> list:
 		)
 		rows.append(row)
 	return rows
+
+
+@frappe.whitelist()
+def get_item_price(item_code: str, uom: str | None = None, opportunity: str | None = None, company: str | None = None) -> dict:
+	"""The price a line of an item from the item master starts at, per unit of uom: the lowest valid supplier
+	quotation for the bid, else the item's last purchase price; {} when there is none."""
+	frappe.has_permission("Item", "read", throw=True)
+	if opportunity:
+		bid = frappe.get_doc("Opportunity", opportunity)
+		bid.check_permission("read")
+		company = bid.company
+	company_currency = frappe.get_cached_value("Company", company, "default_currency") if company else None
+	price = supplier_price(boq_quotes(opportunity).get(item_code, []), item_code, uom, company_currency) if opportunity else None
+	if price:
+		return {**price, "currency": price["currency"] or company_currency}
+	rate = flt(last_purchase_rate(item_code)) * boq_factor(item_code, uom)
+	return {"rate": rate, "currency": company_currency, "exchange_rate": 1} if rate else {}
 
 
 @frappe.whitelist()
@@ -449,7 +475,7 @@ TAX_HEADINGS = {
 	"countryoforigin": "country_of_origin", "modeofshipment": "mode_of_shipment",
 }
 TAX_EXCEL_COLUMNS = (
-	("stage", "Stage"), ("description", "Description"), ("supplier", "Supplier"), ("country_of_origin", "Country of Origin"),
+	("stage", "Stage"), ("item_code", "Item Code"), ("description", "Description"), ("supplier", "Supplier"), ("country_of_origin", "Country of Origin"),
 	("mode_of_shipment", "Mode of Shipment"), ("qty", "Qty"), ("uom", "UOM"), ("rate", "Rate"), ("currency", "Currency"),
 	("exchange_rate", "Exchange Rate"), ("insurance_percent", "Insurance Rate %"), ("duty_percent", "Duty Rate %"),
 	("vat_percent", "VAT Rate %"), ("levy_percent", "Levy Rate %"),
@@ -563,30 +589,41 @@ def _tax_sheet(book, rows, lists):
 	"""The Tax Computation sheet, as the business's Taxes sheet: each imported good with its rates, and its
 	total, insurance, customs value (C.I), import duty (ID), VAT, levy (IL) and total tax as formulas."""
 	from openpyxl.styles import Font
+	from openpyxl.utils import get_column_letter
 	from openpyxl.worksheet.datavalidation import DataValidation
 
 	sheet = book.create_sheet("Tax Computation")
 	sheet.append([heading for _field, heading in TAX_EXCEL_COLUMNS] + ["Total", "Insurance", "C.I", "ID", "VAT", "IL", "Total Tax"])
 	for row in rows:
 		sheet.append([row.get(f) for f, _heading in TAX_EXCEL_COLUMNS])
+	at = {field: get_column_letter(i) for i, (field, _heading) in enumerate(TAX_EXCEL_COLUMNS, 1)}
+	total, insurance, customs, duty, vat, levy, tax = (get_column_letter(len(TAX_EXCEL_COLUMNS) + i) for i in range(1, 8))
 	last = len(rows) + 100
 	for r in range(2, last + 1):
-		# F qty, H rate, K insurance rate, L duty rate, M VAT rate, N levy rate
-		for column, formula in zip(
-			"OPQRSTU",
-			(f"N(F{r})*N(H{r})", f"O{r}*N(K{r})/100", f"O{r}+P{r}", f"Q{r}*N(L{r})/100", f"(Q{r}+R{r})*N(M{r})/100", f"Q{r}*N(N{r})/100", f"R{r}+S{r}+T{r}"),
-		):
+		formulas = {
+			total: f"N({at['qty']}{r})*N({at['rate']}{r})",
+			insurance: f"{total}{r}*N({at['insurance_percent']}{r})/100",
+			customs: f"{total}{r}+{insurance}{r}",
+			duty: f"{customs}{r}*N({at['duty_percent']}{r})/100",
+			vat: f"({customs}{r}+{duty}{r})*N({at['vat_percent']}{r})/100",
+			levy: f"{customs}{r}*N({at['levy_percent']}{r})/100",
+			tax: f"{duty}{r}+{vat}{r}+{levy}{r}",
+		}
+		for column, formula in formulas.items():
 			sheet[f"{column}{r}"] = f"={formula}"
-		for column in "HJOPQRSTU":
+		for column in (at["rate"], at["exchange_rate"], *formulas):
 			sheet[f"{column}{r}"].number_format = "#,##0.00"
 	for cell in sheet[1]:
 		cell.font = Font(bold=True)
-	sheet.freeze_panes = "C2"
-	for column, width in zip("ABCDEFGHIJKLMNOPQRSTU", (22, 40, 22, 16, 16, 8, 8, 12, 9, 10, 10, 10, 10, 10, 14, 12, 14, 12, 12, 12, 14)):
-		sheet.column_dimensions[column].width = width
-	for column, field in (("A", "stage"), ("D", "country_of_origin"), ("E", "mode_of_shipment"), ("I", "currency")):
+	sheet.freeze_panes = f"{at['supplier']}2"
+	widths = {"stage": 22, "item_code": 18, "description": 40, "supplier": 22, "country_of_origin": 16, "mode_of_shipment": 16}
+	for field, column in at.items():
+		sheet.column_dimensions[column].width = widths.get(field, 10)
+	for column in (total, insurance, customs, duty, vat, levy, tax):
+		sheet.column_dimensions[column].width = 14
+	for field in ("stage", "country_of_origin", "mode_of_shipment", "currency"):
 		rule = DataValidation(type="list", formula1=lists[field], allow_blank=True)
-		rule.add(f"{column}2:{column}{last}")
+		rule.add(f"{at[field]}2:{at[field]}{last}")
 		sheet.add_data_validation(rule)
 
 
@@ -648,7 +685,9 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 		stages.update(new_stages)
 
 	wanted = lambda field: {_text(v.get(field)) for v in everything if _text(v.get(field))}  # noqa: E731
-	items, suppliers = _named("Item", wanted("item_code"), "item_name"), _named("Supplier", wanted("supplier"), "supplier_name")
+	# a line names its item by its code or name, or else is linked to the item its description names
+	items = _named("Item", wanted("item_code") | wanted("description"), "item_name")
+	suppliers = _named("Supplier", wanted("supplier"), "supplier_name")
 	codes, budget_sections = {}, {}
 	for code in frappe.get_all("Cost Code", filters={"disabled": 0}, fields=["name", "cost_code_name", "budget_section"]):
 		codes[code.name.lower()] = code.name
@@ -658,7 +697,7 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 	company = doc.company if doc else company
 	company_currency = frappe.get_cached_value("Company", company, "default_currency") if company else None
 	errors, rows, unknown = [], [], defaultdict(set)
-	proposed = vat_assumed = unplaced = shares = 0
+	proposed = vat_assumed = unplaced = shares = linked = 0
 	for where, values, vat_given in raw:
 		row, problems, extra = {"people": 1}, [], []
 		section_text = _text(values.get("section"))
@@ -668,7 +707,8 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 		item = _text(values.get("item_code"))
 		if item and not items.get(item.lower()):
 			problems.append(_("item {0} is not in the item list").format(item))
-		row["item_code"] = items.get(item.lower()) if item else None
+		row["item_code"] = items.get(item.lower()) if item else items.get(_text(values.get("description")).lower())
+		linked += bool(row["item_code"] and not item)
 		row["stage"] = stages.get(_text(values.get("stage")))
 		row["description"] = _text(values.get("description")) or (
 			frappe.get_cached_value("Item", row["item_code"], "item_name") if row["item_code"] else ""
@@ -726,6 +766,10 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 	tax_rows = []
 	for where, values, _given in goods:
 		row = {"description": _text(values.get("description"))}
+		item = _text(values.get("item_code"))
+		row["item_code"] = items.get((item or row["description"]).lower())
+		if item and not row["item_code"]:
+			unknown[_("Imported goods: not in the item list, left without an item")].add(item)
 		row["stage"] = stages.get(_text(values.get("stage"))) or _staged(row["description"], staged)
 		row["uom"] = _unit(values, lists, unknown)
 		supplier, country, mode = (_text(values.get(f)) for f in ("supplier", "country_of_origin", "mode_of_shipment"))
@@ -797,6 +841,13 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 		notes.append(_("{0} local equipment, materials and tools line(s) were taken as quoted with VAT, as the budget sheets have them.").format(vat_assumed))
 	if shares:
 		notes.append(_("{0} line(s) were priced as the share of the contract value their description gives.").format(shares))
+	if linked:
+		notes.append(_("{0} line(s) were linked to the item of the item master their description names.").format(linked))
+	unlinked = sum(1 for row in rows if not row.get("item_code"))
+	if unlinked:
+		notes.append(
+			_("{0} line(s) have no item yet: pick each one's item or service from the item master in its Item / Service column, adding it to the item master first where it is missing.").format(unlinked)
+		)
 	if tax_rows:
 		notes.append(_("{0} imported good(s) came into the tax computation with their rates.").format(len(tax_rows)))
 	notes += [

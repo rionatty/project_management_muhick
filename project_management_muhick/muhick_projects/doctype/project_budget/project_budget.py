@@ -39,6 +39,7 @@ class ProjectBudget(Document):
 		self.validate_phases()
 		estimate.resolve_stages(self.project, self.lines)
 		estimate.arrange(self.lines)
+		estimate.propose_cost_codes(self.lines)
 		self.contract_value = budget_engine.revised_contract_value(self.project)
 		estimate.set_amounts(self, self.lines, self.contract_value)
 		self.build_cost_code_summary()

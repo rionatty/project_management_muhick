@@ -70,14 +70,17 @@
    "options": "Task"
   },
   {
-   "description": "Leave blank for a lump sum, such as a commission or a levy",
+   "columns": 1,
+   "description": "From the item master: goods or equipment, or a service (a non-stock item) such as labour, transport or a commission. Its name, unit, brand and default cost code come with it, and its price when the line has none.",
    "fieldname": "item_code",
    "fieldtype": "Link",
-   "label": "Item",
+   "in_list_view": 1,
+   "label": "Item / Service",
    "options": "Item"
   },
   {
    "columns": 2,
+   "description": "The item's name, or what the line is when it has no item",
    "fetch_from": "item_code.item_name",
    "fetch_if_empty": 1,
    "fieldname": "description",
@@ -87,42 +90,42 @@
    "reqd": 1
   },
   {
+   "columns": 1,
    "fetch_from": "item_code.stock_uom",
    "fetch_if_empty": 1,
    "fieldname": "uom",
    "fieldtype": "Link",
    "label": "UOM",
-   "options": "UOM",
-   "columns": 1
+   "options": "UOM"
   },
   {
+   "columns": 1,
    "fetch_from": "item_code.brand",
    "fetch_if_empty": 1,
    "fieldname": "brand",
    "fieldtype": "Link",
    "label": "Brand",
-   "options": "Brand",
-   "columns": 1
+   "options": "Brand"
   },
   {
+   "columns": 1,
    "description": "Who the line is priced from",
    "fieldname": "supplier",
    "fieldtype": "Link",
    "label": "Supplier",
-   "options": "Supplier",
-   "columns": 1
+   "options": "Supplier"
   },
   {
    "fieldname": "column_break_1",
    "fieldtype": "Column Break"
   },
   {
+   "columns": 1,
    "default": "1",
    "description": "For labour and allowances: the amount is people × qty × rate",
    "fieldname": "people",
    "fieldtype": "Int",
-   "label": "People",
-   "columns": 1
+   "label": "People"
   },
   {
    "columns": 1,
@@ -165,11 +168,11 @@
    "label": "Rate Includes VAT"
   },
   {
+   "columns": 1,
    "description": "For a line worth a share of the contract value, such as miscellaneous",
    "fieldname": "contract_percent",
    "fieldtype": "Percent",
-   "label": "% of Contract Value",
-   "columns": 1
+   "label": "% of Contract Value"
   },
   {
    "columns": 1,
@@ -247,7 +250,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-30 09:00:00.000000",
+ "modified": "2026-10-30 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget Line",

@@ -384,6 +384,22 @@ frappe.ui.form.on("Project Budget Line", {
 		muhick.cost_lines.set_exchange_rate(frm, cdt, cdn);
 		muhick.cost_lines.set_amount(frm, cdt, cdn);
 	},
+	// an item picked from the item master brings its price when the line has none: the lowest supplier
+	// quotation for the bid, else its last purchase price
+	item_code(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (!row.item_code || flt(row.rate)) {
+			return;
+		}
+		frappe
+			.xcall("project_management_muhick.muhick_projects.estimate.get_item_price", {
+				item_code: row.item_code,
+				uom: row.uom || null,
+				opportunity: frm.doctype === "Opportunity" && !frm.is_new() ? frm.doc.name : null,
+				company: frm.doc.company,
+			})
+			.then((price) => price && flt(price.rate) && !flt(locals[cdt][cdn].rate) && frappe.model.set_value(cdt, cdn, price));
+	},
 	// a new line is in the company's currency until another is chosen, so its amounts show in it
 	...Object.fromEntries(
 		["lines", ...Object.keys(muhick.cost_lines.sections)].map((table) => [

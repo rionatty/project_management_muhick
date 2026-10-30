@@ -105,6 +105,7 @@ def set_estimate(doc):
 	lines, taxes = estimate.estimate_lines(doc), doc.get(estimate.TAX_TABLE) or []
 	if not lines and not taxes:
 		return
+	estimate.propose_cost_codes(lines)
 	rate = flt(doc.conversion_rate) or 1
 	cost = estimate.set_amounts(doc, lines, flt(doc.opportunity_amount) * rate) + estimate.set_import_taxes(doc, taxes)
 	doc.set("muhick_estimated_cost", cost / rate)
