@@ -23,7 +23,7 @@ from collections import Counter, defaultdict
 
 import frappe
 from frappe import _
-from frappe.utils import flt, formatdate, getdate
+from frappe.utils import flt, formatdate, getdate, strip_html
 
 from project_management_muhick.muhick_projects.utils import ensure_milestone, get_phases
 from project_management_muhick.muhick_sales.bids import boq_factor, boq_quotes, last_purchase_rate, latest_by_supplier, lowest, project_bid
@@ -262,20 +262,31 @@ def get_boq_lines(opportunity: str, items) -> list:
 
 
 @frappe.whitelist()
-def get_item_price(item_code: str, uom: str | None = None, opportunity: str | None = None, company: str | None = None) -> dict:
-	"""The price a line of an item from the item master starts at, per unit of uom: the lowest valid supplier
-	quotation for the bid, else the item's last purchase price; {} when there is none."""
+def get_item_details(item_code: str, uom: str | None = None, opportunity: str | None = None, company: str | None = None) -> dict:
+	"""What a line of an item from the item master takes from it: its description (the item's, else its
+	name), unit, brand and default cost code, and the price it starts at per unit of uom (the item's unit
+	when none is given): the lowest valid supplier quotation for the bid, else the item's last purchase
+	price. {} for an item not in the item master."""
 	frappe.has_permission("Item", "read", throw=True)
+	item = frappe.db.get_value("Item", item_code, ["item_name", "description", "stock_uom", "brand", "muhick_cost_code"], as_dict=True)
+	if not item:
+		return {}
 	if opportunity:
 		bid = frappe.get_doc("Opportunity", opportunity)
 		bid.check_permission("read")
 		company = bid.company
 	company_currency = frappe.get_cached_value("Company", company, "default_currency") if company else None
+	uom = uom or item.stock_uom
 	price = supplier_price(boq_quotes(opportunity).get(item_code, []), item_code, uom, company_currency) if opportunity else None
 	if price:
-		return {**price, "currency": price["currency"] or company_currency}
-	rate = flt(last_purchase_rate(item_code)) * boq_factor(item_code, uom)
-	return {"rate": rate, "currency": company_currency, "exchange_rate": 1} if rate else {}
+		price["currency"] = price["currency"] or company_currency
+	else:
+		rate = flt(last_purchase_rate(item_code)) * boq_factor(item_code, uom)
+		price = {"rate": rate, "currency": company_currency, "exchange_rate": 1} if rate else None
+	return {
+		"description": strip_html(item.description or "").strip() or item.item_name, "uom": item.stock_uom,
+		"brand": item.brand, "cost_code": item.muhick_cost_code, "price": price,
+	}
 
 
 @frappe.whitelist()

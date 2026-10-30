@@ -548,6 +548,7 @@ const usual_rates = (settings) => ({
 });
 
 frappe.ui.form.on("Import Tax Line", {
+	item_code: (frm, cdt, cdn) => muhick.cost_lines.take_item(frm, cdt, cdn, ["description", "uom"]),
 	muhick_import_taxes_add(frm, cdt, cdn) {
 		muhick.cost_lines
 			.settings(frm)

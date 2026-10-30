@@ -226,6 +226,42 @@ muhick.cost_lines = {
 			muhick.cost_lines.render_summary(frm);
 		});
 	},
+	// an item picked from the item master brings its description, unit and the other fields given, and its
+	// price when the line has none (the lowest supplier quotation for the bid, else its last purchase price);
+	// when another item is picked, what came from the first follows it, what was typed over stays
+	take_item(frm, cdt, cdn, fields) {
+		const item_code = locals[cdt][cdn].item_code;
+		if (!item_code) {
+			return;
+		}
+		const before = locals[cdt][cdn].__item || {};
+		const row = locals[cdt][cdn];
+		frappe
+			.xcall("project_management_muhick.muhick_projects.estimate.get_item_details", {
+				item_code,
+				uom: row.uom && row.uom !== before.uom ? row.uom : null,
+				opportunity: frm.doctype === "Opportunity" && !frm.is_new() ? frm.doc.name : null,
+				company: frm.doc.company,
+			})
+			.then((item) => {
+				const now = locals[cdt][cdn];
+				if (!item.description || !now || now.item_code !== item_code) {
+					return;
+				}
+				const values = {};
+				fields.forEach((field) => {
+					if (item[field] && (!now[field] || now[field] === before[field])) {
+						values[field] = item[field];
+					}
+				});
+				const price = item.price || {};
+				if (flt(price.rate) && (!flt(now.rate) || flt(now.rate) === flt((before.price || {}).rate))) {
+					Object.assign(values, price);
+				}
+				now.__item = item;
+				frappe.model.set_value(cdt, cdn, values);
+			});
+	},
 	// the lines to and from Excel: a file of the saved lines to prepare or change in Excel, and an upload
 	// that checks every row first, so a file with mistakes changes nothing
 	download(frm) {
@@ -384,22 +420,7 @@ frappe.ui.form.on("Project Budget Line", {
 		muhick.cost_lines.set_exchange_rate(frm, cdt, cdn);
 		muhick.cost_lines.set_amount(frm, cdt, cdn);
 	},
-	// an item picked from the item master brings its price when the line has none: the lowest supplier
-	// quotation for the bid, else its last purchase price
-	item_code(frm, cdt, cdn) {
-		const row = locals[cdt][cdn];
-		if (!row.item_code || flt(row.rate)) {
-			return;
-		}
-		frappe
-			.xcall("project_management_muhick.muhick_projects.estimate.get_item_price", {
-				item_code: row.item_code,
-				uom: row.uom || null,
-				opportunity: frm.doctype === "Opportunity" && !frm.is_new() ? frm.doc.name : null,
-				company: frm.doc.company,
-			})
-			.then((price) => price && flt(price.rate) && !flt(locals[cdt][cdn].rate) && frappe.model.set_value(cdt, cdn, price));
-	},
+	item_code: (frm, cdt, cdn) => muhick.cost_lines.take_item(frm, cdt, cdn, ["description", "uom", "brand", "cost_code"]),
 	// a new line is in the company's currency until another is chosen, so its amounts show in it
 	...Object.fromEntries(
 		["lines", ...Object.keys(muhick.cost_lines.sections)].map((table) => [
