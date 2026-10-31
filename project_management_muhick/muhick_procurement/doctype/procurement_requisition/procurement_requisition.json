@@ -211,7 +211,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Price, specification, delivery period and other criteria",
    "fieldname": "evaluation_summary",
    "fieldtype": "Small Text",
    "label": "Basis of Supplier Selection",
@@ -260,7 +259,6 @@
    "read_only": 1
   },
   {
-   "description": "Positive when the sourced prices are above the budget",
    "fieldname": "total_price_variance",
    "fieldtype": "Currency",
    "label": "Price Variance",
@@ -280,7 +278,6 @@
    "label": "Changes While Under Approval"
   },
   {
-   "description": "Required when prices or quantities are changed after the requisition was sent for approval. Finance is notified; the approval does not restart.",
    "fieldname": "amendment_summary",
    "fieldtype": "Small Text",
    "label": "Summary of This Change",
@@ -322,7 +319,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Procurement",
  "name": "Procurement Requisition",

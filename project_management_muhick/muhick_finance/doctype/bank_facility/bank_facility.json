@@ -67,7 +67,6 @@
    "reqd": 1
   },
   {
-   "description": "Instruments currently running against this facility",
    "fieldname": "utilised",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -114,7 +113,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Finance",
  "name": "Bank Facility",

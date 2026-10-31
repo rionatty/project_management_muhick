@@ -209,7 +209,6 @@
    "label": "Charge to Project"
   },
   {
-   "description": "Prevailing market hire rate used to charge the project for the days the equipment is held",
    "fieldname": "daily_hire_rate",
    "fieldtype": "Currency",
    "label": "Hire Rate per Day"
@@ -240,7 +239,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Equipment Allocation",

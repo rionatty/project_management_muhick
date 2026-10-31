@@ -71,7 +71,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Cost Control Sheet: sourced prices or quantities differ from the approved budget. Reallocation: moves budget between cost codes and must net to zero.",
    "fieldname": "revision_type",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -132,7 +131,6 @@
    "reqd": 1
   },
   {
-   "description": "For example the budgeted item being removed or reduced to offset the increase",
    "fieldname": "funding_source",
    "fieldtype": "Small Text",
    "label": "Where the Additional Funds Come From"
@@ -209,7 +207,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget Revision",

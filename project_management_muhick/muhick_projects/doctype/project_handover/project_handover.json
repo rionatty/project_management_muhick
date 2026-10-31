@@ -69,7 +69,6 @@
    "reqd": 1
   },
   {
-   "description": "Type the project's name. It becomes the name of the project created when the handover is accepted.",
    "fieldname": "project_name",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -105,7 +104,6 @@
    "reqd": 1
   },
   {
-   "description": "Remains the point of contact for result support until the project is complete",
    "fieldname": "sales_engineer",
    "fieldtype": "Link",
    "label": "Sales Engineer",
@@ -120,7 +118,6 @@
    "reqd": 1
   },
   {
-   "description": "Leave blank to create the project when the handover is accepted",
    "fieldname": "project",
    "fieldtype": "Link",
    "label": "Project",
@@ -155,7 +152,6 @@
    "options": "Quotation"
   },
   {
-   "description": "Its sales requisitions and bid security charges, which the project carries as its own cost",
    "fieldname": "bid_costs",
    "fieldtype": "Currency",
    "label": "Spent Winning the Bid",
@@ -189,7 +185,6 @@
    "label": "Contract No."
   },
   {
-   "description": "Without VAT: the sales order's net total",
    "fieldname": "contract_value",
    "fieldtype": "Currency",
    "label": "Contract Value",
@@ -320,7 +315,6 @@
    "options": "Project Approved Brand"
   },
   {
-   "description": "From the bid: what the client asked for, and any deviation agreed at bid stage",
    "fieldname": "client_requirements_section",
    "fieldtype": "Section Break",
    "label": "Client Requirements"
@@ -369,7 +363,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-28 20:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Handover",

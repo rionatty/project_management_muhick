@@ -23,7 +23,6 @@
    "unique": 1
   },
   {
-   "description": "Its share of the progress of a new opportunity, which can change it; keep the weights in use at 100% together.",
    "fieldname": "weight",
    "fieldtype": "Percent",
    "in_list_view": 1,
@@ -31,7 +30,6 @@
    "reqd": 1
   },
   {
-   "description": "What marks it reached on an opportunity; Ticked by Hand for one the sales engineer ticks",
    "fieldname": "reached_when",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -45,7 +43,6 @@
   },
   {
    "default": "0",
-   "description": "Where it comes in an opportunity's list of milestones",
    "fieldname": "sequence",
    "fieldtype": "Int",
    "in_list_view": 1,
@@ -53,7 +50,6 @@
   },
   {
    "default": "0",
-   "description": "Not offered for new opportunities or new lines; opportunities that have it keep it",
    "fieldname": "disabled",
    "fieldtype": "Check",
    "label": "Disabled"
@@ -62,7 +58,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-26 11:01:00.544703",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Opportunity Milestone",

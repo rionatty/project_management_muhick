@@ -36,7 +36,6 @@
  "fields": [
   {
    "columns": 2,
-   "description": "The part of the budget the line belongs to, as in the budget sheets",
    "fieldname": "section",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -45,7 +44,6 @@
   },
   {
    "columns": 1,
-   "description": "From the shared milestone list. The line takes the project's milestone of this name once the activity plan creates it.",
    "fieldname": "stage",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -55,7 +53,6 @@
   {
    "allow_on_submit": 1,
    "depends_on": "eval:parent.doctype=='Project Budget'",
-   "description": "The project's milestone (a group task). Filled in from the stage once the project has it.",
    "fieldname": "phase",
    "fieldtype": "Link",
    "label": "Milestone / Phase",
@@ -63,7 +60,6 @@
   },
   {
    "depends_on": "eval:parent.doctype=='Project Budget'",
-   "description": "Optional: a task of the milestone",
    "fieldname": "activity",
    "fieldtype": "Link",
    "label": "Activity",
@@ -71,7 +67,6 @@
   },
   {
    "columns": 1,
-   "description": "From the item master: goods or equipment, or a service (a non-stock item) such as labour, transport or a commission. Its name, unit, brand and default cost code come with it, and its price when the line has none.",
    "fieldname": "item_code",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -80,7 +75,6 @@
   },
   {
    "columns": 2,
-   "description": "The item's name, or what the line is when it has no item",
    "fetch_from": "item_code.item_name",
    "fetch_if_empty": 1,
    "fieldname": "description",
@@ -109,7 +103,6 @@
   },
   {
    "columns": 1,
-   "description": "Who the line is priced from",
    "fieldname": "supplier",
    "fieldtype": "Link",
    "label": "Supplier",
@@ -122,7 +115,6 @@
   {
    "columns": 1,
    "default": "1",
-   "description": "For labour and allowances: the amount is people × qty × rate",
    "fieldname": "people",
    "fieldtype": "Int",
    "label": "People"
@@ -146,7 +138,6 @@
    "reqd": 1
   },
   {
-   "description": "The currency it is quoted in; the company's when left blank",
    "fieldname": "currency",
    "fieldtype": "Link",
    "label": "Currency",
@@ -155,28 +146,24 @@
   {
    "default": "1",
    "depends_on": "eval:doc.currency && doc.currency != erpnext.get_currency(parent.company)",
-   "description": "The rate to the company's currency this budget uses",
    "fieldname": "exchange_rate",
    "fieldtype": "Float",
    "label": "Exchange Rate"
   },
   {
    "default": "0",
-   "description": "Ticked for a rate quoted with VAT: the amount is taken without it",
    "fieldname": "rate_includes_vat",
    "fieldtype": "Check",
    "label": "Rate Includes VAT"
   },
   {
    "columns": 1,
-   "description": "For a line worth a share of the contract value, such as miscellaneous",
    "fieldname": "contract_percent",
    "fieldtype": "Percent",
    "label": "% of Contract Value"
   },
   {
    "columns": 1,
-   "description": "People × qty × rate in the line's currency, VAT included where the rate has it: the amount the budget sheets show",
    "fieldname": "quoted_amount",
    "fieldtype": "Currency",
    "label": "Amount as Quoted",
@@ -185,7 +172,6 @@
   },
   {
    "columns": 1,
-   "description": "In the company's currency, without VAT: what the line costs the budget",
    "fieldname": "amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -193,7 +179,6 @@
    "read_only": 1
   },
   {
-   "description": "Proposed from the item's Default Cost Code",
    "fetch_from": "item_code.muhick_cost_code",
    "fetch_if_empty": 1,
    "fieldname": "cost_code",
@@ -250,7 +235,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-30 12:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget Line",

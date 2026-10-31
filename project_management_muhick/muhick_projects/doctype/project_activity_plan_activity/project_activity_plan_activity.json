@@ -26,7 +26,6 @@
   },
   {
    "columns": 2,
-   "description": "One of the milestones above",
    "fieldname": "phase_name",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -59,7 +58,6 @@
   },
   {
    "columns": 2,
-   "description": "Activity that must finish first",
    "fieldname": "depends_on_subject",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -75,7 +73,6 @@
    "label": "Description"
   },
   {
-   "description": "Set when the plan is approved",
    "fieldname": "task",
    "fieldtype": "Link",
    "label": "Task",
@@ -88,7 +85,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-18 13:42:43.914262",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Activity Plan Activity",

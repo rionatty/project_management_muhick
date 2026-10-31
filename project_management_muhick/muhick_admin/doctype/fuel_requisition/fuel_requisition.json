@@ -51,7 +51,6 @@
    "options": "Vehicle"
   },
   {
-   "description": "For fuel that is not for a registered vehicle",
    "fieldname": "equipment_name",
    "fieldtype": "Data",
    "label": "Or Equipment / Generator"
@@ -179,7 +178,6 @@
    "read_only": 1
   },
   {
-   "description": "Distance since the last fuelling divided by the litres issued then",
    "fieldname": "km_per_litre",
    "fieldtype": "Float",
    "label": "km per Litre",
@@ -209,7 +207,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Admin",
  "name": "Fuel Requisition",

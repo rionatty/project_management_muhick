@@ -117,7 +117,6 @@
    "label": "Budget Build-Up"
   },
   {
-   "description": "Line by line in the company's currency, without VAT. A budget made at handover starts from the won bid's cost estimate. A budget prepared in Excel comes in with Upload from Excel, in the layout of the file Download Excel gives.",
    "fieldname": "lines",
    "fieldtype": "Table",
    "label": "Budget Lines",
@@ -155,7 +154,6 @@
   },
   {
    "allow_on_submit": 1,
-   "description": "Without VAT",
    "fetch_from": "project.muhick_revised_contract_value",
    "fieldname": "contract_value",
    "fieldtype": "Currency",
@@ -226,7 +224,6 @@
   },
   {
    "allow_on_submit": 1,
-   "description": "Commitments on a cost code that is not in this budget, or with no cost code",
    "fieldname": "unbudgeted_committed",
    "fieldtype": "Currency",
    "label": "Committed Outside the Budgeted Cost Codes",
@@ -247,7 +244,6 @@
   },
   {
    "allow_on_submit": 1,
-   "description": "Revised Contract Value less Current Budget",
    "fieldname": "planned_margin",
    "fieldtype": "Currency",
    "label": "Planned Margin",
@@ -262,7 +258,6 @@
   },
   {
    "allow_on_submit": 1,
-   "description": "Revised Contract Value less Forecast Final Cost",
    "fieldname": "forecast_margin",
    "fieldtype": "Currency",
    "label": "Forecast Margin",
@@ -308,7 +303,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-29 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget",

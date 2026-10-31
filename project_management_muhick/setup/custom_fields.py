@@ -16,17 +16,14 @@ TYPES_OF_WORK = ["Works", "Supply and Install", "Supply Only", "Maintenance / Se
 # to the other
 REQUIREMENTS = dict(
 	fieldname="muhick_requirements", label="Requirements", fieldtype="Table", options="Client Requirement",
-	description="What the client needs, one line each: the scope in the advert, BOQ or enquiry",
 )
 # the stage (milestone) of a priced line; the same field on the opportunity, quotation and sales order
 # lines, so ERPNext carries it from one to the next, and the project's BOQ takes it as its milestone
 STAGE = dict(
 	fieldname="muhick_stage", label="Stage", fieldtype="Link", options="Task Type", insert_after="item_code",
-	description="From the shared milestone list",
 )
 FINANCIAL_REQUIREMENTS = dict(
 	fieldname="muhick_financial_requirements", label="Financial Requirements", fieldtype="Table", options="Financial Requirement",
-	description="What the bid needs in money, one line each. The bid security and the sales requisition are filled in from these lines.",
 )
 COST_CODE = dict(fieldname="muhick_cost_code", label="Cost Code", fieldtype="Link", options="Cost Code", insert_after="project")
 # the opportunity's tables of cost estimate lines, one per sheet of the budget workbook, and the tax computation
@@ -67,7 +64,7 @@ PROJECT = _chain(
 	[
 		dict(fieldname="muhick_contract_tab", fieldtype="Tab Break", label="Contract and Lifecycle"),
 		_sec("muhick_lifecycle_section", "Lifecycle"),
-		dict(fieldname="muhick_stage", label="Stage", fieldtype="Select", options="Planning\nExecution\nPractical Completion\nFull Completion", default="Planning", read_only=1, no_copy=1, in_standard_filter=1, in_list_view=1, description="Practical Completion means the project is in its Defects Liability Period"),
+		dict(fieldname="muhick_stage", label="Stage", fieldtype="Select", options="Planning\nExecution\nPractical Completion\nFull Completion", default="Planning", read_only=1, no_copy=1, in_standard_filter=1, in_list_view=1),
 		dict(fieldname="muhick_project_category", label="Project Category", fieldtype="Select", options="\nSupply and Install\nSupply Only\nWorks\nConsultancy\nOther"),
 		dict(fieldname="muhick_project_manager", label="Project Manager", fieldtype="Link", options="User", in_standard_filter=1),
 		dict(fieldname="muhick_sales_engineer", label="Sales Engineer (Result Support)", fieldtype="Link", options="User"),
@@ -79,7 +76,7 @@ PROJECT = _chain(
 		_sec("muhick_contract_section", "Contract"),
 		dict(fieldname="muhick_contract_no", label="Contract No.", fieldtype="Data"),
 		dict(fieldname="muhick_contract_date", label="Contract Date", fieldtype="Date"),
-		dict(fieldname="muhick_contract_value", label="Original Contract Value", fieldtype="Currency", description="Without VAT"),
+		dict(fieldname="muhick_contract_value", label="Original Contract Value", fieldtype="Currency"),
 		_ro("muhick_approved_variations", "Approved Variations"),
 		_ro("muhick_revised_contract_value", "Revised Contract Value", bold=1),
 		_col("muhick_contract_column"),
@@ -92,12 +89,12 @@ PROJECT = _chain(
 		dict(fieldname="muhick_advance_percent", label="Advance Payment %", fieldtype="Percent"),
 		dict(fieldname="muhick_advance_amount", label="Advance Payment Amount", fieldtype="Currency"),
 		_col("muhick_billing_column"),
-		dict(fieldname="muhick_retention_percent", label="Retention %", fieldtype="Percent", description="Leave at zero for contracts with no retention"),
+		dict(fieldname="muhick_retention_percent", label="Retention %", fieldtype="Percent"),
 		dict(fieldname="muhick_dlp_months", label="Defects Liability Period (Months)", fieldtype="Int"),
 		_sec("muhick_site_store_section", "Site Store"),
 		_ro("muhick_site_warehouse", "Site Store", "Link", options="Warehouse"),
 		_col("muhick_site_store_column"),
-		dict(fieldname="muhick_site_store_type", label="Store Run By", fieldtype="Select", options="Company\nClient", default="Company", description="Client: a store belonging to the client or shared with other contractors. Stock stays the company's until it is installed."),
+		dict(fieldname="muhick_site_store_type", label="Store Run By", fieldtype="Select", options="Company\nClient", default="Company"),
 		_sec("muhick_completion_section", "Completion"),
 		_ro("muhick_practical_completion_date", "Practical Completion Date", "Date"),
 		_ro("muhick_dlp_end_date", "Defects Liability Ends On", "Date"),
@@ -111,7 +108,7 @@ PROJECT = _chain(
 		_ro("muhick_retention_released", "Retention Released"),
 		_ro("muhick_advance_recovered", "Advance Recovered"),
 		_sec("muhick_opening_section", "Position Before Go-Live", collapsible=1),
-		dict(fieldname="muhick_opening_certified", label="Certified Before Go-Live", fieldtype="Currency", description="Only for projects already running when the system went live"),
+		dict(fieldname="muhick_opening_certified", label="Certified Before Go-Live", fieldtype="Currency"),
 		dict(fieldname="muhick_opening_retention_held", label="Retention Held Before Go-Live", fieldtype="Currency"),
 		_col("muhick_opening_column"),
 		dict(fieldname="muhick_opening_retention_released", label="Retention Released Before Go-Live", fieldtype="Currency"),
@@ -127,16 +124,16 @@ MATERIAL_REQUEST = _chain(
 		_sec("muhick_project_section", "Project and Budget"),
 		dict(fieldname="muhick_request_origin", label="Request From", fieldtype="Select", options="\nProject\nDefects Liability\nSite Store\nUser Department\nAdministration\nFixed Asset", in_standard_filter=1),
 		dict(fieldname="muhick_project", label="Project", fieldtype="Link", options="Project", in_standard_filter=1),
-		dict(fieldname="muhick_phase", label="Milestone / Phase", fieldtype="Link", options="Task", mandatory_depends_on="eval:doc.muhick_project && doc.muhick_request_origin=='Project'", description="Project requests are raised per milestone. Get Items from Milestone loads what the activity plan still needs for it."),
+		dict(fieldname="muhick_phase", label="Milestone / Phase", fieldtype="Link", options="Task", mandatory_depends_on="eval:doc.muhick_project && doc.muhick_request_origin=='Project'"),
 		_col("muhick_project_column"),
 		dict(fieldname="muhick_budget_status", label="Budget Status", fieldtype="Select", options=BUDGET_STATUS, read_only=1, no_copy=1, in_standard_filter=1, allow_on_submit=1),
 		dict(fieldname="muhick_budget_remarks", label="Budget Check", fieldtype="Small Text", read_only=1, no_copy=1, allow_on_submit=1),
 		dict(fieldname="muhick_out_of_phase", label="Outside the Current Phase", fieldtype="Check", read_only=1, no_copy=1),
-		dict(fieldname="muhick_justification", label="Justification", fieldtype="Small Text", description="Required when the request exceeds the budget or belongs to a later phase"),
+		dict(fieldname="muhick_justification", label="Justification", fieldtype="Small Text"),
 		_col("muhick_urgency_column"),
 		dict(fieldname="muhick_priority", label="Priority", fieldtype="Select", options="Normal\nHigh\nUrgent", default="Normal", in_standard_filter=1),
 		dict(fieldname="muhick_priority_reason", label="Reason for the Priority", fieldtype="Small Text", depends_on="eval:doc.muhick_priority!='Normal'", mandatory_depends_on="eval:doc.muhick_priority=='Urgent'"),
-		dict(fieldname="muhick_stock_status", label="Stock Check", fieldtype="Select", options="\nIn Stock\nInsufficient Stock\nNot Applicable", read_only=1, no_copy=1, description="For requests drawn from the stores: whether the source store holds enough"),
+		dict(fieldname="muhick_stock_status", label="Stock Check", fieldtype="Select", options="\nIn Stock\nInsufficient Stock\nNot Applicable", read_only=1, no_copy=1),
 		dict(fieldname="muhick_spec_exception", label="Brand / Specification Check", fieldtype="Small Text", read_only=1, no_copy=1),
 		dict(fieldname="muhick_stock_note", label="Already Held in Stock", fieldtype="Small Text", read_only=1, no_copy=1),
 	],
@@ -172,7 +169,7 @@ CUSTOM_FIELDS = {
 		[
 			dict(fieldname="muhick_phase", label="Milestone / Phase", fieldtype="Link", options="Task"),
 			_ro("muhick_purchase_order", "Delivery of Purchase Order", "Link", options="Purchase Order"),
-			dict(fieldname="muhick_is_disposal", label="Disposal / Write-Off", fieldtype="Check", depends_on="eval:doc.purpose=='Material Issue'", description="Damaged, expired or obsolete stock being disposed of. Needs Finance approval."),
+			dict(fieldname="muhick_is_disposal", label="Disposal / Write-Off", fieldtype="Check", depends_on="eval:doc.purpose=='Material Issue'"),
 			dict(fieldname="muhick_disposal_reason", label="Reason for Disposal", fieldtype="Small Text", depends_on="eval:doc.muhick_is_disposal", mandatory_depends_on="eval:doc.muhick_is_disposal"),
 			dict(fieldname="muhick_approval_route", label="Approval Needed From", fieldtype="Select", options="\nProcurement Manager\nFinance", read_only=1, no_copy=1),
 		],
@@ -181,7 +178,7 @@ CUSTOM_FIELDS = {
 		"project",
 		[
 			dict(COST_CODE),
-			dict(fieldname="muhick_charge_to_project", label="Charge to Project Budget", fieldtype="Check", description="Ticked when the stock comes from the company's own stores. Untick if it was bought on a purchase order for this project, which is already a commitment."),
+			dict(fieldname="muhick_charge_to_project", label="Charge to Project Budget", fieldtype="Check"),
 		],
 	),
 	"Sales Invoice": _chain(
@@ -192,7 +189,7 @@ CUSTOM_FIELDS = {
 		],
 	),
 	"Sales Order": [
-		dict(fieldname="muhick_sale_type", label="Sale Type", fieldtype="Select", options="\nStock\nProject\nAdditions", insert_after="order_type", description="Project and Additions notify the Project Manager and start the handover"),
+		dict(fieldname="muhick_sale_type", label="Sale Type", fieldtype="Select", options="\nStock\nProject\nAdditions", insert_after="order_type"),
 	],
 	# a milestone (phase) is a group task, its activities are child tasks; these hold what the approved plan sets
 	"Task": _chain(
@@ -212,7 +209,7 @@ CUSTOM_FIELDS = {
 		],
 	),
 	"Item": [
-		dict(fieldname="muhick_cost_code", label="Default Cost Code", fieldtype="Link", options="Cost Code", insert_after="item_group", description="Proposed on budget lines and requests for this item"),
+		dict(fieldname="muhick_cost_code", label="Default Cost Code", fieldtype="Link", options="Cost Code", insert_after="item_group"),
 	],
 	"Warehouse": _chain(
 		"warehouse_type",
@@ -291,12 +288,10 @@ CUSTOM_FIELDS = {
 		[
 			_ro(
 				"muhick_progress", "Progress %", "Percent", in_list_view=1,
-				description="The weight of the milestones reached, out of the weight of those that apply",
 			),
 			_sec("muhick_milestones_section", "Opportunity Milestones"),
 			dict(
 				fieldname="muhick_milestones", label="Milestones", fieldtype="Table", options="Opportunity Milestone Line",
-				description="From the lead to the project. Each milestone carries its weight and is reached as the record shows; one ticked by hand is set here. The milestones and their weights are in the Opportunity Milestones list.",
 			),
 		],
 	)
@@ -317,7 +312,6 @@ CUSTOM_FIELDS = {
 			dict(
 				fieldname="muhick_site_visit_report", label="Site Visit Report", fieldtype="Attach",
 				depends_on="eval:doc.muhick_site_visit_required",
-				description="What was found on site; the technical part of the bid is ready only with it",
 			),
 			dict(
 				fieldname="muhick_site_visit_findings", label="Site Visit Findings", fieldtype="Small Text",
@@ -328,66 +322,55 @@ CUSTOM_FIELDS = {
 			_sec("muhick_compliance_section"),
 			dict(
 				REQUIREMENTS, label="Requirements and Compliance",
-				description="From the lead. Answer each line while preparing the technical bid: the item proposed from the item master, its data sheet checked against the requirement, and any deviation reported to the manufacturer.",
 			),
 			_sec("muhick_financial_section"),
 			dict(FINANCIAL_REQUIREMENTS),
-			_sec("muhick_preparation_section", "Bid Preparation", description="A bid is complete with all three parts, and only a complete bid is submitted"),
+			_sec("muhick_preparation_section", "Bid Preparation"),
 			dict(
 				fieldname="muhick_estimated_cost", label="Estimated Cost", fieldtype="Currency", options="currency",
 				read_only_depends_on=f"eval:{json.dumps(ESTIMATE_TABLES)}.some((table) => (doc[table] || []).length)",
-				description="Without VAT: the total of the cost estimate when it has lines",
 			),
 			_ro("muhick_margin_percent", "Margin %", "Percent", in_list_view=1),
 			_col("muhick_preparation_column"),
 			_ro(
 				"muhick_administrative_bid_ready", "Administrative Bid Ready", "Check",
-				description="Ticks itself once every administrative document on the checklist is ready",
 			),
 			_ro(
 				"muhick_technical_bid_ready", "Technical Bid Ready", "Check",
-				description="Ticks itself once every technical document on the checklist is ready, every requirement is answered with the data sheet of its proposed item, and a required site visit has its report",
 			),
 			_ro(
 				"muhick_financial_bid_ready", "Financial Bid Ready", "Check",
-				description="Ticks itself once every financial document on the checklist is ready",
 			),
 			_sec(
 				"muhick_documents_section", "Bid Documents",
-				description="What the bid must contain, each document tracked on its line: its status, who prepares it, by when and its file. A part of the bid is ready once all its documents are.",
 			),
 			dict(
 				fieldname="muhick_checklist", label="Document Checklist", fieldtype="Table", options="Bid Checklist Item",
-				description="A new bid starts with the documents every bid needs; add or remove lines for this tender",
 			),
 			_sec(
 				"muhick_submission_section", "Submission",
-				description="Recording the submission with its acknowledgement marks the bid Submitted",
 			),
 			dict(fieldname="muhick_submitted_at", label="Submitted On", fieldtype="Datetime"),
 			dict(fieldname="muhick_submission_mode", label="Submission Mode", fieldtype="Select", options="\nPhysical\nEmail\nFlash Disk\nPortal"),
 			dict(fieldname="muhick_copies", label="Copies", fieldtype="Int"),
 			_col("muhick_submission_column"),
 			dict(fieldname="muhick_delivered_by", label="Delivered By", fieldtype="Link", options="User"),
-			dict(fieldname="muhick_received_by", label="Received By", fieldtype="Data", description="Who received it at the procuring entity, or the portal"),
+			dict(fieldname="muhick_received_by", label="Received By", fieldtype="Data"),
 			dict(
 				fieldname="muhick_acknowledgement", label="Acknowledgement", fieldtype="Attach",
-				description="The stamped receipt, the e-GP confirmation or the email acknowledging the bid",
 			),
 			_sec(
 				"muhick_follow_up_section", "Follow-up After Submission", depends_on="eval:doc.muhick_submitted_at",
-				description="Each contact with the procuring entity or client after the bid went in: what was learned and when to follow up next. The sales engineer is reminded when a follow-up is due; a big bid's overdue follow-up goes to the Head of Sales, then the General Manager (Muhick Settings).",
 			),
-			_ro("muhick_next_follow_up", "Next Follow-up On", "Date", description="From the latest follow-up, else some days after the submission"),
+			_ro("muhick_next_follow_up", "Next Follow-up On", "Date"),
 			dict(fieldname="muhick_follow_ups", label="Follow-ups", fieldtype="Table", options="Bid Follow-up"),
 			_sec("muhick_security_section", "Bid Security"),
-			dict(fieldname="muhick_bid_security_required", label="Bid Security Required", fieldtype="Check", read_only=1, description="From a Bid Security line in the financial requirements"),
+			dict(fieldname="muhick_bid_security_required", label="Bid Security Required", fieldtype="Check", read_only=1),
 			dict(fieldname="muhick_bid_security_amount", label="Bid Security Amount", fieldtype="Currency", options="currency", read_only=1, depends_on="eval:doc.muhick_bid_security_required"),
 			_col("muhick_security_column"),
 			dict(fieldname="muhick_bid_security", label="Bid Security", fieldtype="Link", options="Bank Instrument", depends_on="eval:doc.muhick_bid_security_required"),
 			_sec(
 				"muhick_outcome_section", "Outcome",
-				description="Won or lost: from the outcome report, once the Head of Sales and the General Manager have approved it",
 			),
 			_ro("muhick_bid_outcome", "Outcome Report", "Link", options="Bid Outcome"),
 			_ro("muhick_award_notice", "Best Evaluated Bidder Notice", "Attach"),
@@ -395,7 +378,7 @@ CUSTOM_FIELDS = {
 			_col("muhick_outcome_column"),
 			_ro(
 				"muhick_outcome_notes", "Why It Was Won, Lost or Closed, and the Lessons", "Small Text",
-				mandatory_depends_on="", description="",
+				mandatory_depends_on="", 
 			),
 		],
 	)
@@ -408,45 +391,36 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_equipment_tab", fieldtype="Tab Break", label="Equipment"),
 			dict(
 				ESTIMATE_LINES, fieldname="muhick_equipment", label="Equipment",
-				description="The equipment to install, system by system as the Equipment sheet: brand, unit, qty, rate and supplier, the amount as quoted (VAT included where the quote has it) and without VAT in the company's currency.",
 			),
 			dict(fieldname="muhick_equipment_totals", label="Equipment Totals", fieldtype="HTML"),
 			dict(fieldname="muhick_materials_tab", fieldtype="Tab Break", label="Installation Materials"),
 			dict(
 				ESTIMATE_LINES, fieldname="muhick_materials", label="Installation Materials",
-				description="Pipes, fittings, cables and the other materials of the installation, system by system as the Installation Materials sheet.",
 			),
 			dict(fieldname="muhick_materials_totals", label="Installation Materials Totals", fieldtype="HTML"),
 			dict(fieldname="muhick_taxes_tab", fieldtype="Tab Break", label="Taxes"),
 			dict(
 				fieldname="muhick_import_taxes", label="Tax Computation", fieldtype="Table", options="Import Tax Line",
-				description="The imported goods with their insurance, customs value (C.I), import duty (ID), VAT and infrastructure levy (IL), as the Taxes sheet. Get Imported Goods (under Cost Estimate at the top) fills it from the equipment and materials bought abroad. Goods made in the East African Community pay VAT only.",
 			),
 			dict(
 				ESTIMATE_LINES, fieldname="muhick_freight", label="Freight and Clearing",
-				description="Sea, air or road freight, clearing and the other charges of bringing the goods in",
 			),
 			dict(fieldname="muhick_taxes_totals", label="Taxes and Freight Totals", fieldtype="HTML"),
 			dict(fieldname="muhick_labour_tab", fieldtype="Tab Break", label="Labour"),
 			dict(
-				ESTIMATE_LINES, fieldname="muhick_labour", label="Labour Requirements",
-				description="Staff, trades, casuals and subcontracted installation as the Labour sheet: people × qty (months, days or a lump sum) × rate.",
-			),
+				ESTIMATE_LINES, fieldname="muhick_labour", label="Labour Requirements"			),
 			dict(fieldname="muhick_labour_totals", label="Labour Totals", fieldtype="HTML"),
 			dict(fieldname="muhick_tools_tab", fieldtype="Tab Break", label="Tools & Equipment"),
 			dict(
 				ESTIMATE_LINES, fieldname="muhick_tools", label="Tools and Equipment",
-				description="The tools and plant the works need, bought or hired, as the Tools & Equipment sheet",
 			),
 			dict(fieldname="muhick_tools_totals", label="Tools and Equipment Totals", fieldtype="HTML"),
 			dict(fieldname="muhick_overheads_tab", fieldtype="Tab Break", label="Administrative"),
 			dict(
 				ESTIMATE_LINES, fieldname="muhick_preliminaries", label="Preliminaries",
-				description="Transport, loading and site safety gear, as the Preliminaries of the Administrative sheet",
 			),
 			dict(
 				ESTIMATE_LINES, fieldname="muhick_administrative", label="Administrative Costs",
-				description="Per diems, fuel, site visits, handover, commissions and miscellaneous; a line can be a percentage of the contract value",
 			),
 			dict(fieldname="muhick_overheads_totals", label="Preliminaries and Administrative Totals", fieldtype="HTML"),
 			dict(fieldname="muhick_summary_tab", fieldtype="Tab Break", label="Budget Summary"),
@@ -543,7 +517,7 @@ LEAD_HIDDEN = (
 # standard fields shown the way this app uses them: (doctype, field or None for the doctype, property, value, type)
 PROPERTY_SETTERS = (
 	("Task", "parent_task", "label", "Milestone / Phase", "Data"),
-	("Task", "parent_task", "description", "The milestone (a group task of the project) this task belongs to", "Text"),
+	("Task", "parent_task", "description", "", "Text"),
 	("Task", "parent_task", "in_list_view", "1", "Check"),
 	("Task", "parent_task", "in_standard_filter", "1", "Check"),
 	# links to a task show its name (subject), not TASK-2026-00012
@@ -551,26 +525,26 @@ PROPERTY_SETTERS = (
 	("Lead", None, "field_order", json.dumps(LEAD_ORDER), "Data"),
 	("Lead", "company_name", "label", "Organisation", "Data"),
 	("Lead", "company_name", "reqd", "1", "Check"),
-	("Lead", "company_name", "description", "The client, procuring entity or main contractor", "Text"),
+	("Lead", "company_name", "description", "", "Text"),
 	("Lead", "type", "options", "\nClient\nMain Contractor\nConsultant", "Text"),
-	("Lead", "type", "description", "Main Contractor: a civil contractor asking for a price for the MEP works", "Text"),
+	("Lead", "type", "description", "", "Text"),
 	("Lead", "market_segment", "label", "Sector", "Data"),
 	("Lead", "request_type", "label", "Type of Work", "Data"),
 	("Lead", "request_type", "options", "\n" + "\n".join(TYPES_OF_WORK), "Text"),
 	# ERPNext's own condition looks at a field that no longer exists
 	("Lead", "customer", "depends_on", "eval:doc.utm_source=='Existing Customer'", "Code"),
 	("Lead", "lead_owner", "label", "Sales Engineer", "Data"),
-	("Lead", "lead_owner", "description", "Runs the lead from qualification to the outcome", "Text"),
+	("Lead", "lead_owner", "description", "", "Text"),
 	("Lead", "contact_info_tab", "label", "Contact Person", "Data"),
 	("Lead", "job_title", "label", "Position", "Data"),
 	("Lead", "phone", "label", "Office Phone", "Data"),
 	("Lead", "city", "label", "City / Town", "Data"),
 	("Lead", "mobile_no", "label", "Mobile", "Data"),
-	("Lead", "email_id", "description", "The contact person's email", "Text"),
+	("Lead", "email_id", "description", "", "Text"),
 	("Lead", "qualification_tab", "label", "Qualification (Go / No-Go)", "Data"),
 	("Lead", "qualification_tab", "collapsible", "0", "Check"),
 	("Lead", "qualification_status", "options", "Unqualified\nIn Process\nQualified\nNot Pursued", "Text"),
-	("Lead", "qualification_status", "description", "The Head of Sales' decision: Qualified to pursue it, Not Pursued to drop it", "Text"),
+	("Lead", "qualification_status", "description", "", "Text"),
 	("Lead", "qualification_status", "in_standard_filter", "1", "Check"),
 	# filled in when the decision is made
 	("Lead", "qualified_by", "label", "Decided By", "Data"),
@@ -599,29 +573,25 @@ PROPERTY_SETTERS = (
 	# opportunity status (the standard status) follows the sale
 	("Opportunity", "sales_stage", "label", "Bid Status", "Data"),
 	("Opportunity", "sales_stage", "read_only", "1", "Check"),
-	("Opportunity", "sales_stage", "description", "Where the tender stands: moves by itself as the bid is prepared, submitted, evaluated and decided", "Text"),
+	("Opportunity", "sales_stage", "description", "", "Text"),
 	("Opportunity", "status", "label", "Opportunity Status", "Data"),
 	("Opportunity", "status", "hidden", "0", "Check"),
 	("Opportunity", "status", "read_only", "1", "Check"),
 	("Opportunity", "status", "in_list_view", "0", "Check"),
 	("Opportunity", "status", "in_standard_filter", "1", "Check"),
-	(
-		"Opportunity", "status", "description",
-		"Where the sale stands: Open while it is pursued, Won once its outcome report is approved, then Quotation and Converted as the quotation and the sales order follow; Lost or Closed when it ends",
-		"Text",
-	),
+	("Opportunity", "status", "description", "", "Text"),
 	# no "Replied": a replied opportunity closes itself after some days, in the middle of an evaluation
 	("Opportunity", "status", "options", "Open\nWon\nQuotation\nConverted\nLost\nClosed", "Text"),
 	# every change, the bid status's included, on the timeline
 	("Opportunity", None, "track_changes", "1", "Check"),
 	("Opportunity", "expected_closing", "label", "Expected Award Date", "Data"),
-	("Opportunity", "expected_closing", "description", "When the client is expected to decide", "Text"),
+	("Opportunity", "expected_closing", "description", "", "Text"),
 	("Opportunity", "section_break_14", "label", "Bid Value", "Data"),
 	# the items are the bid's BOQ: items from the Item master, each with its stage
 	("Opportunity", "items_section", "label", "BOQ", "Data"),
 	("Opportunity", "items", "label", "BOQ Items", "Data"),
-	("Opportunity", "items", "description", "Each line goes on to the quotation, the sales order and the project's BOQ with its stage", "Text"),
-	("Opportunity", "opportunity_amount", "description", "The total of the BOQ when it has lines", "Text"),
+	("Opportunity", "items", "description", "", "Text"),
+	("Opportunity", "opportunity_amount", "description", "", "Text"),
 	("Opportunity Item", "item_code", "reqd", "1", "Check"),
 	("Opportunity Item", "item_code", "columns", "3", "Int"),
 	("Opportunity Item", "qty", "columns", "1", "Int"),
@@ -650,7 +620,8 @@ FOREIGN_DESCRIPTIONS = ("Sales Pro",)
 
 
 def setup_custom_fields():
-	create_custom_fields(CUSTOM_FIELDS, update=True)
+	# no help text under the fields: a description left from an earlier version is cleared too
+	create_custom_fields({doctypes: [dict(df, description="") for df in fields] for doctypes, fields in CUSTOM_FIELDS.items()}, update=True)
 	for doctype, fieldname, prop, value, prop_type in PROPERTY_SETTERS:
 		filters = {"doc_type": doctype, "property": prop, "field_name": fieldname or ("is", "not set")}
 		if frappe.db.get_value("Property Setter", filters, "value") != value:

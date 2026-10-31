@@ -69,7 +69,6 @@
    "reqd": 1
   },
   {
-   "description": "A milestone is a group task of the project",
    "fieldname": "phase",
    "fieldtype": "Link",
    "label": "Milestone / Phase",
@@ -192,7 +191,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Price, quality, delivery timeline, track record and current workload",
    "fieldname": "selection_justification",
    "fieldtype": "Small Text",
    "label": "Basis of Selection"
@@ -220,7 +218,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-18 13:42:43.914262",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Subcontract RFQ",

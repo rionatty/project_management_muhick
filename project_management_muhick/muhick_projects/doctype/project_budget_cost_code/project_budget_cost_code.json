@@ -74,7 +74,6 @@
   },
   {
    "allow_on_submit": 1,
-   "description": "Cost already incurred on this cost code before go-live",
    "fieldname": "opening_actual",
    "fieldtype": "Currency",
    "label": "Spent Before Go-Live"
@@ -138,7 +137,6 @@
   },
   {
    "allow_on_submit": 1,
-   "description": "Cost still to be committed on this cost code",
    "fieldname": "estimate_to_complete",
    "fieldtype": "Currency",
    "label": "Estimate to Complete"
@@ -154,7 +152,6 @@
   },
   {
    "allow_on_submit": 1,
-   "description": "Current Budget less Forecast Final Cost",
    "fieldname": "forecast_variance",
    "fieldtype": "Currency",
    "label": "Forecast Variance",
@@ -165,7 +162,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget Cost Code",

@@ -38,7 +38,6 @@
   {
    "columns": 1,
    "default": "Pending",
-   "description": "Ready once its file is attached and it can go in with the bid",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -48,7 +47,6 @@
   },
   {
    "columns": 2,
-   "description": "The bid's sales engineer unless someone else is given it",
    "fieldname": "prepared_by",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -57,7 +55,6 @@
   },
   {
    "columns": 1,
-   "description": "The submission deadline unless an earlier date is set",
    "fieldname": "due_date",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -75,7 +72,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "For a licence or certificate: it must still be valid on the submission deadline",
    "fieldname": "valid_until",
    "fieldtype": "Date",
    "label": "Valid Until"
@@ -90,7 +86,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-26 13:48:23.359056",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bid Checklist Item",

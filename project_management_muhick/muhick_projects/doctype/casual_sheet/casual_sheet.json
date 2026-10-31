@@ -73,7 +73,6 @@
    "reqd": 1
   },
   {
-   "description": "A milestone is a group task of the project",
    "fieldname": "phase",
    "fieldtype": "Link",
    "label": "Milestone / Phase",
@@ -155,7 +154,6 @@
    "read_only": 1
   },
   {
-   "description": "Casual Sheet total less scheduled amount",
    "fieldname": "variance",
    "fieldtype": "Currency",
    "label": "Variance",
@@ -166,7 +164,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Required before funds are released when the sheet exceeds the approved labour schedule",
    "fieldname": "variance_explanation",
    "fieldtype": "Small Text",
    "label": "Explanation of Variance"
@@ -255,7 +252,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-18 13:42:43.914262",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Casual Sheet",

@@ -27,7 +27,6 @@
   },
   {
    "columns": 1,
-   "description": "From the list; change it for this opportunity",
    "fetch_from": "milestone.weight",
    "fetch_if_empty": 1,
    "fieldname": "weight",
@@ -45,7 +44,6 @@
   {
    "columns": 2,
    "default": "Pending",
-   "description": "Moves by itself as the record shows; choose another status to set it by hand",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -75,7 +73,6 @@
   },
   {
    "default": "0",
-   "description": "Ticked when the status is set by hand, so the record no longer changes it. Untick to let the record decide again.",
    "fieldname": "set_by_hand",
    "fieldtype": "Check",
    "label": "Set by Hand"
@@ -91,7 +88,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-29 12:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Opportunity Milestone Line",

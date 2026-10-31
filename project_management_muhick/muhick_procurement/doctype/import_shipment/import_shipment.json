@@ -164,7 +164,6 @@
    "label": "Manufacture"
   },
   {
-   "description": "Date the supplier confirmed production started",
    "fieldname": "manufacturing_start",
    "fieldtype": "Date",
    "label": "Manufacturing Started"
@@ -362,7 +361,6 @@
    "label": "Tax Assessment Raised On"
   },
   {
-   "description": "72 hours after the assessment is raised",
    "fieldname": "tax_payment_deadline",
    "fieldtype": "Datetime",
    "label": "Tax Payment Deadline",
@@ -455,7 +453,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Procurement",
  "name": "Import Shipment",

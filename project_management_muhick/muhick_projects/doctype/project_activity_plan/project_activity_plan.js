@@ -48,7 +48,6 @@ function get_phases(frm) {
 				fieldtype: "Link",
 				options: "Project Template",
 				label: __("Project Template"),
-				description: __("Leave empty to use the project's own milestones or, if it has none yet, the stages in its BOQ."),
 			},
 		],
 		(values) => {

@@ -27,7 +27,6 @@ frappe.ui.form.on("Project Requisition", {
 							fieldname: "accountability_due_date",
 							fieldtype: "Date",
 							label: __("Account By"),
-							description: __("Leave empty for the usual number of days after payment."),
 						},
 					],
 					"mark_paid"

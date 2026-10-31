@@ -67,7 +67,6 @@ function issue_funds(frm, lines) {
 				fieldname: "accountability_due_date",
 				fieldtype: "Date",
 				label: __("Account By"),
-				description: __("For a sales requisition. Leave empty for the usual number of days after payment."),
 			},
 		],
 		(values) => muhick.run(frm, "issue_funds", values),

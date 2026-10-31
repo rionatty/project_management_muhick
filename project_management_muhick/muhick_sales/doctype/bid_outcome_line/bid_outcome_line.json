@@ -79,7 +79,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "One of this bid's quotations for the item; the lowest to begin with",
    "fieldname": "supplier_quotation",
    "fieldtype": "Link",
    "label": "Supplier Quotation",
@@ -110,7 +109,6 @@
   },
   {
    "columns": 1,
-   "description": "From the supplier quotation. Without one: the last purchase price, or an estimate.",
    "fieldname": "cost_rate",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -142,7 +140,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-25 22:12:02.193373",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bid Outcome Line",

@@ -94,7 +94,6 @@
    "reqd": 1
   },
   {
-   "description": "A milestone is a group task of the project",
    "fieldname": "phase",
    "fieldtype": "Link",
    "label": "Milestone / Phase",
@@ -200,7 +199,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Exception claim: reviewed by the Chief Operating Officer and approved by the General Manager",
    "fieldname": "is_unbudgeted",
    "fieldtype": "Check",
    "label": "Not in the Approved Budget"
@@ -342,7 +340,6 @@
   },
   {
    "allow_on_submit": 1,
-   "description": "Amount issued is more than the amount spent",
    "fieldname": "balance_to_return",
    "fieldtype": "Currency",
    "label": "Balance to Return to Finance",
@@ -351,7 +348,6 @@
   },
   {
    "allow_on_submit": 1,
-   "description": "Amount spent is more than the amount issued",
    "fieldname": "reimbursement_due",
    "fieldtype": "Currency",
    "label": "Reimbursement Due to Requester",
@@ -430,7 +426,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-18 13:42:43.914262",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Requisition",

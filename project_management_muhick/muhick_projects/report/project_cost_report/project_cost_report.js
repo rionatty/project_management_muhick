@@ -8,7 +8,6 @@ frappe.query_reports["Project Cost Report"] = {
 			label: __("Project"),
 			fieldtype: "Link",
 			options: "Project",
-			description: __("Leave blank for one line per project"),
 		},
 		{
 			fieldname: "company",

@@ -84,7 +84,6 @@
    "reqd": 1
   },
   {
-   "description": "The submission deadline of the bid",
    "fieldname": "required_by",
    "fieldtype": "Date",
    "label": "Required By",
@@ -125,7 +124,6 @@
   },
   {
    "depends_on": "eval:in_list([\"Pending Finance Manager\", \"Rejected\"], doc.workflow_state)",
-   "description": "Given by the Finance Manager when rejecting it, saying whether it can be amended and sent again",
    "fieldname": "rejection_reason",
    "fieldtype": "Small Text",
    "label": "Reason for Rejection",
@@ -145,7 +143,6 @@
    "reqd": 1
   },
   {
-   "description": "The total of the securities below",
    "fieldname": "amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -158,7 +155,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "What goes on the weekly payment plan: the one-off expenses and the first payment of each recurring one",
    "fieldname": "funds_required",
    "fieldtype": "Currency",
    "label": "Funds Required",
@@ -166,7 +162,6 @@
    "reqd": 0
   },
   {
-   "description": "Chosen by the Finance Manager: the facility the securities are drawn on. Approval checks that they fit.",
    "fieldname": "bank_facility",
    "fieldtype": "Link",
    "label": "Bank Facility",
@@ -174,7 +169,6 @@
   },
   {
    "depends_on": "eval:doc.bank_facility",
-   "description": "Its limit, less the securities running on it and those of other requests approved but not yet issued",
    "fieldname": "facility_available",
    "fieldtype": "Currency",
    "label": "Available on the Facility",
@@ -182,7 +176,6 @@
    "read_only": 1
   },
   {
-   "description": "For example the form of security, who may issue it and how long it must be valid",
    "fieldname": "security_terms",
    "fieldtype": "Small Text",
    "label": "Terms in the Tender"
@@ -205,7 +198,6 @@
    "label": "Expenses"
   },
   {
-   "description": "What it costs to obtain the securities: bank charges, insurance premium, cash cover. Some are paid once, some fall due again until the security is released.",
    "fieldname": "expenses",
    "fieldtype": "Table",
    "label": "Expenses",
@@ -259,7 +251,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-26 14:01:44.881477",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bid Security Request",

@@ -38,7 +38,6 @@
    "reqd": 1
   },
   {
-   "description": "The project whose money (for example a client advance) is being used",
    "fieldname": "from_project",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -178,7 +177,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Finance",
  "name": "Project Fund Transfer",

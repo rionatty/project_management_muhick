@@ -139,7 +139,6 @@
    "mandatory_depends_on": "eval:doc.revision_of"
   },
   {
-   "description": "Each milestone (phase) is a group task of the project and its activities are tasks under it. Use Get Milestones to load them from the project or from a Project Template.",
    "fieldname": "phases_section",
    "fieldtype": "Section Break",
    "label": "Milestones / Phases"
@@ -153,7 +152,6 @@
    "reqd": 1
   },
   {
-   "description": "Every activity belongs to a milestone and becomes a task under it when the plan is approved.",
    "fieldname": "activities_section",
    "fieldtype": "Section Break",
    "label": "Activities (Tasks)"
@@ -166,7 +164,6 @@
    "options": "Project Activity Plan Activity"
   },
   {
-   "description": "The items each milestone needs, from the Item master. The budget and each milestone's material requests are taken from this list.",
    "fieldname": "items_section",
    "fieldtype": "Section Break",
    "label": "Items Required per Milestone"
@@ -235,7 +232,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-18 13:42:43.914262",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Activity Plan",

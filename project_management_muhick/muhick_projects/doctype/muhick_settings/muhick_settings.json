@@ -119,7 +119,6 @@
    "label": "Create a Site Store for Every New Project"
   },
   {
-   "description": "Group warehouse under which each project's site store is created",
    "fieldname": "site_store_parent_warehouse",
    "fieldtype": "Link",
    "label": "Parent Warehouse for Site Stores",
@@ -136,7 +135,6 @@
    "options": "Warehouse"
   },
   {
-   "description": "Stock transfers between the central store and site stores pass through this warehouse",
    "fieldname": "goods_in_transit_warehouse",
    "fieldtype": "Link",
    "label": "Goods in Transit Warehouse",
@@ -214,7 +212,6 @@
    "label": "Handover Checklist"
   },
   {
-   "description": "Copied into every new Project Handover",
    "fieldname": "handover_checklist",
    "fieldtype": "Table",
    "label": "Handover Pack Items",
@@ -239,7 +236,6 @@
   },
   {
    "default": "Stop",
-   "description": "An approved Purchase Order is a commitment and reduces the available budget immediately",
    "fieldname": "budget_action_on_purchase_order",
    "fieldtype": "Select",
    "label": "Purchase Order Exceeds Available Budget",
@@ -276,20 +272,17 @@
    "label": "Minimum Subcontract Quotations"
   },
   {
-   "description": "Used by bids' cost estimates and project budgets",
    "fieldname": "estimates_section",
    "fieldtype": "Section Break",
    "label": "Cost Estimates and Imports"
   },
   {
    "default": "18",
-   "description": "Taken out of a rate quoted with VAT",
    "fieldname": "vat_percent",
    "fieldtype": "Percent",
    "label": "VAT Rate %"
   },
   {
-   "description": "For the insurance, freight, import duty and levy added to an estimate for imported goods",
    "fieldname": "import_cost_code",
    "fieldtype": "Link",
    "label": "Cost Code for Import Costs",
@@ -301,21 +294,18 @@
   },
   {
    "default": "1.5",
-   "description": "Of the value of the goods",
    "fieldname": "import_insurance_percent",
    "fieldtype": "Percent",
    "label": "Insurance on Imports %"
   },
   {
    "default": "10",
-   "description": "Of the customs value: goods, insurance and freight",
    "fieldname": "import_duty_percent",
    "fieldtype": "Percent",
    "label": "Import Duty %"
   },
   {
    "default": "1.5",
-   "description": "Of the customs value",
    "fieldname": "import_levy_percent",
    "fieldtype": "Percent",
    "label": "Infrastructure Levy %"
@@ -331,7 +321,6 @@
    "label": "Claims and Invoicing"
   },
   {
-   "description": "Service item used as the single line on a Sales Invoice raised from an Interim Payment Certificate",
    "fieldname": "claim_income_item",
    "fieldtype": "Link",
    "label": "Item for Certified Work Invoices",
@@ -339,7 +328,6 @@
   },
   {
    "default": "Invoice Gross Certified Amount",
-   "description": "Confirm with Finance. Gross: retention stays outstanding on the invoice until released. Net: retention is invoiced when it is released.",
    "fieldname": "retention_invoicing_method",
    "fieldtype": "Select",
    "label": "Retention Invoicing",
@@ -350,7 +338,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Service item used on Purchase Invoices raised from a Service Receipt Note",
    "fieldname": "subcontract_service_item",
    "fieldtype": "Link",
    "label": "Item for Subcontract Invoices",
@@ -363,7 +350,6 @@
   },
   {
    "default": "1",
-   "description": "Overdue: past the date it had to be accounted for by, with the accountability not yet submitted",
    "fieldname": "block_requisition_if_pending_accountability",
    "fieldtype": "Check",
    "label": "Block a New Requisition While an Accountability Is Overdue"
@@ -374,7 +360,6 @@
   },
   {
    "default": "7",
-   "description": "Used when no Account By date is given as the funds are issued",
    "fieldname": "accountability_due_days",
    "fieldtype": "Int",
    "label": "Accountability Due (Days After Payment)"
@@ -390,7 +375,6 @@
    "label": "Approval Limits by Value and Risk"
   },
   {
-   "description": "Documents with no matching threshold follow the full approval route",
    "fieldname": "approval_thresholds",
    "fieldtype": "Table",
    "label": "Approval Thresholds",
@@ -445,7 +429,6 @@
   },
   {
    "default": "Warn",
-   "description": "Block puts the supplier invoice on hold and stops payment until the mismatch is resolved or overridden",
    "fieldname": "three_way_match_action",
    "fieldtype": "Select",
    "label": "On Mismatch",
@@ -539,7 +522,6 @@
    "label": "Alert Procurement Before a Phase Starts (Days)"
   },
   {
-   "description": "Leave unticked to keep supplier prices from the operations team. They still see requests, budgets and commitments.",
    "fieldname": "show_purchase_orders_to_project_managers",
    "fieldtype": "Check",
    "label": "Project Managers Can Open Purchase Orders"
@@ -550,7 +532,6 @@
    "label": "Supplier Onboarding Requirements"
   },
   {
-   "description": "Copied to every new supplier",
    "fieldname": "supplier_onboarding_checklist",
    "fieldtype": "Table",
    "label": "Onboarding Requirements",
@@ -623,7 +604,6 @@
    "label": "Alert Before a Bid Submission Deadline (Days)"
   },
   {
-   "description": "Once a bid is won, its sales requisitions and bid security charges become the project's cost under this cost code",
    "fieldname": "bid_cost_code",
    "fieldtype": "Link",
    "label": "Cost Code for Bid Costs",
@@ -631,13 +611,11 @@
   },
   {
    "default": "7",
-   "description": "Once a bid is submitted, its first follow-up is due this many days later",
    "fieldname": "bid_follow_up_days",
    "fieldtype": "Int",
    "label": "First Follow-up After Submission (Days)"
   },
   {
-   "description": "A submitted bid worth at least this (in the company's currency) is followed up with management: a follow-up three days overdue goes to the Head of Sales, a week overdue to the General Manager",
    "fieldname": "big_bid_amount",
    "fieldtype": "Currency",
    "label": "Big Bid Value"
@@ -648,7 +626,6 @@
    "label": "Text Messages"
   },
   {
-   "description": "Uses the gateway in SMS Settings and each user's mobile number. Leave unticked until SMS Settings is configured.",
    "fieldname": "send_sms_alerts",
    "fieldtype": "Check",
    "label": "Also Send Approval Alerts by SMS"
@@ -658,7 +635,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-30 14:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Settings",

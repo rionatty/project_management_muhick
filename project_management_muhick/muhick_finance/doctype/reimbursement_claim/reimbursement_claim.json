@@ -49,7 +49,6 @@
   },
   {
    "default": "Expense Claim",
-   "description": "Emergency Site Purchase: bought directly on site out of hours; one approver, then refund",
    "fieldname": "claim_type",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -249,7 +248,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Finance",
  "name": "Reimbursement Claim",

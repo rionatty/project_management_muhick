@@ -83,7 +83,6 @@
    "reqd": 1
   },
   {
-   "description": "The project using the equipment when this happened carries the cost",
    "fieldname": "project",
    "fieldtype": "Link",
    "in_standard_filter": 1,
@@ -151,7 +150,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Equipment Log",

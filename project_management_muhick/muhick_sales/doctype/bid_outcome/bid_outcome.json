@@ -95,7 +95,6 @@
   },
   {
    "default": "Today",
-   "description": "The date of the client's notice or decision",
    "fieldname": "outcome_date",
    "fieldtype": "Date",
    "label": "Decision Date",
@@ -143,7 +142,6 @@
   },
   {
    "depends_on": "eval:in_list([\"Pending Head of Sales\", \"Pending General Manager\", \"Rejected\"], doc.workflow_state)",
-   "description": "Given by the Head of Sales or the General Manager when returning it",
    "fieldname": "rejection_reason",
    "fieldtype": "Small Text",
    "label": "Reason for Rejection",
@@ -155,7 +153,6 @@
    "label": "The Bid"
   },
   {
-   "description": "In the company currency",
    "fieldname": "bid_price",
    "fieldtype": "Currency",
    "label": "Bid Price",
@@ -178,7 +175,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Its sales requisitions and bid security charges. Once the bid is won, the project carries them as its own cost.",
    "fieldname": "bid_costs",
    "fieldtype": "Currency",
    "label": "Spent on the Bid",
@@ -186,7 +182,6 @@
   },
   {
    "depends_on": "eval:doc.outcome=='Won'",
-   "description": "The BOQ priced at the suppliers' latest quotations for this bid, the lowest by default. A line no supplier has quoted takes the last purchase price, or an estimate.",
    "fieldname": "margin_section",
    "fieldtype": "Section Break",
    "label": "Margin Review"
@@ -209,7 +204,6 @@
    "read_only": 1
   },
   {
-   "description": "The cost at supplier prices and what was spent on the bid",
    "fieldname": "total_cost",
    "fieldtype": "Currency",
    "label": "Total Cost",
@@ -276,7 +270,6 @@
   },
   {
    "depends_on": "eval:doc.winning_price",
-   "description": "How much higher our price was; negative when it was lower",
    "fieldname": "price_gap",
    "fieldtype": "Percent",
    "label": "Our Price Against Theirs %",
@@ -308,7 +301,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-25 22:12:02.193373",
+ "modified": "2026-11-01 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bid Outcome",
