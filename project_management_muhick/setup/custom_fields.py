@@ -189,7 +189,7 @@ CUSTOM_FIELDS = {
 		],
 	),
 	"Sales Order": [
-		dict(fieldname="muhick_sale_type", label="Sale Type", fieldtype="Select", options="\nStock\nProject\nAdditions", insert_after="order_type"),
+		dict(fieldname="muhick_sale_type", label="Sale Type", fieldtype="Select", options="\nStock\nProject\nAdditions", insert_after="order_type", reqd=1, allow_on_submit=1),
 	],
 	# a milestone (phase) is a group task, its activities are child tasks; these hold what the approved plan sets
 	"Task": _chain(

@@ -21,6 +21,7 @@ from frappe import _
 from frappe.utils import add_days, flt, format_datetime, formatdate, get_datetime, getdate, now_datetime, today
 
 from project_management_muhick.muhick_projects import estimate
+from project_management_muhick.muhick_sales.bids import quotation_bids
 from project_management_muhick.setup.workflows import PENDING_STATES
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import FINANCE_ROLES, GM, get_settings, notify_roles
@@ -557,17 +558,7 @@ def refresh_from_sale(doc, method=None):
 def sale_opportunities(doc) -> set:
 	"""The opportunities a quotation or a sales order comes from."""
 	quotations = [doc.name] if doc.doctype == "Quotation" else list({i.prevdoc_docname for i in doc.items if i.prevdoc_docname})
-	if not quotations:
-		return set()
-	names = set(frappe.get_all("Quotation", filters={"name": ("in", quotations), "opportunity": ("is", "set")}, pluck="opportunity"))
-	names.update(
-		frappe.get_all(
-			"Quotation Item",
-			filters={"parent": ("in", quotations), "prevdoc_doctype": "Opportunity", "prevdoc_docname": ("is", "set")},
-			pluck="prevdoc_docname",
-		)
-	)
-	return names
+	return quotation_bids(quotations)
 
 
 def quotation_cancelled(doc, method=None):

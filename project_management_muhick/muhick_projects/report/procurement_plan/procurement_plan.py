@@ -44,7 +44,7 @@ def execute(filters=None):
 			"cost_code", "item_code", "description", "procurement_type", "qty", "amount", "phase",
 			"required_by_date", "lead_time_days",
 		],
-		order_by="idx asc",
+		order_by="section asc, idx asc",
 	)
 	phases = {p.name: p for p in get_phases(filters.project, ("name", "subject", "exp_start_date"))}
 	ordered = defaultdict(float)

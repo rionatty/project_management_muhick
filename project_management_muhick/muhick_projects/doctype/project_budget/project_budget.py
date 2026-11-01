@@ -3,9 +3,12 @@
 
 """Project budget, built and controlled inside the ERP by cost code.
 
-A budget made at handover starts from the won bid's cost estimate, line for line and section by
-section (Equipment, Installation Materials, Taxes and Freight, Labour, Tools and Equipment,
-Preliminaries, Administrative), and the Project Manager adjusts it before sending it for approval.
+A budget is laid out as the bid's cost estimate, with the same tables under the same names: Equipment,
+Installation Materials, the tax computation with Freight and Clearing, Labour, Tools and Equipment,
+Preliminaries and Administrative. A budget made at handover starts from the won bid's estimate, and one
+can be prepared in Excel and uploaded; the Project Manager adjusts it before sending it for approval.
+What the tax computation costs (its insurance, duty and levy) is kept as lines of its own, so budget
+control and the reports read it like any other cost.
 Each line has a stage from the shared milestone list and takes the project's milestone (phase) of
 that name once the activity plan creates it; it is an item from the Item master, or a lump sum
 described in words, with its supplier, brand and cost code. Amounts are in the company's currency without VAT: people x qty x rate at the line's exchange
@@ -36,15 +39,24 @@ class ProjectBudget(Document):
 		if not self.prepared_by:
 			self.prepared_by = frappe.session.user
 		self.check_single_budget()
-		self.validate_phases()
-		estimate.resolve_stages(self.project, self.lines)
-		estimate.arrange(self.lines)
-		estimate.propose_cost_codes(self.lines)
-		self.check_cost_codes()
+		goods = self.get(estimate.TAX_TABLE) or []
+		lines = estimate.estimate_lines(self)
+		if not lines and not goods:
+			frappe.throw(_("A budget needs at least one line."))
+		estimate.set_import_taxes(self, goods)
+		self.set("tax_lines", estimate.tax_cost_lines(goods))
+		lines += self.tax_lines
+		self.validate_phases(lines)
+		estimate.resolve_stages(self.project, lines)
+		estimate.propose_cost_codes(lines)
+		self.check_cost_codes(lines)
 		self.contract_value = budget_engine.revised_contract_value(self.project)
-		estimate.set_amounts(self, self.lines, self.contract_value)
-		self.build_cost_code_summary()
+		estimate.set_amounts(self, lines, self.contract_value)
+		self.build_cost_code_summary(lines)
 		self.set_totals()
+
+	def where(self, line) -> str:
+		return _("{0} row {1}").format(_(self.meta.get_label(line.parentfield)), line.idx)
 
 	def check_single_budget(self):
 		other = frappe.db.get_value(
@@ -63,33 +75,40 @@ class ProjectBudget(Document):
 			)
 		frappe.throw(_("Project {0} already has a draft budget: {1}.").format(self.project, other.name))
 
-	def validate_phases(self):
-		for line in self.lines:
+	def validate_phases(self, lines):
+		for line in lines:
 			if line.activity:
 				parent = frappe.db.get_value("Task", line.activity, "parent_task")
 				if line.phase and parent != line.phase:
-					frappe.throw(_("Budget Lines row {0}: {1} is not a task of milestone {2}.").format(line.idx, line.activity, line.phase))
+					frappe.throw(_("{0}: {1} is not a task of milestone {2}.").format(self.where(line), line.activity, line.phase))
 				line.phase = line.phase or parent
 			if line.phase:
-				check_phase(self.project, line.phase, _("Budget Lines row {0}").format(line.idx))
+				check_phase(self.project, line.phase, self.where(line))
 
-	def check_cost_codes(self):
+	def check_cost_codes(self, lines):
 		"""A budget is controlled by cost code, so every line needs one. The draft made from a bid's estimate,
-		where a cost code is optional, may still lack some for the Project Manager to give."""
-		missing = [str(line.idx) for line in self.lines if not line.cost_code]
+		where a cost code is optional, may still lack some for the Project Manager to give. The tax computation's
+		costs can't be given one by hand, so Muhick Settings must name it."""
+		if any(not line.cost_code for line in self.tax_lines):
+			frappe.throw(_("Set the import cost code in Muhick Settings: the imported goods' insurance, duty and levy are budgeted under it."))
+		missing = defaultdict(list)
+		for line in lines:
+			if not line.cost_code:
+				missing[_(self.meta.get_label(line.parentfield))].append(str(line.idx))
 		if missing and not self.flags.get("from_estimate"):
-			frappe.throw(_("Budget Lines row {0}: give a cost code.").format(", ".join(missing)))
+			places = "; ".join(_("{0} row {1}").format(label, ", ".join(rows)) for label, rows in missing.items())
+			frappe.throw(_("Give a cost code on {0}.").format(places))
 
-	def build_cost_code_summary(self):
+	def build_cost_code_summary(self, lines):
 		"""One control row per cost code, rebuilt from the lines while the budget is a draft."""
 		kept = {row.cost_code: {f: row.get(f) for f in KEEP} for row in self.cost_codes}
 		totals, sections = defaultdict(float), {}
-		for line in self.lines:
+		for line in lines:
 			if not line.cost_code:
 				continue
 			disabled, section = frappe.get_cached_value("Cost Code", line.cost_code, ["disabled", "budget_section"])
 			if disabled:
-				frappe.throw(_("Budget Lines row {0}: cost code {1} is disabled.").format(line.idx, line.cost_code))
+				frappe.throw(_("{0}: cost code {1} is disabled.").format(self.where(line), line.cost_code))
 			line.budget_section = section
 			totals[line.cost_code] += flt(line.amount)
 			sections[line.cost_code] = section

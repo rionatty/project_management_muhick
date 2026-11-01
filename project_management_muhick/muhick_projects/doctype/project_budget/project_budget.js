@@ -1,29 +1,37 @@
 // Copyright (c) 2026, CyveTech and contributors
 // For license information, please see license.txt
 
-// a line's amount and the budget summary come from muhick.cost_lines (muhick_common.bundle.js), shared
-// with the bid's cost estimate
+// a budget is laid out as the bid's cost estimate: its tabs, tables and summaries, and its lines' amounts, are
+// muhick.sheets and muhick.cost_lines (muhick_common.bundle.js), shared with it
 frappe.ui.form.on("Project Budget", {
 	setup(frm) {
-		frm.set_query("cost_code", "lines", () => ({ filters: { disabled: 0 } }));
-		frm.set_query("item_code", "lines", () => ({ filters: { disabled: 0 } }));
-		frm.set_query("phase", "lines", () => muhick.phase_filters(frm.doc.project));
-		// an activity is a task of the line's milestone
-		frm.set_query("activity", "lines", (doc, cdt, cdn) => {
-			const row = locals[cdt][cdn];
-			return { filters: { project: frm.doc.project || "", parent_task: row.phase || "", status: ["!=", "Cancelled"] } };
+		muhick.sheets.setup(frm);
+		muhick.cost_lines.tables().forEach((table) => {
+			frm.set_query("phase", table, () => muhick.phase_filters(frm.doc.project));
+			// an activity is a task of the line's milestone
+			frm.set_query("activity", table, (doc, cdt, cdn) => {
+				const row = locals[cdt][cdn];
+				return { filters: { project: frm.doc.project || "", parent_task: row.phase || "", status: ["!=", "Cancelled"] } };
+			});
 		});
 		frm.set_query("boq", () => ({ filters: { project: frm.doc.project || "", docstatus: 1 } }));
 	},
 
 	refresh(frm) {
 		frm.__cost_settings = null;
-		muhick.cost_lines.render_summary(frm);
-		frm.fields_dict.lines.grid.clear_custom_buttons();
-		muhick.cost_lines.excel_buttons(frm, frm.doc.docstatus === 0 && frm.perm[0].write);
-		if (frm.doc.docstatus === 0 && frm.doc.project) {
-			frm.add_custom_button(__("Get Lines from the Bid Estimate"), () => get_lines(frm, "estimate"));
-			frm.add_custom_button(__("Get Items from Activity Plan"), () => get_lines(frm, "plan"));
+		frm.trigger("render_estimate");
+		const group = __("Budget Lines");
+		const draft = frm.doc.docstatus === 0 && frm.perm[0].write;
+		if (draft) {
+			frm.add_custom_button(__("Upload from Excel"), () => muhick.cost_lines.upload(frm), group);
+		}
+		frm.add_custom_button(__("Download Excel"), () => muhick.cost_lines.download(frm), group);
+		if (draft && frm.doc.project) {
+			frm.add_custom_button(__("Get Lines from the Bid Estimate"), () => get_lines(frm, "estimate"), group);
+			frm.add_custom_button(__("Get Items from Activity Plan"), () => get_lines(frm, "plan"), group);
+		}
+		if (draft) {
+			frm.add_custom_button(__("Get Imported Goods"), () => muhick.sheets.get_imported_goods(frm), group);
 		}
 		if (!frm.is_new()) {
 			frm.add_custom_button(
@@ -56,7 +64,18 @@ frappe.ui.form.on("Project Budget", {
 		);
 	},
 
-	contract_value: (frm) => muhick.cost_lines.render_summary(frm),
+	render_estimate: muhick.sheets.render,
+	contract_value: (frm) => frm.trigger("render_estimate"),
+	// what shares of the contract value and the margin are worked out on; saving sets the same
+	project(frm) {
+		if (!frm.doc.project) {
+			return;
+		}
+		frappe.db.get_value("Project", frm.doc.project, ["muhick_contract_value", "muhick_approved_variations"]).then((r) => {
+			const project = r.message || {};
+			frm.set_value("contract_value", flt(project.muhick_contract_value) + flt(project.muhick_approved_variations));
+		});
+	},
 });
 
 frappe.ui.form.on("Project Budget Cost Code", {
@@ -72,16 +91,23 @@ function get_lines(frm, source) {
 			? "project_management_muhick.muhick_projects.estimate.get_estimate_lines"
 			: "project_management_muhick.muhick_projects.doctype.project_budget.project_budget.get_plan_items";
 	const key = (r) => [r.stage || "", r.item_code || "", r.item_code ? "" : r.description || ""].join("|");
-	frappe.xcall(method, { project: frm.doc.project }).then((rows) => {
-		(frm.doc.lines || []).filter((r) => !r.item_code && !r.description).forEach((r) => frappe.model.clear_doc(r.doctype, r.name));
-		const present = new Set((frm.doc.lines || []).map(key));
+	frappe.xcall(method, { project: frm.doc.project }).then((result) => {
+		const rows = result.lines || result;
+		const lines = muhick.cost_lines.rows(frm);
+		lines.filter((r) => !r.item_code && !r.description).forEach((r) => frappe.model.clear_doc(r.doctype, r.name));
+		const present = new Set(muhick.cost_lines.rows(frm).map(key));
 		const added = rows.filter((row) => !present.has(key(row)));
+		const goods_present = new Set((frm.doc.muhick_import_taxes || []).map(key));
+		const goods = (result.goods || []).filter((good) => !goods_present.has(key(good)));
+		goods.forEach((good) => frm.add_child("muhick_import_taxes", good));
+		frm.refresh_field("muhick_import_taxes");
 		muhick.cost_lines.add_rows(frm, added).then(() =>
 			frappe.show_alert({
-				message: added.length
-					? __("{0} line(s) added. Check the rates and cost codes.", [added.length])
-					: __("Every line is already in the budget."),
-				indicator: added.length ? "green" : "orange",
+				message:
+					added.length || goods.length
+						? __("{0} line(s) and {1} imported good(s) added. Check the rates and cost codes.", [added.length, goods.length])
+						: __("Every line is already in the budget."),
+				indicator: added.length || goods.length ? "green" : "orange",
 			})
 		);
 	});

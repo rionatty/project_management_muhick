@@ -10,10 +10,11 @@ the tax computation of the imported goods (Import Tax Line). Each line has a sta
 milestone list (the system or phase it is for), an item or a description, its supplier and brand, its
 cost code, its amount as quoted and its amount in the company's currency without VAT: people x qty x
 rate at the line's exchange rate (a rate quoted with VAT taken without it), or a share of the contract
-value. The budget summary and profitability read like the workbook's. When the project is handed
-over, the estimate becomes the project's draft budget, the tax computation as its insurance, duty and
-levy, and the Project Manager adjusts it before sending it for approval. A budget line takes the
-project's milestone (phase) of its stage once the activity plan has created it."""
+value. The budget summary and profitability read like the workbook's. A project budget is laid out the
+same way, with the same tables under the same names, so what is here reads both. When the project is
+handed over, the estimate becomes the project's draft budget, and the Project Manager adjusts it before
+sending it for approval. A budget line takes the project's milestone (phase) of its stage once the
+activity plan has created it."""
 
 import base64
 import difflib
@@ -49,8 +50,8 @@ DESCRIPTION_CODES = (
 	(r"contingen|miscell|correction of works|rework", "ADM-700"), (r"helmet|gumboot|glove|mask|jacket|safety|ppe", "ADM-300"),
 	(r"per diem|site visit|relocation|handover", "ADM-200"), (r"fuel|transport|loading|car service", "ADM-100"),
 )
-# the opportunity's tables of estimate lines, one per section as the sheets of the budget workbook, and its tax
-# computation
+# the tables of lines of an opportunity's estimate and of a project budget, one per section as the sheets of the
+# budget workbook, and their tax computation
 ESTIMATE_TABLES = {
 	"muhick_equipment": "Equipment", "muhick_materials": "Installation Materials", "muhick_freight": "Taxes and Freight",
 	"muhick_labour": "Labour", "muhick_tools": "Tools and Equipment", "muhick_preliminaries": "Preliminaries",
@@ -73,26 +74,13 @@ TAX_RATES = {
 
 
 def estimate_lines(doc) -> list:
-	"""An opportunity's estimate lines, table by table, each in its table's section."""
+	"""An estimate's or budget's lines, table by table, each in its table's section."""
 	lines = []
 	for field, section in ESTIMATE_TABLES.items():
 		for line in doc.get(field) or []:
 			line.section = section
 			lines.append(line)
 	return lines
-
-
-def arrange(lines):
-	"""Every line in a section (from its cost code when none is given), and the lines in the order of the
-	sections, keeping their order within each."""
-	for line in lines:
-		if not line.section and line.cost_code:
-			budget_section = frappe.get_cached_value("Cost Code", line.cost_code, "budget_section")
-			line.section = calc.section_of_cost_code(line.cost_code, budget_section)
-	order = {section: i for i, section in enumerate(SECTIONS)}
-	lines.sort(key=lambda line: (order.get(line.section, len(order)), line.idx or 0))
-	for idx, line in enumerate(lines, 1):
-		line.idx = idx
 
 
 def propose_cost_code(section, description, item_code, enabled) -> str | None:
@@ -369,7 +357,7 @@ def set_bid_price(opportunity: str, margin_percent: float, apply: int = 0) -> di
 	if not price:
 		frappe.throw(_("A margin of {0}% leaves nothing for the costs.").format(flt(margin_percent)))
 	if boq and not result["priced"]:
-		frappe.throw(_("None of the BOQ items has a cost in the estimate. Use Cost Estimate > Get Lines from the BOQ first."))
+		frappe.throw(_("None of the BOQ items has a cost in the estimate. Pick the same items on the estimate's lines, or use Get Lines from the Estimate on the BOQ tab."))
 	rate = flt(doc.conversion_rate) or 1
 	for item, amount in zip(boq, amounts):
 		if amount is not None:
@@ -398,8 +386,7 @@ def get_supplier_prices(opportunity: str, items) -> dict:
 
 # ------------------------------------------------------------------ from the estimate to the budget
 def estimate_rows(opportunity) -> list:
-	"""The bid's cost estimate, sheet by sheet and line by line, and the insurance, duty and levy of its tax
-	computation, ready to become budget lines."""
+	"""The bid's cost estimate, sheet by sheet and line by line, ready to become budget lines."""
 	lines = frappe.get_all(
 		"Project Budget Line",
 		filters={"parent": opportunity, "parenttype": "Opportunity", "parentfield": ("in", list(ESTIMATE_TABLES))},
@@ -407,30 +394,33 @@ def estimate_rows(opportunity) -> list:
 	)
 	order = {field: i for i, field in enumerate(ESTIMATE_TABLES)}
 	lines.sort(key=lambda line: (order[line.parentfield], line.idx))
-	rows = [{**{f: line.get(f) for f in LINE_FIELDS}, "section": ESTIMATE_TABLES[line.parentfield]} for line in lines]
-	taxes = frappe.get_all(
+	return [{**{f: line.get(f) for f in LINE_FIELDS}, "section": ESTIMATE_TABLES[line.parentfield]} for line in lines]
+
+
+def estimate_goods(opportunity) -> list:
+	"""The bid's tax computation, good by good, ready for the budget's."""
+	return frappe.get_all(
 		"Import Tax Line",
 		filters={"parent": opportunity, "parenttype": "Opportunity", "parentfield": TAX_TABLE},
-		fields=["stage", "exchange_rate", "insurance", "duty", "levy"],
+		fields=[*TAX_FIELDS, *TAX_AMOUNTS],
 		order_by="idx asc",
 	)
-	return rows + tax_cost_lines(taxes)
 
 
 @frappe.whitelist()
-def get_estimate_lines(project: str) -> list:
-	"""The cost estimate of the bid a project came from, as budget lines placed in the project's
-	milestones where it has them."""
+def get_estimate_lines(project: str) -> dict:
+	"""The cost estimate of the bid a project came from: {lines: budget lines placed in the project's milestones
+	where it has them, goods: its tax computation}."""
 	frappe.has_permission("Project Budget", "write", throw=True)
 	frappe.get_doc("Project", project).check_permission("read")
 	opportunity = project_bid(project)
-	rows = estimate_rows(opportunity) if opportunity else []
-	if not rows:
+	rows, goods = (estimate_rows(opportunity), estimate_goods(opportunity)) if opportunity else ([], [])
+	if not rows and not goods:
 		frappe.throw(_("Project {0} did not come from a bid with a cost estimate.").format(project))
 	lines = [frappe._dict(row) for row in rows]
 	resolve_stages(project, lines)
 	propose_cost_codes(lines)
-	return lines
+	return {"lines": lines, "goods": goods}
 
 
 def make_budget(handover):
@@ -440,8 +430,8 @@ def make_budget(handover):
 	project = handover.project
 	if not handover.opportunity or frappe.db.exists("Project Budget", {"project": project, "docstatus": ("<", 2)}):
 		return None
-	rows = estimate_rows(handover.opportunity)
-	if not rows:
+	rows, goods = estimate_rows(handover.opportunity), estimate_goods(handover.opportunity)
+	if not rows and not goods:
 		return None
 	budget = frappe.new_doc("Project Budget")
 	budget.update(
@@ -453,8 +443,11 @@ def make_budget(handover):
 			"remarks": _("From the cost estimate of bid {0}.").format(handover.opportunity),
 		}
 	)
+	tables = {section: field for field, section in ESTIMATE_TABLES.items()}
 	for row in rows:
-		budget.append("lines", row)
+		budget.append(tables[row["section"]], row)
+	for good in goods:
+		budget.append(TAX_TABLE, good)
 	budget.flags.ignore_permissions = True
 	budget.flags.from_estimate = True
 	budget.insert()
@@ -485,7 +478,7 @@ def budget_summary(doc) -> dict:
 	"""For the Budget Summary print, laid out as the business's budget summary: each section (A Equipment,
 	B Installation Materials...) against the stages, in the order of the project's milestones and with
 	their months, then the cost codes, the contract value and the margin."""
-	lines = doc.get("lines") or []
+	lines = [*estimate_lines(doc), *(doc.get("tax_lines") or [])]
 	milestones = {}
 	for phase in get_phases(doc.project, ("name", "type", "subject", "exp_start_date", "exp_end_date")) if doc.get("project") else []:
 		milestones.setdefault(phase.type or phase.subject, phase)
@@ -643,7 +636,7 @@ def bid_budget(doc) -> dict:
 # an estimate or budget prepared in Excel comes in through the workbook the system gives out, laid out as the
 # business's budget sheets (a sheet per section, one row per line, and the tax computation), or through the
 # business's own workbook
-TABLES = {"Opportunity": [*ESTIMATE_TABLES, TAX_TABLE], "Project Budget": ["lines"]}
+COST_DOCTYPES = ("Opportunity", "Project Budget")
 EXCEL_COLUMNS = (
 	# "Item Code", not "Item": budget sheets often number their rows in an Item column
 	("stage", "Stage"), ("item_code", "Item Code"), ("description", "Description"), ("uom", "UOM"), ("brand", "Brand"),
@@ -704,7 +697,7 @@ LUMP_SUMS = re.compile(r"\b(?:tax|taxes|duty|duties|levy|freight|insurance|clear
 
 def _cost_doc(doctype, name, ptype):
 	"""The estimate or budget the lines belong to, once the user may read or change it; None while unsaved."""
-	if doctype not in TABLES:
+	if doctype not in COST_DOCTYPES:
 		frappe.throw(_("Cost lines belong to an opportunity or a project budget."))
 	if not name:
 		frappe.has_permission(doctype, "create" if ptype == "write" else "read", throw=True)
@@ -718,22 +711,20 @@ def _cost_doc(doctype, name, ptype):
 def download_cost_lines(doctype: str, name: str | None = None):
 	"""A workbook of an estimate's or a budget's lines to prepare or change in Excel and upload again: a sheet
 	per section, as in the business's budget sheets, each line's amount worked out as on screen, an
-	estimate's tax computation with its formulas, and lists to pick the stage, cost code, currency,
+	the tax computation with its formulas, and lists to pick the stage, cost code, currency,
 	procurement type, VAT, country and shipment from, on a sheet of their own."""
 	from openpyxl import Workbook
 
 	doc = _cost_doc(doctype, name, "read")
-	lines = _doc_lines(doctype, doc)
+	lines = estimate_lines(doc) if doc else []
 	book = Workbook()
 	book.remove(book.active)
 	lists = _lists(book)
 	vat = flt(setting("vat_percent", DEFAULTS["vat_percent"]))
-	unplaced = [line for line in lines if line.section not in SECTIONS]
-	for section in [*SECTIONS, *(["Other"] if unplaced else [])]:
-		if section == "Taxes and Freight" and doctype == "Opportunity":
+	for section in SECTIONS:
+		if section == "Taxes and Freight":
 			_tax_sheet(book, doc.get(TAX_TABLE) if doc else [], lists)
-		own = unplaced if section == "Other" else [line for line in lines if line.section == section]
-		_lines_sheet(book, section, own, vat, lists)
+		_lines_sheet(book, section, [line for line in lines if line.section == section], vat, lists)
 	book.move_sheet("Lists", offset=len(book.sheetnames))
 	out = io.BytesIO()
 	book.save(out)
@@ -837,13 +828,6 @@ def _tax_sheet(book, rows, lists):
 		sheet.add_data_validation(rule)
 
 
-def _doc_lines(doctype, doc) -> list:
-	"""The estimate's or budget's lines, each in its section."""
-	if not doc:
-		return []
-	return estimate_lines(doc) if doctype == "Opportunity" else list(doc.get("lines") or [])
-
-
 @frappe.whitelist()
 def read_cost_lines(doctype: str, filename: str, content: str, name: str | None = None, company: str | None = None) -> dict:
 	"""The cost lines of an uploaded Excel (.xlsx or .xls) or CSV file, checked row by row: {rows, tax_rows,
@@ -858,8 +842,7 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 	as a labour block copied under the materials headings, is read from what its cells hold, as its own
 	amount bears out. A tax computation (the Taxes sheet, or the Tax Computation sheet given out here)
 	comes in good by good with its rates, each in the stage of the line of its description, and its
-	freight as lines; a budget, which has no tax computation, takes its insurance, duty and levy as lines.
-	Other rows without a qty, rate or percentage are headings or totals. A line given no cost code is
+	freight as lines. Other rows without a qty, rate or percentage are headings or totals. A line given no cost code is
 	proposed one; a sheet without a Rate Includes VAT column has local equipment, materials and tools
 	quoted with VAT. With any error nothing is taken, so the file can be corrected and uploaded again."""
 	doc = _cost_doc(doctype, name, "write")
@@ -1005,7 +988,7 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 	for row in rows + tax_rows:
 		if row.get("currency") and flt(row.get("exchange_rate")):
 			given.setdefault(row["currency"], row["exchange_rate"])
-	for line in [*_doc_lines(doctype, doc), *((doc.get(TAX_TABLE) or []) if doc and doctype == "Opportunity" else [])]:
+	for line in [*estimate_lines(doc), *(doc.get(TAX_TABLE) or [])] if doc else []:
 		if line.currency and flt(line.exchange_rate):
 			used.setdefault(line.currency, line.exchange_rate)
 	for row in rows + tax_rows:
@@ -1030,17 +1013,6 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 		taxes = calc.import_taxes(row["value"], *(row.get(f) for f in tax_defaults))
 		row.update({field: flt(taxes[field], 2) for field in ("insurance", "customs_value", "duty", "vat", "levy", "total_tax")})
 		row["cost"] = flt(taxes["cost"] * flt(row["exchange_rate"]), 2)
-	if doctype != "Opportunity" and tax_rows:
-		# a budget has no tax computation: what it comes to is lines of insurance, duty and levy
-		rows += tax_cost_lines(tax_rows)
-		vat = defaultdict(float)
-		for row in tax_rows:
-			vat[row.get("currency") or company_currency] += flt(row["vat"])
-		notes += [
-			_("The import VAT of {0} {1} was left out, as it is claimed back.").format(f"{amount:,.2f}", currency)
-			for currency, amount in vat.items() if flt(amount)
-		]
-		tax_rows = []
 	added = sorted({ensure_milestone(n) for n in new_stages.values()}) if may_add_stages else []
 	if added:
 		notes.append(_("Stages added to the milestone list: {0}").format(", ".join(added)))

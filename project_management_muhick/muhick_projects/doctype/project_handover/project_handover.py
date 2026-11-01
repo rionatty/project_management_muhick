@@ -15,7 +15,7 @@ from frappe.utils import fmt_money, now_datetime
 
 from project_management_muhick.muhick_projects import budget_engine, estimate
 from project_management_muhick.muhick_projects.utils import validate_dates
-from project_management_muhick.muhick_sales.bids import bid_spent
+from project_management_muhick.muhick_sales.bids import bid_spent, quotation_bids
 from project_management_muhick.overrides.crm import refresh_bid_status, requirement_kinds
 from project_management_muhick.utils.common import get_settings
 
@@ -126,7 +126,7 @@ def make_from_sales_order(source_name: str):
 	so = frappe.get_doc("Sales Order", source_name)
 	so.check_permission("read")
 	quotation = next((i.prevdoc_docname for i in so.items if i.prevdoc_docname), None)
-	opportunity = frappe.db.get_value("Quotation", quotation, "opportunity") if quotation else None
+	opportunity = min(quotation_bids([quotation]), default=None) if quotation else None
 	doc = frappe.new_doc("Project Handover")
 	doc.update(
 		{

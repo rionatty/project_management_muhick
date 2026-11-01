@@ -24,3 +24,4 @@ project_management_muhick.patches.budget_line_stages
 project_management_muhick.patches.cost_line_sections
 project_management_muhick.patches.estimate_sheets
 project_management_muhick.patches.line_vat_rate
+project_management_muhick.patches.budget_lines_in_tabs

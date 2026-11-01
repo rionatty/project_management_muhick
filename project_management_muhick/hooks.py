@@ -155,6 +155,7 @@ doc_events = {
 			"project_management_muhick.overrides.accounts.on_submit_sales_order",
 			"project_management_muhick.overrides.crm.refresh_from_sale",
 		],
+		"on_update_after_submit": "project_management_muhick.overrides.accounts.sale_type_changed",
 		"on_cancel": "project_management_muhick.overrides.crm.refresh_from_sale",
 	},
 	# documents of this app that move through an approval workflow

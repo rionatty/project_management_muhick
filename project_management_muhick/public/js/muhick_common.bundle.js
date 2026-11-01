@@ -112,8 +112,8 @@ muhick.set_project_queries = function (frm, tables) {
 // exchange rate, a rate quoted with VAT taken without it, or a share of the contract value; its amount as
 // quoted is people x qty x rate in its own currency. The server works them out the same way on saving.
 muhick.cost_lines = {
-	// the opportunity's tables of estimate lines, one per section as the sheets of the budget workbook (see
-	// estimate.py); a budget has the one table
+	// the tables of lines of an estimate or budget, one per section as the sheets of the budget workbook (see
+	// estimate.py)
 	sections: {
 		muhick_equipment: "Equipment",
 		muhick_materials: "Installation Materials",
@@ -123,18 +123,15 @@ muhick.cost_lines = {
 		muhick_preliminaries: "Preliminaries",
 		muhick_administrative: "Administrative",
 	},
-	tables(frm) {
-		return frm.doctype === "Opportunity" ? Object.keys(muhick.cost_lines.sections) : ["lines"];
+	tables() {
+		return Object.keys(muhick.cost_lines.sections);
 	},
-	table_of(frm, section) {
-		if (frm.doctype !== "Opportunity") {
-			return "lines";
-		}
+	table_of(section) {
 		const sections = muhick.cost_lines.sections;
 		return Object.keys(sections).find((field) => sections[field] === section) || "muhick_materials";
 	},
 	rows(frm) {
-		return muhick.cost_lines.tables(frm).flatMap((field) => frm.doc[field] || []);
+		return muhick.cost_lines.tables().flatMap((field) => frm.doc[field] || []);
 	},
 	// the value a share is taken of: the bid price, or the project's revised contract value
 	contract_value(frm) {
@@ -219,7 +216,7 @@ muhick.cost_lines = {
 		return muhick.cost_lines.settings(frm).then((settings) => {
 			const touched = new Set();
 			rows.forEach((values) => {
-				const table = muhick.cost_lines.table_of(frm, values.section);
+				const table = muhick.cost_lines.table_of(values.section);
 				const row = frm.add_child(table, { ...values, currency: values.currency || erpnext.get_currency(frm.doc.company) });
 				if (muhick.cost_lines.foreign(frm, row)) {
 					row.exchange_rate = muhick.cost_lines.used_rate(frm, row) || row.exchange_rate;
@@ -279,13 +276,6 @@ muhick.cost_lines = {
 		const args = new URLSearchParams({ doctype: frm.doctype, name: frm.is_new() ? "" : frm.doc.name });
 		window.open(`/api/method/project_management_muhick.muhick_projects.estimate.download_cost_lines?${args}`);
 	},
-	excel_buttons(frm, can_upload) {
-		const grid = frm.fields_dict.lines.grid;
-		grid.add_custom_button(__("Download Excel"), () => muhick.cost_lines.download(frm));
-		if (can_upload) {
-			grid.add_custom_button(__("Upload from Excel"), () => muhick.cost_lines.upload(frm));
-		}
-	},
 	upload(frm) {
 		new frappe.ui.FileUploader({
 			as_dataurl: true,
@@ -313,8 +303,8 @@ muhick.cost_lines = {
 			});
 			return;
 		}
-		const taxes = frm.doctype === "Opportunity" ? result.tax_rows || [] : [];
-		const tables = [...muhick.cost_lines.tables(frm), ...(frm.doctype === "Opportunity" ? ["muhick_import_taxes"] : [])];
+		const taxes = result.tax_rows || [];
+		const tables = [...muhick.cost_lines.tables(), "muhick_import_taxes"];
 		const take = (replace) => {
 			if (replace) {
 				tables.forEach((table) => frm.clear_table(table));
@@ -353,62 +343,8 @@ muhick.cost_lines = {
 			__("Upload")
 		);
 	},
-	// a budget's lines totalled section by section (A Equipment, B Installation Materials...) against the
-	// stages, as the budget summary sheets lay them out, then the contract value, the cost and the margin; an
-	// opportunity shows its estimate sheet by sheet (opportunity.js)
 	render_summary(frm) {
-		if (frm.doctype === "Opportunity") {
-			frm.trigger("render_estimate");
-			return;
-		}
-		const field = frm.fields_dict.phase_summary;
-		if (!field) {
-			return;
-		}
-		const order = ["Equipment", "Installation Materials", "Taxes and Freight", "Labour", "Tools and Equipment", "Preliminaries", "Administrative"];
-		const cells = {};
-		const stages = [];
-		muhick.cost_lines.rows(frm).forEach((r) => {
-			const stage = r.stage || "";
-			if (!stages.includes(stage)) {
-				stages.push(stage);
-			}
-			cells[`${r.section || ""}|${stage}`] = flt(cells[`${r.section || ""}|${stage}`]) + flt(r.amount);
-		});
-		if (!stages.length) {
-			field.$wrapper.html("");
-			return;
-		}
-		stages.sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1));
-		const sections = [...order, ""].filter((section) => stages.some((stage) => cells[`${section}|${stage}`]));
-		const currency = erpnext.get_currency(frm.doc.company);
-		const money = (value) => (value ? format_currency(value, currency) : "");
-		const amount = (section, stage) => flt(cells[`${section}|${stage}`]);
-		const right = (html) => `<td class="text-right">${html}</td>`;
-		const head = stages.map((stage) => `<th class="text-right">${frappe.utils.escape_html(stage || __("No stage"))}</th>`).join("");
-		const rows = sections
-			.map((section, i) => {
-				const values = stages.map((stage) => amount(section, stage));
-				const total = values.reduce((sum, value) => sum + value, 0);
-				return `<tr><td>${String.fromCharCode(65 + i)}. ${__(section || "Other")}</td>${values.map((v) => right(money(v))).join("")}${right(`<b>${money(total)}</b>`)}</tr>`;
-			})
-			.join("");
-		const by_stage = stages.map((stage) => sections.reduce((sum, section) => sum + amount(section, stage), 0));
-		const cost = by_stage.reduce((sum, value) => sum + value, 0);
-		const contract = muhick.cost_lines.contract_value(frm);
-		const position = contract
-			? `<table class="table table-condensed" style="width: auto"><tbody>` +
-			  `<tr><td>${__("Revised Contract Value, without VAT")}</td>${right(money(contract))}</tr>` +
-			  `<tr><td>${__("Total Cost, without VAT")}</td>${right(money(cost))}</tr>` +
-			  `<tr class="bold"><td>${__("Margin")}</td>${right(`${format_currency(contract - cost, currency)} (${flt(((contract - cost) / contract) * 100, 1)}%)`)}</tr>` +
-			  `</tbody></table>`
-			: "";
-		field.$wrapper.html(
-			`<div style="overflow-x: auto"><table class="table table-bordered table-condensed">` +
-				`<thead><tr><th>${__("Section")}</th>${head}<th class="text-right">${__("Total")}</th></tr></thead>` +
-				`<tbody>${rows}<tr class="bold"><td>${__("Total Cost, without VAT")}</td>${by_stage.map((v) => right(money(v))).join("")}${right(money(cost))}</tr></tbody>` +
-				`</table></div>${position}`
-		);
+		frm.trigger("render_estimate");
 	},
 };
 
@@ -437,17 +373,473 @@ frappe.ui.form.on("Project Budget Line", {
 	},
 	// a new line is in the company's currency until another is chosen, so its amounts show in it
 	...Object.fromEntries(
-		["lines", ...Object.keys(muhick.cost_lines.sections)].map((table) => [
+		Object.keys(muhick.cost_lines.sections).map((table) => [
 			`${table}_add`,
 			(frm, cdt, cdn) => locals[cdt][cdn].currency || frappe.model.set_value(cdt, cdn, "currency", erpnext.get_currency(frm.doc.company)),
 		])
 	),
 	...Object.fromEntries(
-		["amount", "section", "stage", "supplier", "lines_remove", ...Object.keys(muhick.cost_lines.sections).map((t) => `${t}_remove`)].map(
+		["amount", "section", "stage", "supplier", ...Object.keys(muhick.cost_lines.sections).map((t) => `${t}_remove`)].map(
 			(field) => [field, (frm) => muhick.cost_lines.render_summary(frm)]
 		)
 	),
 });
+
+// ---------------------------------------------------------------- the sheets of an estimate or budget
+// An opportunity's estimate and a project's budget are laid out alike, as the business's budget workbook, with the
+// same tables under the same names: a tab per sheet, each table with the columns of its sheet (widths as set on
+// Project Budget Line), every line's item or service picked from the item master, its sub totals by system under
+// it, the tax computation, and the Budget Summary and Profitability tabs.
+const GOODS_COLUMNS = ["item_code", "description", "stage", "brand", "uom", "qty", "rate", "quoted_amount", "supplier"];
+const OVERHEAD_COLUMNS = ["item_code", "description", "uom", "qty", "rate", "contract_percent", "quoted_amount", "supplier", "stage"];
+const SHEET_COLUMNS = {
+	muhick_equipment: GOODS_COLUMNS,
+	muhick_materials: GOODS_COLUMNS,
+	muhick_freight: ["item_code", "description", "stage", "supplier", "qty", "rate", "quoted_amount", "amount"],
+	muhick_labour: ["item_code", "description", "stage", "people", "qty", "uom", "rate", "quoted_amount", "amount"],
+	muhick_tools: ["item_code", "description", "stage", "uom", "qty", "rate", "quoted_amount", "amount", "supplier"],
+	muhick_preliminaries: OVERHEAD_COLUMNS,
+	muhick_administrative: OVERHEAD_COLUMNS,
+};
+// each tab's totals, and the tables they add up
+const SHEET_TOTALS = {
+	muhick_equipment_totals: ["muhick_equipment"],
+	muhick_materials_totals: ["muhick_materials"],
+	muhick_labour_totals: ["muhick_labour"],
+	muhick_tools_totals: ["muhick_tools"],
+	muhick_overheads_totals: ["muhick_preliminaries", "muhick_administrative"],
+};
+// goods made in the East African Community pay VAT only (the names of the country list)
+const EAC = ["Burundi", "Congo, The Democratic Republic of the", "Kenya", "Rwanda", "Somalia", "South Sudan", "Tanzania", "Uganda"];
+const TAX_AMOUNTS = ["value", "insurance", "customs_value", "duty", "vat", "levy", "total_tax"];
+
+function setup_sheets(frm) {
+	if (frm.get_field("muhick_import_taxes")) {
+		frm.set_query("item_code", "muhick_import_taxes", () => ({ filters: { disabled: 0 } }));
+	}
+	Object.entries(SHEET_COLUMNS).forEach(([table, columns]) => {
+		const field = frm.get_field(table);
+		if (!field) {
+			return; // until the site is migrated
+		}
+		// a budget is controlled by cost code, so its lines show theirs
+		field.grid.editable_fields = [...columns, ...(frm.doctype === "Project Budget" ? ["cost_code"] : [])].map((fieldname) => ({ fieldname }));
+		frm.set_query("cost_code", table, () => ({ filters: { disabled: 0 } }));
+		frm.set_query("item_code", table, () => ({ filters: { disabled: 0 } }));
+	});
+}
+
+function render_estimate(frm) {
+	if (!frm.fields_dict.muhick_equipment) {
+		return;
+	}
+	muhick.cost_lines.settings(frm).then((settings) => {
+		Object.entries(SHEET_TOTALS).forEach(([field, tables]) => frm.fields_dict[field].$wrapper.html(sheet_totals(frm, tables)));
+		frm.fields_dict.muhick_taxes_totals.$wrapper.html(tax_totals(frm));
+		frm.fields_dict.muhick_budget_summary.$wrapper.html(budget_summary(frm, settings));
+		frm.fields_dict.muhick_profitability.$wrapper.html(profitability(frm));
+		if (frm.fields_dict.phase_summary) {
+			frm.fields_dict.phase_summary.$wrapper.html(stage_matrix(frm));
+		}
+	});
+}
+
+const esc = (text) => frappe.utils.escape_html(text || "");
+const company_currency = (frm) => erpnext.get_currency(frm.doc.company);
+const currency_of = (frm, row) => row.currency || company_currency(frm);
+const money = (value, currency) => (flt(value) ? format_currency(value, currency) : "");
+const total_of = (rows, key) => rows.reduce((sum, row) => sum + flt(row[key]), 0);
+const cell = (html, bold) => `<td class="text-right"${bold ? ' style="font-weight: bold"' : ""}>${html}</td>`;
+const grid_table = (head, body) =>
+	`<div style="overflow-x: auto"><table class="table table-bordered table-condensed" style="margin-bottom: 12px">` +
+	`<thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+const heads = (labels) => labels.map(([label, right]) => `<th${right ? ' class="text-right"' : ""}>${label}</th>`).join("");
+// the stages of some lines, in the order they first come, those without one last
+const stages_of = (rows) => {
+	const stages = [...new Set(rows.map((r) => r.stage || ""))];
+	return [...stages.filter(Boolean), ...stages.filter((s) => !s)];
+};
+// the currencies lines are quoted in, the company's last
+const currencies_of = (frm, rows) => {
+	const company = company_currency(frm);
+	return [...new Set([...rows.map((r) => currency_of(frm, r)), company])].sort((a, b) => (a === company) - (b === company));
+};
+const in_currency = (frm, rows, currency, key) => total_of(rows.filter((r) => currency_of(frm, r) === currency), key);
+// the estimate's lines of some tables
+const lines_of = (frm, tables) => tables.flatMap((table) => frm.doc[table] || []);
+
+// under a sheet's table, its sub totals as the sheet has them, system by system (or table by table): as quoted in
+// each currency, VAT included where the quotes have it, and without VAT in the company's currency
+function sheet_totals(frm, tables) {
+	const rows = lines_of(frm, tables);
+	if (!rows.length) {
+		return "";
+	}
+	const company = company_currency(frm);
+	const currencies = currencies_of(frm, rows);
+	const line = (label, own, bold) =>
+		`<tr${bold ? ' class="bold"' : ""}><td>${label}</td>` +
+		currencies.map((c) => cell(money(in_currency(frm, own, c, "quoted_amount"), c))).join("") +
+		cell(money(total_of(own, "amount"), company), true) +
+		`</tr>`;
+	const groups =
+		tables.length > 1
+			? tables.map((table) => [esc(__(frm.fields_dict[table].df.label)), frm.doc[table] || []])
+			: stages_of(rows).map((stage) => [esc(stage) || __("No stage"), rows.filter((r) => (r.stage || "") === stage)]);
+	const body = groups.filter(([, own]) => own.length).map(([label, own]) => line(label, own)).join("") + line(__("Total"), rows, true);
+	const head = heads([
+		[tables.length > 1 ? __("Part") : __("System / Stage")],
+		...currencies.map((c) => [__("Amount as Quoted ({0})", [esc(c)]), true]),
+		[__("Without VAT ({0})", [esc(company)]), true],
+	]);
+	return `<h6 class="text-muted" style="margin-top: 12px">${__("Sub Totals")}</h6>` + grid_table(head, body);
+}
+
+// under the tax computation and the freight, what they come to: the totals of the Taxes sheet in each currency with
+// the freight (CFR), then what the imports cost the budget
+function tax_totals(frm) {
+	const goods = frm.doc.muhick_import_taxes || [];
+	const freight = frm.doc.muhick_freight || [];
+	if (!goods.length && !freight.length) {
+		return "";
+	}
+	const company = company_currency(frm);
+	const body = [...new Set([...goods, ...freight].map((r) => currency_of(frm, r)))]
+		.map((currency) => {
+			const carried = in_currency(frm, freight, currency, "quoted_amount");
+			return (
+				`<tr><td>${esc(currency)}</td>` +
+				TAX_AMOUNTS.map((key) => cell(money(in_currency(frm, goods, currency, key), currency))).join("") +
+				cell(money(carried, currency)) +
+				cell(money(in_currency(frm, goods, currency, "value") + carried, currency), true) +
+				`</tr>`
+			);
+		})
+		.join("");
+	const head = heads([
+		[__("Totals")], [__("Total"), true], [__("Insurance"), true], [__("C.I"), true], [__("ID"), true], [__("VAT"), true], [__("IL"), true],
+		[__("Total Tax"), true], [__("Freight"), true], [__("With Freight (CFR)"), true],
+	]);
+	const taxes_cost = total_of(goods, "cost");
+	const freight_cost = total_of(freight, "amount");
+	const vat = goods.reduce((sum, r) => sum + flt(r.vat) * (currency_of(frm, r) === company ? 1 : flt(r.exchange_rate) || 1), 0);
+	const rows = [
+		[__("Insurance, Import Duty and Levy ({0})", [esc(company)]), money(taxes_cost, company)],
+		[__("Freight and Clearing, without VAT ({0})", [esc(company)]), money(freight_cost, company)],
+		[`<b>${__("Cost of the Imports to the Budget ({0})", [esc(company)])}</b>`, `<b>${money(taxes_cost + freight_cost, company)}</b>`],
+	];
+	if (vat) {
+		rows.push([__("Import VAT, claimed back so not a cost ({0})", [esc(company)]), money(vat, company)]);
+	}
+	return (
+		grid_table(head, body) +
+		`<table class="table table-condensed" style="width: auto; margin-top: 8px"><tbody>` +
+		rows.map(([label, value]) => `<tr><td>${label}</td>${cell(value)}</tr>`).join("") +
+		`</tbody></table>`
+	);
+}
+
+// what a part of the estimate comes to: as quoted in each currency, and without VAT in the company's currency
+const part = (frm, rows) => ({ rows, quoted: (c) => in_currency(frm, rows, c, "quoted_amount"), amount: total_of(rows, "amount") });
+
+// the Budget Summary sheet: equipment and materials system by system with their suppliers, the origin, shipment
+// and taxes of the imported ones, then taxes and freight, installation costs and overheads, and the grand total,
+// contract value, project cost and profit
+function budget_summary(frm, settings) {
+	const all = muhick.cost_lines.rows(frm);
+	const goods = frm.doc.muhick_import_taxes || [];
+	if (!all.length && !goods.length) {
+		return "";
+	}
+	const company = company_currency(frm);
+	const currencies = currencies_of(frm, all);
+	const distinct = (values) => [...new Set(values.filter(Boolean))].map(esc).join(", ");
+	const taxes_to_ura = (rows) => rows.reduce((sum, r) => sum + flt(r.total_tax) * (currency_of(frm, r) === company ? 1 : flt(r.exchange_rate) || 1), 0);
+	let number = 0;
+	const row = (label, rows, extra = {}, bold = false) => {
+		const sums = part(frm, rows);
+		const style = bold ? ' style="font-weight: bold"' : "";
+		return (
+			`<tr${style}><td>${extra.no || ""}</td><td>${label}</td><td>${extra.supplier || ""}</td><td>${extra.country || ""}</td><td>${extra.shipment || ""}</td>` +
+			currencies.map((c) => cell(money(sums.quoted(c), c))).join("") +
+			cell(money(extra.taxes, company)) +
+			cell(money(sums.amount + flt(extra.cost), company)) +
+			`</tr>`
+		);
+	};
+	const heading = (letter, label) => `<tr class="bold"><td>${letter}</td><td colspan="${6 + currencies.length}">${label}</td></tr>`;
+	let body = "";
+	[
+		["A", __("Equipment"), "muhick_equipment"],
+		["B", __("Installation Materials"), "muhick_materials"],
+	].forEach(([letter, label, table]) => {
+		const rows = frm.doc[table] || [];
+		if (!rows.length) {
+			return;
+		}
+		body += heading(letter, label);
+		number = 0;
+		stages_of(rows).forEach((stage) => {
+			const own = rows.filter((r) => (r.stage || "") === stage);
+			// the origin, shipment and taxes of the system's imported goods go with its equipment
+			const imported = table === "muhick_equipment" ? goods.filter((r) => (r.stage || "") === stage) : [];
+			body += row(esc(stage) || __("No stage"), own, {
+				no: ++number,
+				supplier: distinct(own.map((r) => r.supplier)),
+				country: distinct(imported.map((r) => r.country_of_origin)),
+				shipment: distinct(imported.map((r) => r.mode_of_shipment)),
+				taxes: taxes_to_ura(imported),
+			});
+		});
+		body += row(__("Total Cost of {0}", [label]), rows, { taxes: table === "muhick_equipment" ? taxes_to_ura(goods) : 0 }, true);
+	});
+	const freight = frm.doc.muhick_freight || [];
+	if (goods.length || freight.length) {
+		body += heading("C", __("Taxes and Freight"));
+		body += row(__("Insurance, Import Duty and Levy"), [], { no: 1, cost: total_of(goods, "cost") });
+		body += row(__("Freight and Clearing"), freight, { no: 2, supplier: distinct(freight.map((r) => r.supplier)) });
+	}
+	[
+		["D", __("Installation Costs"), [[__("Labour"), "muhick_labour"], [__("Tools and Equipment"), "muhick_tools"]]],
+		["E", __("Preliminaries and Administrative Costs"), [[__("Preliminaries"), "muhick_preliminaries"], [__("Administrative Costs"), "muhick_administrative"]]],
+	].forEach(([letter, label, parts]) => {
+		if (!parts.some(([, table]) => (frm.doc[table] || []).length)) {
+			return;
+		}
+		body += heading(letter, label);
+		parts.forEach(([name, table], i) => (body += row(name, frm.doc[table] || [], { no: i + 1 })));
+	});
+	const cost = total_of(all, "amount") + total_of(goods, "cost");
+	const quoted = all.reduce((sum, r) => sum + flt(r.quoted_amount) * (currency_of(frm, r) === company ? 1 : flt(r.exchange_rate) || 1), 0);
+	const grand = quoted + goods.reduce((sum, r) => sum + (flt(r.insurance) + flt(r.total_tax)) * (currency_of(frm, r) === company ? 1 : flt(r.exchange_rate) || 1), 0);
+	const head = heads([
+		[__("No.")], [__("Description")], [__("Supplier")], [__("Country of Origin")], [__("Mode of Shipment")],
+		...currencies.map((c) => [__("Amount ({0})", [esc(c)]), true]),
+		[__("Taxes to URA ({0})", [esc(company)]), true],
+		[__("Without VAT ({0})", [esc(company)]), true],
+	]);
+	const rates = [...new Map(all.filter((r) => muhick.cost_lines.foreign(frm, r)).map((r) => [r.currency, flt(r.exchange_rate)])).entries()];
+	const contract = muhick.cost_lines.contract_value(frm);
+	const vat = flt(settings.vat_percent);
+	const lines = [
+		[__("Grand Total, VAT and import taxes included"), money(grand, company)],
+		...(rates.length ? [[__("Exchange rates used"), rates.map(([c, rate]) => `${esc(c)} 1 = ${format_currency(rate, company)}`).join("; ")]] : []),
+		[__("Contract Value, VAT included"), money(contract * (1 + vat / 100), company)],
+		[__("Contract Value, without VAT"), money(contract, company)],
+		[`<b>${__("Total Project Cost, without VAT")}</b>`, `<b>${money(cost, company)}</b>`],
+		...(contract
+			? [
+					[`<b>${__("Profit Margin")}</b>`, `<b>${format_currency(contract - cost, company)}</b>`],
+					[`<b>${__("% Profit")}</b>`, `<b>${flt(((contract - cost) / contract) * 100, 1)}%</b>`],
+			  ]
+			: []),
+	];
+	return (
+		grid_table(head, body) +
+		`<table class="table table-condensed" style="width: auto"><tbody>` +
+		lines.map(([label, value]) => `<tr><td>${label}</td>${cell(value)}</tr>`).join("") +
+		`</tbody></table>`
+	);
+}
+
+// the Profitability sheet: the contract value without VAT, less the estimate part by part without VAT, the
+// equipment and materials system by system, and the margin and its percentage
+function profitability(frm) {
+	const all = muhick.cost_lines.rows(frm);
+	const goods = frm.doc.muhick_import_taxes || [];
+	if (!all.length && !goods.length) {
+		return "";
+	}
+	const company = company_currency(frm);
+	const contract = muhick.cost_lines.contract_value(frm);
+	let body = `<tr class="bold"><td></td><td>${__("Contract Value, without VAT")}</td>${cell(money(contract, company))}</tr>`;
+	body += `<tr><td></td><td><i>${__("Less: Deductions")}</i></td><td></td></tr>`;
+	let expenses = 0;
+	const block = (label, items) => {
+		const shown = items.filter(([, amount]) => flt(amount));
+		if (!shown.length) {
+			return;
+		}
+		body += `<tr class="bold"><td></td><td>${label}</td><td></td></tr>`;
+		shown.forEach(([name, amount], i) => (body += `<tr><td>${i + 1}</td><td>${name}</td>${cell(money(amount, company))}</tr>`));
+		const subtotal = shown.reduce((sum, [, amount]) => sum + flt(amount), 0);
+		body += `<tr><td></td><td><i>${__("Sub-Total")}</i></td>${cell(money(subtotal, company), true)}</tr>`;
+		expenses += subtotal;
+	};
+	const by_stage = (table) => {
+		const rows = frm.doc[table] || [];
+		return stages_of(rows).map((stage) => [esc(stage) || __("No stage"), total_of(rows.filter((r) => (r.stage || "") === stage), "amount")]);
+	};
+	block(__("Installation Equipment, without VAT"), by_stage("muhick_equipment"));
+	block(__("Installation Materials, without VAT"), by_stage("muhick_materials"));
+	block(__("Taxes and Freight"), [
+		[__("Insurance, Import Duty and Levy"), total_of(goods, "cost")],
+		[__("Freight and Clearing"), total_of(frm.doc.muhick_freight || [], "amount")],
+	]);
+	block(__("Installation Costs, without VAT"), [
+		[__("Labour"), total_of(frm.doc.muhick_labour || [], "amount")],
+		[__("Tools and Equipment"), total_of(frm.doc.muhick_tools || [], "amount")],
+	]);
+	block(__("Preliminaries and Administrative Costs"), [
+		[__("Preliminaries"), total_of(frm.doc.muhick_preliminaries || [], "amount")],
+		[__("Administrative Costs"), total_of(frm.doc.muhick_administrative || [], "amount")],
+	]);
+	body += `<tr class="bold"><td></td><td>${__("Sub-Total Project Expenses, without VAT")}</td>${cell(money(expenses, company))}</tr>`;
+	if (contract) {
+		body += `<tr class="bold"><td></td><td>${__("Profit Margin")}</td>${cell(format_currency(contract - expenses, company))}</tr>`;
+		body += `<tr class="bold"><td></td><td>${__("% Margin")}</td>${cell(`${flt(((contract - expenses) / contract) * 100, 1)}%`)}</tr>`;
+	}
+	return grid_table(heads([[__("No.")], [__("Details")], [__("Amount ({0})", [esc(company)]), true]]), body);
+}
+
+// an imported good's taxes, as the business's tax computation works them out (see calc.import_taxes)
+function taxes_of(frm, row) {
+	const value = flt(row.qty) * flt(row.rate);
+	const insurance = (value * flt(row.insurance_percent)) / 100;
+	const customs_value = value + insurance;
+	const duty = (customs_value * flt(row.duty_percent)) / 100;
+	const vat = ((customs_value + duty) * flt(row.vat_percent)) / 100;
+	const levy = (customs_value * flt(row.levy_percent)) / 100;
+	const rate = muhick.cost_lines.foreign(frm, row) ? flt(row.exchange_rate) || 1 : 1;
+	return { value, insurance, customs_value, duty, vat, levy, total_tax: duty + vat + levy, cost: (insurance + duty + levy) * rate };
+}
+
+function set_taxes(frm, cdt, cdn) {
+	frappe.model.set_value(cdt, cdn, taxes_of(frm, locals[cdt][cdn])).then(() => frm.trigger("render_estimate"));
+}
+
+const usual_rates = (settings) => ({
+	insurance_percent: settings.import_insurance_percent,
+	duty_percent: settings.import_duty_percent,
+	vat_percent: settings.vat_percent,
+	levy_percent: settings.import_levy_percent,
+});
+// the rates as they are now for some items: {usual, items: {item: its rates}, countries: {item: its origin}}
+const tax_rates = (frm, items) =>
+	frappe.xcall("project_management_muhick.muhick_projects.estimate.get_tax_rates", {
+		items: [...new Set(items.filter(Boolean))],
+		company: frm.doc.company,
+	});
+// an imported good's rates: its item's, else the usual ones; goods made in the Community pay VAT only
+const rates_of = (rates, item_code, country) => {
+	const own = rates.items[item_code] || rates.usual;
+	return EAC.includes(country) ? { ...own, duty_percent: 0, levy_percent: 0 } : own;
+};
+
+frappe.ui.form.on("Import Tax Line", {
+	// an item picked brings its own rates and origin from the item master; a rate can still be changed on the row
+	item_code(frm, cdt, cdn) {
+		muhick.cost_lines.take_item(frm, cdt, cdn, ["description", "uom"]).then((item) => {
+			if (item) {
+				const country = locals[cdt][cdn].country_of_origin || item.country_of_origin;
+				const rates = rates_of({ items: {}, usual: item.tax_rates }, null, country);
+				frappe.model.set_value(cdt, cdn, { ...rates, country_of_origin: country || null });
+			}
+		});
+	},
+	muhick_import_taxes_add(frm, cdt, cdn) {
+		muhick.cost_lines
+			.settings(frm)
+			.then((settings) => frappe.model.set_value(cdt, cdn, { currency: company_currency(frm), ...usual_rates(settings) }));
+	},
+	...Object.fromEntries(
+		["qty", "rate", "insurance_percent", "duty_percent", "vat_percent", "levy_percent"].map((field) => [field, set_taxes])
+	),
+	exchange_rate(frm, cdt, cdn) {
+		set_taxes(frm, cdt, cdn);
+		muhick.cost_lines.share_rate(frm, cdt, cdn);
+	},
+	currency(frm, cdt, cdn) {
+		muhick.cost_lines.set_exchange_rate(frm, cdt, cdn);
+		set_taxes(frm, cdt, cdn);
+	},
+	// goods made in the Community pay VAT only; others pay their item's duty and levy, else the usual ones
+	country_of_origin(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (EAC.includes(row.country_of_origin)) {
+			frappe.model.set_value(cdt, cdn, { duty_percent: 0, levy_percent: 0 });
+		} else if (row.country_of_origin && !flt(row.duty_percent) && !flt(row.levy_percent)) {
+			tax_rates(frm, [row.item_code]).then((rates) => {
+				const own = rates_of(rates, row.item_code, row.country_of_origin);
+				frappe.model.set_value(cdt, cdn, { duty_percent: own.duty_percent, levy_percent: own.levy_percent });
+			});
+		}
+	},
+	stage: (frm) => frm.trigger("render_estimate"),
+	mode_of_shipment: (frm) => frm.trigger("render_estimate"),
+	muhick_import_taxes_remove: (frm) => frm.trigger("render_estimate"),
+});
+
+// a budget's cost section by section (A Equipment, B Installation Materials...) against the stages, as its print has it
+function stage_matrix(frm) {
+	const cost_lines = muhick.cost_lines;
+	const goods = frm.doc.muhick_import_taxes || [];
+	const stages = stages_of([...cost_lines.rows(frm), ...goods]);
+	if (!stages.length) {
+		return "";
+	}
+	const company = company_currency(frm);
+	const amounts = Object.entries(cost_lines.sections).map(([table, section]) => {
+		const rows = frm.doc[table] || [];
+		const taxes = section === "Taxes and Freight" ? goods : [];
+		return [
+			section,
+			stages.map((stage) => {
+				const own = (r) => (r.stage || "") === stage;
+				return total_of(rows.filter(own), "amount") + total_of(taxes.filter(own), "cost");
+			}),
+		];
+	});
+	const shown = amounts.filter(([, values]) => values.some(flt));
+	const body =
+		shown
+			.map(([section, values], i) => {
+				const total = values.reduce((sum, value) => sum + flt(value), 0);
+				return `<tr><td>${String.fromCharCode(65 + i)}. ${__(section)}</td>${values.map((v) => cell(money(v, company))).join("")}${cell(money(total, company), true)}</tr>`;
+			})
+			.join("") +
+		`<tr class="bold"><td>${__("Total Cost, without VAT")}</td>` +
+		stages.map((_stage, i) => cell(money(shown.reduce((sum, [, values]) => sum + flt(values[i]), 0), company))).join("") +
+		cell(money(shown.reduce((sum, [, values]) => sum + values.reduce((all, value) => all + flt(value), 0), 0), company)) +
+		`</tr>`;
+	return grid_table(heads([[__("Section")], ...stages.map((stage) => [esc(stage) || __("No stage"), true]), [__("Total"), true]]), body);
+}
+
+// the tax computation's goods from the equipment and materials bought abroad (marked International, or priced
+// in another currency) that are not in it yet, at the usual rates
+function get_imported_goods(frm) {
+	const key = (r) => `${r.stage || ""}|${(r.description || "").trim().toLowerCase()}`;
+	const present = new Set((frm.doc.muhick_import_taxes || []).map(key));
+	const lines = lines_of(frm, ["muhick_equipment", "muhick_materials"]).filter(
+		(r) => (r.procurement_type === "International" || muhick.cost_lines.foreign(frm, r)) && !present.has(key(r))
+	);
+	if (!lines.length) {
+		frappe.msgprint(
+			__("Every imported line is in the tax computation already. Lines count as imported when their Procurement Type is International or they are priced in another currency.")
+		);
+		return;
+	}
+	tax_rates(frm, lines.map((r) => r.item_code)).then((rates) => {
+		lines.forEach((r) => {
+			const country = rates.countries[r.item_code];
+			const row = frm.add_child("muhick_import_taxes", {
+				stage: r.stage, item_code: r.item_code, description: r.description, supplier: r.supplier, qty: r.qty, uom: r.uom, rate: r.rate,
+				currency: r.currency || company_currency(frm), exchange_rate: r.exchange_rate, country_of_origin: country,
+				...rates_of(rates, r.item_code, country),
+			});
+			Object.assign(row, taxes_of(frm, row));
+		});
+		frm.refresh_field("muhick_import_taxes");
+		frm.dirty();
+		frm.trigger("render_estimate");
+		frappe.show_alert({
+			message: __("{0} imported good(s) added to the tax computation. Check the country of origin of each: goods from the East African Community pay VAT only.", [lines.length]),
+			indicator: "green",
+		});
+	});
+}
+
+muhick.sheets = { setup: setup_sheets, render: render_estimate, taxes_of, tax_rates, rates_of, get_imported_goods, lines_of, esc, money, cell, company_currency };
 
 // run a whitelisted method of the open document, then reload it
 muhick.run = function (frm, method, args) {

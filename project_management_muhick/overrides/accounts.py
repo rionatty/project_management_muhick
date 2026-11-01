@@ -95,6 +95,12 @@ def on_submit_sales_order(doc, method=None):
 		)
 
 
+def sale_type_changed(doc, method=None):
+	"""An order made a project sale after it was submitted notifies the Project Manager too."""
+	if doc.has_value_changed("muhick_sale_type"):
+		on_submit_sales_order(doc)
+
+
 def _check_payment_plan(doc):
 	"""A supplier payment should come from an approved payment plan, for no more than the plan allows."""
 	action = get_settings().payment_plan_control or "Warn"

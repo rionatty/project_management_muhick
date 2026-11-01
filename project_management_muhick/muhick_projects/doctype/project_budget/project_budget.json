@@ -14,11 +14,37 @@
   "boq",
   "prepared_by",
   "workflow_state",
-  "budget_build_up_section",
-  "lines",
+  "section_break_1",
+  "remarks",
+  "amended_from",
+  "muhick_equipment_tab",
+  "muhick_equipment",
+  "muhick_equipment_totals",
+  "muhick_materials_tab",
+  "muhick_materials",
+  "muhick_materials_totals",
+  "muhick_taxes_tab",
+  "muhick_import_taxes",
+  "muhick_freight",
+  "muhick_taxes_totals",
+  "muhick_labour_tab",
+  "muhick_labour",
+  "muhick_labour_totals",
+  "muhick_tools_tab",
+  "muhick_tools",
+  "muhick_tools_totals",
+  "muhick_overheads_tab",
+  "muhick_preliminaries",
+  "muhick_administrative",
+  "muhick_overheads_totals",
+  "muhick_summary_tab",
+  "muhick_budget_summary",
   "phase_summary_section",
   "phase_summary",
-  "budget_position_by_cost_code_section",
+  "muhick_profitability_tab",
+  "muhick_profitability",
+  "budget_position_tab",
+  "tax_lines",
   "cost_codes",
   "totals_section",
   "contract_value",
@@ -37,10 +63,7 @@
   "planned_margin_percent",
   "forecast_margin",
   "forecast_margin_percent",
-  "last_recalculated_on",
-  "section_break_1",
-  "remarks",
-  "amended_from"
+  "last_recalculated_on"
  ],
  "fields": [
   {
@@ -112,32 +135,174 @@
    "read_only": 1
   },
   {
-   "fieldname": "budget_build_up_section",
-   "fieldtype": "Section Break",
-   "label": "Budget Build-Up"
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break"
   },
   {
-   "fieldname": "lines",
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Project Budget",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "muhick_equipment_tab",
+   "fieldtype": "Tab Break",
+   "label": "Equipment"
+  },
+  {
+   "fieldname": "muhick_equipment",
    "fieldtype": "Table",
-   "label": "Budget Lines",
-   "options": "Project Budget Line",
-   "reqd": 1
+   "label": "Equipment",
+   "options": "Project Budget Line"
+  },
+  {
+   "fieldname": "muhick_equipment_totals",
+   "fieldtype": "HTML",
+   "label": "Equipment Totals"
+  },
+  {
+   "fieldname": "muhick_materials_tab",
+   "fieldtype": "Tab Break",
+   "label": "Installation Materials"
+  },
+  {
+   "fieldname": "muhick_materials",
+   "fieldtype": "Table",
+   "label": "Installation Materials",
+   "options": "Project Budget Line"
+  },
+  {
+   "fieldname": "muhick_materials_totals",
+   "fieldtype": "HTML",
+   "label": "Installation Materials Totals"
+  },
+  {
+   "fieldname": "muhick_taxes_tab",
+   "fieldtype": "Tab Break",
+   "label": "Taxes"
+  },
+  {
+   "fieldname": "muhick_import_taxes",
+   "fieldtype": "Table",
+   "label": "Tax Computation",
+   "options": "Import Tax Line"
+  },
+  {
+   "fieldname": "muhick_freight",
+   "fieldtype": "Table",
+   "label": "Freight and Clearing",
+   "options": "Project Budget Line"
+  },
+  {
+   "fieldname": "muhick_taxes_totals",
+   "fieldtype": "HTML",
+   "label": "Taxes and Freight Totals"
+  },
+  {
+   "fieldname": "muhick_labour_tab",
+   "fieldtype": "Tab Break",
+   "label": "Labour"
+  },
+  {
+   "fieldname": "muhick_labour",
+   "fieldtype": "Table",
+   "label": "Labour Requirements",
+   "options": "Project Budget Line"
+  },
+  {
+   "fieldname": "muhick_labour_totals",
+   "fieldtype": "HTML",
+   "label": "Labour Totals"
+  },
+  {
+   "fieldname": "muhick_tools_tab",
+   "fieldtype": "Tab Break",
+   "label": "Tools & Equipment"
+  },
+  {
+   "fieldname": "muhick_tools",
+   "fieldtype": "Table",
+   "label": "Tools and Equipment",
+   "options": "Project Budget Line"
+  },
+  {
+   "fieldname": "muhick_tools_totals",
+   "fieldtype": "HTML",
+   "label": "Tools and Equipment Totals"
+  },
+  {
+   "fieldname": "muhick_overheads_tab",
+   "fieldtype": "Tab Break",
+   "label": "Administrative"
+  },
+  {
+   "fieldname": "muhick_preliminaries",
+   "fieldtype": "Table",
+   "label": "Preliminaries",
+   "options": "Project Budget Line"
+  },
+  {
+   "fieldname": "muhick_administrative",
+   "fieldtype": "Table",
+   "label": "Administrative Costs",
+   "options": "Project Budget Line"
+  },
+  {
+   "fieldname": "muhick_overheads_totals",
+   "fieldtype": "HTML",
+   "label": "Preliminaries and Administrative Totals"
+  },
+  {
+   "fieldname": "muhick_summary_tab",
+   "fieldtype": "Tab Break",
+   "label": "Budget Summary"
+  },
+  {
+   "fieldname": "muhick_budget_summary",
+   "fieldtype": "HTML",
+   "label": "Budget Summary"
   },
   {
    "collapsible": 1,
    "fieldname": "phase_summary_section",
    "fieldtype": "Section Break",
-   "label": "Budget Summary"
+   "label": "By Stage"
   },
   {
    "fieldname": "phase_summary",
    "fieldtype": "HTML",
-   "label": "Budget Summary"
+   "label": "Budget by Stage"
   },
   {
-   "fieldname": "budget_position_by_cost_code_section",
-   "fieldtype": "Section Break",
-   "label": "Budget Position by Cost Code"
+   "fieldname": "muhick_profitability_tab",
+   "fieldtype": "Tab Break",
+   "label": "Profitability"
+  },
+  {
+   "fieldname": "muhick_profitability",
+   "fieldtype": "HTML",
+   "label": "Profitability"
+  },
+  {
+   "fieldname": "budget_position_tab",
+   "fieldtype": "Tab Break",
+   "label": "Budget Position"
+  },
+  {
+   "fieldname": "tax_lines",
+   "fieldtype": "Table",
+   "label": "Insurance, Import Duty and Levy",
+   "options": "Project Budget Line",
+   "hidden": 1,
+   "no_copy": 1
   },
   {
    "allow_on_submit": 1,
@@ -279,31 +444,13 @@
    "label": "Position Last Updated",
    "no_copy": 1,
    "read_only": 1
-  },
-  {
-   "fieldname": "section_break_1",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "remarks",
-   "fieldtype": "Small Text",
-   "label": "Remarks"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Project Budget",
-   "print_hide": 1,
-   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-01 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget",

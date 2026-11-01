@@ -67,6 +67,22 @@ def bid_spent(opportunities) -> dict:
 	return {name: p["paid"] for name, p in bid_costs_position(opportunities).items()}
 
 
+def quotation_bids(quotations) -> set:
+	"""The bids some quotations were made from. ERPNext records the bid on a quotation's lines, and on the
+	quotation itself only when the bid had no lines."""
+	if not quotations:
+		return set()
+	names = set(frappe.get_all("Quotation", filters={"name": ("in", quotations), "opportunity": ("is", "set")}, pluck="opportunity"))
+	names.update(
+		frappe.get_all(
+			"Quotation Item",
+			filters={"parent": ("in", quotations), "prevdoc_doctype": "Opportunity", "prevdoc_docname": ("is", "set")},
+			pluck="prevdoc_docname",
+		)
+	)
+	return names
+
+
 def project_bid(project) -> str | None:
 	"""The won bid a project came from: through its accepted handover, or its sales order's
 	quotation. A bid split into several projects is carried by the first of them."""
@@ -76,7 +92,7 @@ def project_bid(project) -> str | None:
 		quotation = sales_order and frappe.db.get_value(
 			"Sales Order Item", {"parent": sales_order, "prevdoc_docname": ("is", "set")}, "prevdoc_docname"
 		)
-		opportunity = quotation and frappe.db.get_value("Quotation", quotation, "opportunity")
+		opportunity = min(quotation_bids([quotation]), default=None) if quotation else None
 	if not opportunity:
 		return None
 	first = frappe.db.get_value(

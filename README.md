@@ -10,7 +10,10 @@ and certificates, retention, payments and the controls around them.
 
 - Sales-to-project handover with a mandatory handover pack the Project Manager accepts or returns.
 - The bid's BOQ is the opportunity's item table, each line an item with its stage (milestone), and
-  the bid price is its total. The stage goes with the lines to the quotation and the sales order;
+  the bid price is its total. Its lines are picked one by one, or loaded from the estimate's tabs with
+  Get Lines from the Estimate on the BOQ tab: a line per item in each stage, the quantities of its
+  estimate lines added up, ready for Set Bid Price. Lines with no item yet, and lines priced as a share
+  of the contract value, stay out. The stage goes with the lines to the quotation and the sales order;
   the project's BOQ is created from the sales order's lines, and the activity plan can take its
   milestones, and the items each one needs, from the BOQ's stages.
 - Bill of Quantities as a list of items from the Item master (stock or non-stock), each with its
@@ -65,14 +68,17 @@ and certificates, retention, payments and the controls around them.
   against their own amount, each line linked to the item its description names, and the Taxes sheet
   good by good with its rates. Every row is checked
   first: with any mistake nothing changes and each one is listed by sheet and row.
-- A project budget built by stage, milestone and cost code. When the project is handed over, the
-  bid's cost estimate becomes its draft budget, assigned to the Project Manager to adjust before
-  approval; lines can also be taken from the activity plan's items or typed in. A line takes the
-  project's milestone of its stage once the activity plan creates it. The budget keeps the
-  estimate's sections, with the tax computation as its insurance, duty and levy, and shows its
-  margin and margin %, the budget summary (each section against the stages), the Budget Summary
-  print (sections against the stages and their months, contract value, margin, cost codes and
-  signatures) and a cash plan by month. A purchase request is checked against its milestone's
+- A project budget laid out like the bid's estimate, tab for tab: Equipment, Installation Materials,
+  Taxes (the tax computation with Freight and Clearing), Labour, Tools & Equipment and Administrative,
+  each with its sub totals, then Budget Summary (with each section against the stages), Profitability
+  and Budget Position (the cost codes and totals). When the project is handed over, the bid's cost
+  estimate becomes its draft budget, assigned to the Project Manager to adjust before approval; under
+  Budget Lines at the top, lines can also be uploaded from Excel, taken from the activity plan's items
+  or the bid's estimate, and typed in on their tab. Every line has a cost code. What the tax computation
+  costs (its insurance, duty and levy) counts under the import cost code, stage by stage. A line takes
+  the project's milestone of its stage once the activity plan creates it. The budget also has the
+  Budget Summary print (sections against the stages and their months, contract value, margin, cost
+  codes and signatures) and a cash plan by month. A purchase request is checked against its milestone's
   budgeted quantities, and one for items the budget places only under another stage needs a
   justification.
 - Commitments: approved purchase orders, subcontracts, requisitions and labour reduce the available
@@ -206,8 +212,9 @@ and certificates, retention, payments and the controls around them.
   plan picks up as it falls due (Get > Bank Fees Due). A request with no expenses needs no
   funds: its securities are recorded straight after approval. All of a lost bid's securities are put
   up for cancellation.
-- Sale type on the Sales Order (Stock, Project, Additions): project and additions orders notify the
-  Project Manager and start the handover.
+- Sale type on the Sales Order (Stock, Project, Additions), compulsory and correctable after the order
+  is submitted: project and additions orders notify the Project Manager and start the handover, from
+  Create > Project Handover. The handover finds the bid through the order's quotation.
 
 **Administration**
 
