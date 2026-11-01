@@ -293,7 +293,7 @@ function render_estimate(frm) {
 	}
 	muhick.cost_lines.settings(frm).then((settings) => {
 		Object.entries(SHEET_TOTALS).forEach(([field, tables]) => frm.fields_dict[field].$wrapper.html(sheet_totals(frm, tables)));
-		frm.fields_dict.muhick_taxes_totals.$wrapper.html(tax_computation(frm));
+		frm.fields_dict.muhick_taxes_totals.$wrapper.html(tax_totals(frm));
 		frm.fields_dict.muhick_budget_summary.$wrapper.html(budget_summary(frm, settings));
 		frm.fields_dict.muhick_profitability.$wrapper.html(profitability(frm));
 	});
@@ -350,58 +350,44 @@ function sheet_totals(frm, tables) {
 	return `<h6 class="text-muted" style="margin-top: 12px">${__("Sub Totals")}</h6>` + grid_table(head, body);
 }
 
-// the Taxes sheet: each imported good with its insurance, customs value (C.I), import duty (ID), VAT, levy (IL)
-// and total tax in its currency, the totals with the freight (CFR), and what the imports cost the budget
-function tax_computation(frm) {
+// under the tax computation and the freight, what they come to: the totals of the Taxes sheet in each currency with
+// the freight (CFR), then what the imports cost the budget
+function tax_totals(frm) {
 	const goods = frm.doc.muhick_import_taxes || [];
 	const freight = frm.doc.muhick_freight || [];
 	if (!goods.length && !freight.length) {
 		return "";
 	}
 	const company = company_currency(frm);
-	let html = "";
-	[...new Set(goods.map((r) => currency_of(frm, r)))].forEach((currency) => {
-		const own = goods.filter((r) => currency_of(frm, r) === currency);
-		const body =
-			own
-				.map(
-					(r, i) =>
-						`<tr><td>${i + 1}</td><td>${esc(r.description)}</td>${cell(flt(r.qty))}<td>${esc(r.uom)}</td>${cell(money(r.rate, currency))}` +
-						TAX_AMOUNTS.map((key) => cell(money(r[key], currency))).join("") +
-						`</tr>`
-				)
-				.join("") +
-			`<tr class="bold"><td></td><td>${__("Total")}</td><td></td><td></td><td></td>` +
-			TAX_AMOUNTS.map((key) => cell(money(total_of(own, key), currency))).join("") +
-			`</tr>`;
-		const head = heads([
-			[__("No.")], [__("Item / Description")], [__("Qty"), true], [__("UOM")], [__("Rate"), true], [__("Total"), true],
-			[__("Insurance"), true], [__("C.I"), true], [__("ID"), true], [__("VAT"), true], [__("IL"), true], [__("Total Tax"), true],
-		]);
-		html += `<h6 class="text-muted" style="margin-top: 12px">${__("Tax Computation ({0})", [esc(currency)])}</h6>` + grid_table(head, body);
-	});
-	const rows = [];
-	[...new Set(goods.map((r) => currency_of(frm, r)))].forEach((currency) => {
-		const value = in_currency(frm, goods, currency, "value");
-		const carried = in_currency(frm, freight, currency, "quoted_amount");
-		rows.push([__("Total Amount ({0})", [esc(currency)]), money(value, currency)]);
-		rows.push([__("Total Taxes ({0})", [esc(currency)]), money(in_currency(frm, goods, currency, "total_tax"), currency)]);
-		if (carried) {
-			rows.push([__("Freight ({0})", [esc(currency)]), money(carried, currency)]);
-			rows.push([__("Total Amount with Freight, CFR ({0})", [esc(currency)]), money(value + carried, currency)]);
-		}
-	});
+	const body = [...new Set([...goods, ...freight].map((r) => currency_of(frm, r)))]
+		.map((currency) => {
+			const carried = in_currency(frm, freight, currency, "quoted_amount");
+			return (
+				`<tr><td>${esc(currency)}</td>` +
+				TAX_AMOUNTS.map((key) => cell(money(in_currency(frm, goods, currency, key), currency))).join("") +
+				cell(money(carried, currency)) +
+				cell(money(in_currency(frm, goods, currency, "value") + carried, currency), true) +
+				`</tr>`
+			);
+		})
+		.join("");
+	const head = heads([
+		[__("Totals")], [__("Total"), true], [__("Insurance"), true], [__("C.I"), true], [__("ID"), true], [__("VAT"), true], [__("IL"), true],
+		[__("Total Tax"), true], [__("Freight"), true], [__("With Freight (CFR)"), true],
+	]);
 	const taxes_cost = total_of(goods, "cost");
 	const freight_cost = total_of(freight, "amount");
 	const vat = goods.reduce((sum, r) => sum + flt(r.vat) * (currency_of(frm, r) === company ? 1 : flt(r.exchange_rate) || 1), 0);
-	rows.push([__("Insurance, Import Duty and Levy ({0})", [esc(company)]), money(taxes_cost, company)]);
-	rows.push([__("Freight and Clearing, without VAT ({0})", [esc(company)]), money(freight_cost, company)]);
-	rows.push([`<b>${__("Cost of the Imports to the Budget ({0})", [esc(company)])}</b>`, `<b>${money(taxes_cost + freight_cost, company)}</b>`]);
+	const rows = [
+		[__("Insurance, Import Duty and Levy ({0})", [esc(company)]), money(taxes_cost, company)],
+		[__("Freight and Clearing, without VAT ({0})", [esc(company)]), money(freight_cost, company)],
+		[`<b>${__("Cost of the Imports to the Budget ({0})", [esc(company)])}</b>`, `<b>${money(taxes_cost + freight_cost, company)}</b>`],
+	];
 	if (vat) {
 		rows.push([__("Import VAT, claimed back so not a cost ({0})", [esc(company)]), money(vat, company)]);
 	}
 	return (
-		html +
+		grid_table(head, body) +
 		`<table class="table table-condensed" style="width: auto; margin-top: 8px"><tbody>` +
 		rows.map(([label, value]) => `<tr><td>${label}</td>${cell(value)}</tr>`).join("") +
 		`</tbody></table>`
