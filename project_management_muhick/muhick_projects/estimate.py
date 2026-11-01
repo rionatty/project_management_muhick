@@ -26,6 +26,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt, formatdate, getdate, strip_html, today
 
+from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.muhick_projects.utils import ensure_milestone, get_phases
 from project_management_muhick.muhick_sales.bids import boq_factor, boq_quotes, last_purchase_rate, latest_by_supplier, lowest, project_bid
 from project_management_muhick.utils import calc
@@ -270,15 +271,20 @@ def supplier_price(quotes, item_code, uom, company_currency) -> dict | None:
 
 @frappe.whitelist()
 def get_boq_lines(opportunity: str, items) -> list:
-	"""Estimate lines for BOQ items ([item_code, uom, qty, stage] each): the item at the lowest valid
-	supplier quotation for the bid, or else at its last purchase price, with its brand and cost code, in
-	the section its cost code gives (equipment for MAT-500, else installation materials)."""
+	"""Estimate lines for BOQ items ([item_code, uom, qty, stage] each), see boq_rows."""
 	bid = frappe.get_doc("Opportunity", opportunity)
 	bid.check_permission("write")
+	return boq_rows(bid, frappe.parse_json(items))
+
+
+def boq_rows(bid, items) -> list:
+	"""Lines for BOQ items: the item at the lowest valid supplier quotation for the bid, or else at its last
+	purchase price, with its brand and cost code, in the section its cost code gives (equipment for MAT-500,
+	else installation materials)."""
 	company_currency = frappe.get_cached_value("Company", bid.company, "default_currency")
-	quotes = boq_quotes(opportunity)
+	quotes = boq_quotes(bid.name)
 	rows = []
-	for item_code, uom, qty, stage in frappe.parse_json(items):
+	for item_code, uom, qty, stage in items:
 		info = frappe.get_cached_value("Item", item_code, ["item_name", "stock_uom", "brand", "muhick_cost_code"], as_dict=True)
 		if not info:
 			continue
@@ -407,30 +413,46 @@ def estimate_goods(opportunity) -> list:
 	)
 
 
+def bid_rows(opportunity) -> tuple:
+	"""What a budget takes from a bid: the lines of its cost estimate and its tax computation. A bid with no
+	estimate gives its BOQ's items, at what they cost."""
+	rows, goods = estimate_rows(opportunity), estimate_goods(opportunity)
+	if not rows and not goods:
+		bid = frappe.get_doc("Opportunity", opportunity)
+		rows = boq_rows(bid, [[i.item_code, i.uom, i.qty, i.get("muhick_stage")] for i in bid.get("items") or [] if i.item_code])
+	return rows, goods
+
+
 @frappe.whitelist()
-def get_estimate_lines(project: str) -> dict:
-	"""The cost estimate of the bid a project came from: {lines: budget lines placed in the project's milestones
-	where it has them, goods: its tax computation}."""
+def get_estimate_lines(project: str, quiet: int = 0) -> dict:
+	"""All the bid a project came from has for its budget: {bid, lines: budget lines placed in the project's
+	milestones where it has them, goods: its tax computation, boq: the project's, contract_value}. A project from
+	no bid is an error, or quietly nothing for a new budget looking for what to start from."""
 	frappe.has_permission("Project Budget", "write", throw=True)
 	frappe.get_doc("Project", project).check_permission("read")
 	opportunity = project_bid(project)
-	rows, goods = (estimate_rows(opportunity), estimate_goods(opportunity)) if opportunity else ([], [])
+	rows, goods = bid_rows(opportunity) if opportunity else ([], [])
 	if not rows and not goods:
+		if cint(quiet):
+			return {"lines": [], "goods": []}
 		frappe.throw(_("Project {0} did not come from a bid with a cost estimate.").format(project))
 	lines = [frappe._dict(row) for row in rows]
 	resolve_stages(project, lines)
 	propose_cost_codes(lines)
-	return {"lines": lines, "goods": goods}
+	return {
+		"bid": opportunity, "lines": lines, "goods": goods, "boq": frappe.db.get_value("Project", project, "muhick_boq"),
+		"contract_value": budget_engine.revised_contract_value(project),
+	}
 
 
 def make_budget(handover):
 	"""At an accepted handover, the bid's cost estimate becomes the project's draft budget, assigned
 	to the receiving Project Manager to adjust and send for approval. Nothing is made for a project
-	that already has a budget, or from a bid without an estimate."""
+	that already has a budget, or from a bid with neither an estimate nor a BOQ."""
 	project = handover.project
 	if not handover.opportunity or frappe.db.exists("Project Budget", {"project": project, "docstatus": ("<", 2)}):
 		return None
-	rows, goods = estimate_rows(handover.opportunity), estimate_goods(handover.opportunity)
+	rows, goods = bid_rows(handover.opportunity)
 	if not rows and not goods:
 		return None
 	budget = frappe.new_doc("Project Budget")

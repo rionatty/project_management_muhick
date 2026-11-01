@@ -66,16 +66,7 @@ frappe.ui.form.on("Project Budget", {
 
 	render_estimate: muhick.sheets.render,
 	contract_value: (frm) => frm.trigger("render_estimate"),
-	// what shares of the contract value and the margin are worked out on; saving sets the same
-	project(frm) {
-		if (!frm.doc.project) {
-			return;
-		}
-		frappe.db.get_value("Project", frm.doc.project, ["muhick_contract_value", "muhick_approved_variations"]).then((r) => {
-			const project = r.message || {};
-			frm.set_value("contract_value", flt(project.muhick_contract_value) + flt(project.muhick_approved_variations));
-		});
-	},
+	project: start_from_bid,
 });
 
 frappe.ui.form.on("Project Budget Cost Code", {
@@ -83,32 +74,76 @@ frappe.ui.form.on("Project Budget Cost Code", {
 	estimate_to_complete: (frm, cdt, cdn) => frappe.model.set_value(cdt, cdn, "etc_is_manual", 1),
 });
 
-// lines from the won bid's cost estimate, or for the items of the approved activity plan, skipping lines
-// already in the budget
-function get_lines(frm, source) {
-	const method =
-		source === "estimate"
-			? "project_management_muhick.muhick_projects.estimate.get_estimate_lines"
-			: "project_management_muhick.muhick_projects.doctype.project_budget.project_budget.get_plan_items";
-	const key = (r) => [r.stage || "", r.item_code || "", r.item_code ? "" : r.description || ""].join("|");
-	frappe.xcall(method, { project: frm.doc.project }).then((result) => {
-		const rows = result.lines || result;
-		const lines = muhick.cost_lines.rows(frm);
-		lines.filter((r) => !r.item_code && !r.description).forEach((r) => frappe.model.clear_doc(r.doctype, r.name));
-		const present = new Set(muhick.cost_lines.rows(frm).map(key));
-		const added = rows.filter((row) => !present.has(key(row)));
-		const goods_present = new Set((frm.doc.muhick_import_taxes || []).map(key));
-		const goods = (result.goods || []).filter((good) => !goods_present.has(key(good)));
-		goods.forEach((good) => frm.add_child("muhick_import_taxes", good));
-		frm.refresh_field("muhick_import_taxes");
-		muhick.cost_lines.add_rows(frm, added).then(() =>
-			frappe.show_alert({
-				message:
-					added.length || goods.length
-						? __("{0} line(s) and {1} imported good(s) added. Check the rates and cost codes.", [added.length, goods.length])
-						: __("Every line is already in the budget."),
-				indicator: added.length || goods.length ? "green" : "orange",
-			})
-		);
+const BID_LINES = "project_management_muhick.muhick_projects.estimate.get_estimate_lines";
+
+// a new budget starts from all its project's bid has, with no button to press. Lines typed or uploaded first stay;
+// another project picked starts over.
+function start_from_bid(frm) {
+	const project = frm.doc.project;
+	if (!frm.is_new() || !project || frm.__started_from === project) {
+		return;
+	}
+	const tables = [...muhick.cost_lines.tables(), "muhick_import_taxes"];
+	if (tables.some((table) => (frm.doc[table] || []).length)) {
+		if (!frm.__started_from) {
+			return;
+		}
+		tables.forEach((table) => {
+			frm.clear_table(table);
+			frm.refresh_field(table);
+		});
+		frm.doc.boq = frm.doc.remarks = null;
+		frm.refresh_fields(["boq", "remarks"]);
+		frm.trigger("render_estimate");
+	}
+	frm.__started_from = null;
+	frappe.xcall(BID_LINES, { project, quiet: 1 }).then((result) => {
+		if (result.bid && frm.doc.project === project) {
+			frm.__started_from = project;
+			add_lines(frm, result);
+		}
 	});
+}
+
+// lines from the won bid, or for the items of the approved activity plan
+function get_lines(frm, source) {
+	const method = source === "estimate" ? BID_LINES : "project_management_muhick.muhick_projects.doctype.project_budget.project_budget.get_plan_items";
+	frappe.xcall(method, { project: frm.doc.project }).then((result) => add_lines(frm, result));
+}
+
+// lines and goods not yet in the budget, each to its tab; from a bid, also the contract value, the project's BOQ and
+// where they came from
+function add_lines(frm, result) {
+	const key = (r) => [r.stage || "", r.item_code || "", r.item_code ? "" : r.description || ""].join("|");
+	const rows = result.lines || result;
+	const lines = muhick.cost_lines.rows(frm);
+	lines.filter((r) => !r.item_code && !r.description).forEach((r) => frappe.model.clear_doc(r.doctype, r.name));
+	const present = new Set(muhick.cost_lines.rows(frm).map(key));
+	const added = rows.filter((row) => !present.has(key(row)));
+	const goods_present = new Set((frm.doc.muhick_import_taxes || []).map(key));
+	const goods = (result.goods || []).filter((good) => !goods_present.has(key(good)));
+	return frappe
+		.run_serially(
+			result.bid
+				? [
+						() => frm.set_value("contract_value", result.contract_value),
+						() => result.boq && frm.set_value("boq", result.boq, true),
+						() => frm.set_value("remarks", __("From the cost estimate of bid {0}.", [result.bid]), true),
+				  ]
+				: []
+		)
+		.then(() => {
+			goods.forEach((good) => frm.add_child("muhick_import_taxes", good));
+			frm.refresh_field("muhick_import_taxes");
+			return muhick.cost_lines.add_rows(frm, added);
+		})
+		.then(() => {
+			const counted = result.bid
+				? __("{0} line(s) and {1} imported good(s) came from bid {2}. Check the rates and cost codes.", [added.length, goods.length, result.bid])
+				: __("{0} line(s) added. Check the rates and cost codes.", [added.length]);
+			frappe.show_alert({
+				message: added.length || goods.length ? counted : __("Every line is already in the budget."),
+				indicator: added.length || goods.length ? "green" : "orange",
+			});
+		});
 }

@@ -5,8 +5,9 @@
 
 A budget is laid out as the bid's cost estimate, with the same tables under the same names: Equipment,
 Installation Materials, the tax computation with Freight and Clearing, Labour, Tools and Equipment,
-Preliminaries and Administrative. A budget made at handover starts from the won bid's estimate, and one
-can be prepared in Excel and uploaded; the Project Manager adjusts it before sending it for approval.
+Preliminaries and Administrative. A budget starts from all the won bid has, whether made at handover or
+started by hand (once its project is picked), and one can be prepared in Excel and uploaded; the Project
+Manager adjusts it before sending it for approval.
 What the tax computation costs (its insurance, duty and levy) is kept as lines of its own, so budget
 control and the reports read it like any other cost.
 Each line has a stage from the shared milestone list and takes the project's milestone (phase) of

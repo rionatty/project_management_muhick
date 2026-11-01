@@ -101,6 +101,15 @@ def project_bid(project) -> str | None:
 	return opportunity if first in (None, project) else None
 
 
+def bid_price(project) -> float:
+	"""What the bid a project came from is priced at, in the company's currency without VAT; 0 for no bid."""
+	opportunity = project_bid(project)
+	if not opportunity:
+		return 0.0
+	bid = frappe.db.get_value("Opportunity", opportunity, ["opportunity_amount", "conversion_rate"], as_dict=True)
+	return flt(bid.opportunity_amount) * (flt(bid.conversion_rate) or 1)
+
+
 def boq_quotes(opportunity) -> dict:
 	"""{item_code: [quote]} from the supplier quotations of a bid, latest first. Each quote carries its
 	price per stock unit in the company currency (stock_rate) and in its own currency (price, with the

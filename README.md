@@ -71,10 +71,13 @@ and certificates, retention, payments and the controls around them.
 - A project budget laid out like the bid's estimate, tab for tab: Equipment, Installation Materials,
   Taxes (the tax computation with Freight and Clearing), Labour, Tools & Equipment and Administrative,
   each with its sub totals, then Budget Summary (with each section against the stages), Profitability
-  and Budget Position (the cost codes and totals). When the project is handed over, the bid's cost
-  estimate becomes its draft budget, assigned to the Project Manager to adjust before approval; under
-  Budget Lines at the top, lines can also be uploaded from Excel, taken from the activity plan's items
-  or the bid's estimate, and typed in on their tab. Every line has a cost code. What the tax computation
+  and Budget Position (the cost codes and totals). A budget starts from all its bid has: the estimate's
+  lines tab by tab and its tax computation (or, with no estimate, the BOQ's items at what they cost), the
+  contract value and the project's BOQ. When the project is handed over this becomes its draft budget,
+  assigned to the Project Manager to adjust before approval, and a budget started by hand fills itself
+  as soon as its project is picked. Under Budget Lines at the top, lines can also be uploaded from Excel,
+  taken from the activity plan's items or the bid again, and typed in on their tab. Every line has a
+  cost code. What the tax computation
   costs (its insurance, duty and levy) counts under the import cost code, stage by stage. A line takes
   the project's milestone of its stage once the activity plan creates it. The budget also has the
   Budget Summary print (sections against the stages and their months, contract value, margin, cost

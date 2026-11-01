@@ -21,7 +21,7 @@ import frappe
 from frappe import _
 from frappe.utils import date_diff, flt, getdate, now_datetime, nowdate
 
-from project_management_muhick.muhick_sales.bids import bid_costs_position, project_bid
+from project_management_muhick.muhick_sales.bids import bid_costs_position, bid_price, project_bid
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import setting, user_has_any_role
 
@@ -399,11 +399,14 @@ def update_budget(project):
 
 
 def revised_contract_value(project) -> float:
-	"""The project's contract value with its approved variations, without VAT."""
+	"""The project's contract value with its approved variations, without VAT. Until the project has one (its
+	handover sets it), what its bid is priced at."""
 	value = frappe.db.get_value(
 		"Project", project, ["muhick_contract_value", "muhick_approved_variations"], as_dict=True
 	)
-	return flt(value.muhick_contract_value) + flt(value.muhick_approved_variations) if value else 0.0
+	if not value:
+		return 0.0
+	return (flt(value.muhick_contract_value) or bid_price(project)) + flt(value.muhick_approved_variations)
 
 
 def refresh_projects(projects):
