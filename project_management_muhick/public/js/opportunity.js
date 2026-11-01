@@ -85,6 +85,17 @@ frappe.ui.form.on("Opportunity", {
 
 frappe.ui.form.on("Opportunity", {
 	render_estimate,
+	// a quotation goes out with the BOQ's prices, so they must be there; a throw here stops ERPNext's create_quotation
+	create_quotation(frm) {
+		const lines = frm.doc.items || [];
+		const unpriced = lines.filter((r) => !flt(r.rate)).map((r) => r.idx);
+		if (!lines.length) {
+			frappe.throw(__("A quotation is made from the BOQ. Add its lines on the BOQ tab first."));
+		}
+		if (unpriced.length) {
+			frappe.throw(__("BOQ row {0} has no rate. Give it one, or use Cost Estimate > Set Bid Price.", [unpriced.join(", ")]));
+		}
+	},
 	// a share of the contract value follows the bid price
 	opportunity_amount(frm) {
 		muhick.cost_lines
@@ -272,6 +283,7 @@ function setup_estimate(frm) {
 	if (!frm.fields_dict.muhick_equipment) {
 		return; // until the site is migrated
 	}
+	frm.__cost_settings = null; // the rates as they are now in the settings
 	frm.trigger("render_estimate");
 	if (!frm.perm[0].write) {
 		return;
@@ -285,6 +297,10 @@ function setup_estimate(frm) {
 	frm.add_custom_button(__("Get Lines from the BOQ"), () => get_boq_lines(frm), group);
 	frm.add_custom_button(__("Get Supplier Prices"), () => get_supplier_prices(frm), group);
 	frm.add_custom_button(__("Get Imported Goods"), () => get_imported_goods(frm), group);
+	if (frm.doc.status === "Open" && ["Qualified", "In Preparation"].includes(frm.doc.sales_stage)) {
+		frm.add_custom_button(__("Apply Current Rates"), () => apply_current_rates(frm), group);
+		frm.add_custom_button(__("Set Bid Price"), () => set_bid_price(frm), group);
+	}
 }
 
 function render_estimate(frm) {
@@ -569,9 +585,29 @@ const usual_rates = (settings) => ({
 	vat_percent: settings.vat_percent,
 	levy_percent: settings.import_levy_percent,
 });
+// the rates as they are now for some items: {usual, items: {item: its rates}, countries: {item: its origin}}
+const tax_rates = (frm, items) =>
+	frappe.xcall("project_management_muhick.muhick_projects.estimate.get_tax_rates", {
+		items: [...new Set(items.filter(Boolean))],
+		company: frm.doc.company,
+	});
+// an imported good's rates: its item's, else the usual ones; goods made in the Community pay VAT only
+const rates_of = (rates, item_code, country) => {
+	const own = rates.items[item_code] || rates.usual;
+	return EAC.includes(country) ? { ...own, duty_percent: 0, levy_percent: 0 } : own;
+};
 
 frappe.ui.form.on("Import Tax Line", {
-	item_code: (frm, cdt, cdn) => muhick.cost_lines.take_item(frm, cdt, cdn, ["description", "uom"]),
+	// an item picked brings its own rates and origin from the item master; a rate can still be changed on the row
+	item_code(frm, cdt, cdn) {
+		muhick.cost_lines.take_item(frm, cdt, cdn, ["description", "uom"]).then((item) => {
+			if (item) {
+				const country = locals[cdt][cdn].country_of_origin || item.country_of_origin;
+				const rates = rates_of({ items: {}, usual: item.tax_rates }, null, country);
+				frappe.model.set_value(cdt, cdn, { ...rates, country_of_origin: country || null });
+			}
+		});
+	},
 	muhick_import_taxes_add(frm, cdt, cdn) {
 		muhick.cost_lines
 			.settings(frm)
@@ -588,15 +624,15 @@ frappe.ui.form.on("Import Tax Line", {
 		muhick.cost_lines.set_exchange_rate(frm, cdt, cdn);
 		set_taxes(frm, cdt, cdn);
 	},
-	// goods made in the Community pay VAT only; others pay the usual duty and levy
+	// goods made in the Community pay VAT only; others pay their item's duty and levy, else the usual ones
 	country_of_origin(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
 		if (EAC.includes(row.country_of_origin)) {
 			frappe.model.set_value(cdt, cdn, { duty_percent: 0, levy_percent: 0 });
 		} else if (row.country_of_origin && !flt(row.duty_percent) && !flt(row.levy_percent)) {
-			muhick.cost_lines.settings(frm).then((settings) => {
-				const rates = usual_rates(settings);
-				frappe.model.set_value(cdt, cdn, { duty_percent: rates.duty_percent, levy_percent: rates.levy_percent });
+			tax_rates(frm, [row.item_code]).then((rates) => {
+				const own = rates_of(rates, row.item_code, row.country_of_origin);
+				frappe.model.set_value(cdt, cdn, { duty_percent: own.duty_percent, levy_percent: own.levy_percent });
 			});
 		}
 	},
@@ -640,7 +676,7 @@ function get_supplier_prices(frm) {
 					if (!price) {
 						return;
 					}
-					Object.assign(row, price, { rate_includes_vat: 0 });
+					Object.assign(row, price, { rate_includes_vat: 0, vat_percent: 0 });
 					if (muhick.cost_lines.foreign(frm, row)) {
 						row.exchange_rate = muhick.cost_lines.used_rate(frm, row) || row.exchange_rate;
 					}
@@ -675,11 +711,13 @@ function get_imported_goods(frm) {
 		);
 		return;
 	}
-	muhick.cost_lines.settings(frm).then((settings) => {
+	tax_rates(frm, lines.map((r) => r.item_code)).then((rates) => {
 		lines.forEach((r) => {
+			const country = rates.countries[r.item_code];
 			const row = frm.add_child("muhick_import_taxes", {
 				stage: r.stage, item_code: r.item_code, description: r.description, supplier: r.supplier, qty: r.qty, uom: r.uom, rate: r.rate,
-				currency: r.currency || company_currency(frm), exchange_rate: r.exchange_rate, ...usual_rates(settings),
+				currency: r.currency || company_currency(frm), exchange_rate: r.exchange_rate, country_of_origin: country,
+				...rates_of(rates, r.item_code, country),
 			});
 			Object.assign(row, taxes_of(frm, row));
 		});
@@ -687,10 +725,86 @@ function get_imported_goods(frm) {
 		frm.dirty();
 		frm.trigger("render_estimate");
 		frappe.show_alert({
-			message: __("{0} imported good(s) added to the tax computation at the usual rates. Set the country of origin of each: goods from the East African Community pay VAT only.", [lines.length]),
+			message: __("{0} imported good(s) added to the tax computation. Check the country of origin of each: goods from the East African Community pay VAT only.", [lines.length]),
 			indicator: "green",
 		});
 	});
+}
+
+// today's rates on an open bid: each imported good at its item's rates, each line quoted with VAT at today's VAT
+function apply_current_rates(frm) {
+	frappe.confirm(__("Put today's tax rates on this bid's imported goods and today's VAT rate on its lines? Rates changed by hand on this bid are replaced."), () => {
+		const goods = frm.doc.muhick_import_taxes || [];
+		frm.__cost_settings = null;
+		Promise.all([tax_rates(frm, goods.map((r) => r.item_code)), muhick.cost_lines.settings(frm)]).then(([rates, settings]) => {
+			goods.forEach((row) => {
+				Object.assign(row, rates_of(rates, row.item_code, row.country_of_origin));
+				Object.assign(row, taxes_of(frm, row));
+			});
+			muhick.cost_lines.rows(frm).forEach((row) => {
+				if (row.rate_includes_vat) {
+					row.vat_percent = flt(settings.vat_percent);
+					row.amount = muhick.cost_lines.amount(frm, row, settings);
+				}
+			});
+			[...muhick.cost_lines.tables(frm), "muhick_import_taxes"].forEach((table) => frm.refresh_field(table));
+			frm.dirty();
+			frm.trigger("render_estimate");
+			frappe.show_alert({ message: __("Today's rates applied. Save to keep them."), indicator: "green" });
+		});
+	});
+}
+
+// the bid price a target margin gives on the saved estimate, shown as the margin is typed, and set on the BOQ's rates
+function set_bid_price(frm) {
+	if (frm.is_dirty()) {
+		frappe.msgprint(__("Save first, so the price is worked out from the latest lines."));
+		return;
+	}
+	const method = "project_management_muhick.muhick_projects.estimate.set_bid_price";
+	const company = company_currency(frm);
+	const show = () => {
+		const margin_percent = dialog.get_value("margin_percent");
+		const place = dialog.get_field("result").$wrapper;
+		if (!flt(margin_percent)) {
+			place.html("");
+			return;
+		}
+		frappe.xcall(method, { opportunity: frm.doc.name, margin_percent }).then((r) => {
+			const rows = [
+				[__("Total Cost, without VAT"), money(r.cost, company)],
+				[`<b>${__("Bid Price, without VAT")}</b>`, r.price ? `<b>${money(r.price, company)}</b>` : __("This margin leaves nothing for the costs")],
+			];
+			if ((frm.doc.items || []).length) {
+				rows.push([__("BOQ lines it prices"), r.priced]);
+			}
+			if (r.unpriced.length) {
+				rows.push([__("No cost in the estimate, so left as they are"), esc(r.unpriced.join(", "))]);
+			}
+			place.html(
+				`<table class="table table-condensed"><tbody>` +
+					rows.map(([label, value]) => `<tr><td>${label}</td>${cell(value)}</tr>`).join("") +
+					`</tbody></table>`
+			);
+		});
+	};
+	const dialog = new frappe.ui.Dialog({
+		title: __("Set Bid Price"),
+		fields: [
+			{ fieldname: "margin_percent", fieldtype: "Percent", label: __("Target Margin %"), reqd: 1, default: flt(frm.doc.muhick_margin_percent, 2) || undefined, onchange: show },
+			{ fieldname: "result", fieldtype: "HTML" },
+		],
+		primary_action_label: __("Set Bid Price"),
+		primary_action(values) {
+			frappe.xcall(method, { opportunity: frm.doc.name, margin_percent: values.margin_percent, apply: 1 }).then((r) => {
+				dialog.hide();
+				frm.reload_doc();
+				frappe.show_alert({ message: __("Bid price set to {0}.", [money(r.price, company)]), indicator: "green" });
+			});
+		},
+	});
+	dialog.show();
+	show();
 }
 
 // the outcome report on its way to approval or, once the bid is in, Won and Lost to raise one: the

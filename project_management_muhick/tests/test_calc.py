@@ -62,6 +62,45 @@ class TestCostLines(unittest.TestCase):
 		self.assertAlmostEqual(taxes["total_tax"], 2_259.72)
 		self.assertEqual(taxes["cost"], 0)
 
+	def test_price_for_a_margin(self):
+		self.assertAlmostEqual(calc.price_for_margin(930, 7), 1_000)
+		self.assertAlmostEqual(calc.price_for_margin(1_000_000_000, 7), 1_075_268_817.2, places=1)
+
+	def test_a_share_of_the_contract_rises_with_the_price(self):
+		self.assertAlmostEqual(calc.price_for_margin(920, 7, 1), 1_000)
+
+	def test_a_margin_leaving_nothing_gives_no_price(self):
+		self.assertIsNone(calc.price_for_margin(100, 100))
+		self.assertIsNone(calc.price_for_margin(100, 95, 5))
+
+	def test_boq_priced_in_proportion_to_its_own_costs(self):
+		boq = [("PUMP", "Water", 2, 0), ("PIPE", "Water", 30, 0)]
+		costs = [("PUMP", "Water", 100), ("PIPE", "Water", 300)]
+		amounts = calc.price_boq(boq, costs, 625)
+		self.assertAlmostEqual(amounts[0], 156.25)
+		self.assertAlmostEqual(amounts[1], 468.75)
+		self.assertAlmostEqual(sum(amounts), 625)
+
+	def test_lines_of_one_item_and_stage_share_its_cost_by_qty(self):
+		boq = [("PIPE", "Water", 10, 0), ("PIPE", "Water", 30, 0)]
+		amounts = calc.price_boq(boq, [("PIPE", "Water", 400)], 800)
+		self.assertAlmostEqual(amounts[0], 200)
+		self.assertAlmostEqual(amounts[1], 600)
+
+	def test_a_cost_in_another_stage_still_counts_for_its_item(self):
+		amounts = calc.price_boq([("PIPE", "Water", 10, 0)], [("PIPE", None, 100), ("PIPE", "Fire", 100)], 500)
+		self.assertAlmostEqual(amounts[0], 500)
+
+	def test_a_line_with_no_cost_keeps_its_amount(self):
+		boq = [("PUMP", "Water", 1, 0), ("SERVICE", "Water", 1, 100)]
+		amounts = calc.price_boq(boq, [("PUMP", "Water", 200)], 600)
+		self.assertAlmostEqual(amounts[0], 500)
+		self.assertIsNone(amounts[1])
+
+	def test_nothing_to_share_prices_no_line(self):
+		self.assertEqual(calc.price_boq([("A", None, 1, 0)], [("B", None, 100)], 100), [None])
+		self.assertEqual(calc.price_boq([("A", None, 1, 0), ("B", None, 1, 500)], [("A", None, 100)], 400), [None, None])
+
 	def test_section_from_the_cost_code(self):
 		self.assertEqual(calc.section_of_cost_code("MAT-500"), "Equipment")
 		self.assertEqual(calc.section_of_cost_code("MAT-100"), "Installation Materials")

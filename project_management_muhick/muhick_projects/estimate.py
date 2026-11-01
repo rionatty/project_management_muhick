@@ -23,7 +23,7 @@ from collections import Counter, defaultdict
 
 import frappe
 from frappe import _
-from frappe.utils import flt, formatdate, getdate, strip_html
+from frappe.utils import cint, flt, formatdate, getdate, strip_html, today
 
 from project_management_muhick.muhick_projects.utils import ensure_milestone, get_phases
 from project_management_muhick.muhick_sales.bids import boq_factor, boq_quotes, last_purchase_rate, latest_by_supplier, lowest, project_bid
@@ -33,7 +33,7 @@ from project_management_muhick.utils.common import get_settings, setting
 # what a line carries from the estimate to the budget
 LINE_FIELDS = (
 	"section", "stage", "item_code", "description", "uom", "brand", "supplier", "people", "qty", "rate", "currency",
-	"exchange_rate", "rate_includes_vat", "contract_percent", "cost_code", "procurement_type", "remarks",
+	"exchange_rate", "rate_includes_vat", "vat_percent", "contract_percent", "cost_code", "procurement_type", "remarks",
 )
 SECTIONS = calc.COST_SECTIONS
 # the settings a cost estimate works with, and their values until Muhick sets its own
@@ -62,6 +62,14 @@ TAX_FIELDS = (
 	"exchange_rate", "insurance_percent", "duty_percent", "vat_percent", "levy_percent",
 )
 TAX_AMOUNTS = ("value", "insurance", "customs_value", "duty", "vat", "levy", "total_tax", "cost")
+# an imported good's rates: the setting with the usual rate, and the one naming the tax's account on an item's
+# Item Tax Template
+TAX_RATES = {
+	"insurance_percent": ("import_insurance_percent", None),
+	"duty_percent": ("import_duty_percent", "import_duty_account"),
+	"vat_percent": ("vat_percent", "import_vat_account"),
+	"levy_percent": ("import_levy_percent", "import_levy_account"),
+}
 
 
 def estimate_lines(doc) -> list:
@@ -119,11 +127,15 @@ def set_amounts(doc, lines, contract_value) -> float:
 	for line in lines:
 		company_currency = _check_currency(doc, line)
 		line.people = line.people or 1
+		# a line quoted with VAT keeps the rate it was first worked out at, so a later change of the rate leaves it be
+		line.vat_percent = (flt(line.vat_percent) or vat) if line.rate_includes_vat else 0
 		line.amount = calc.line_amount(
-			line.qty, line.rate, line.people, line.exchange_rate, line.rate_includes_vat, vat, line.contract_percent, contract_value
+			line.qty, line.rate, line.people, line.exchange_rate, line.rate_includes_vat, line.vat_percent, line.contract_percent, contract_value
 		)
 		if flt(line.contract_percent):
-			line.update({"qty": 1, "rate": line.amount, "people": 1, "currency": company_currency, "exchange_rate": 1, "rate_includes_vat": 0})
+			line.update(
+				{"qty": 1, "rate": line.amount, "people": 1, "currency": company_currency, "exchange_rate": 1, "rate_includes_vat": 0, "vat_percent": 0}
+			)
 		line.quoted_amount = flt(line.qty) * flt(line.rate) * line.people
 		total += flt(line.amount)
 	return total
@@ -154,6 +166,41 @@ def _check_currency(doc, row) -> str | None:
 	else:
 		row.currency, row.exchange_rate = company_currency, 1
 	return company_currency
+
+
+def usual_tax_rates() -> dict:
+	"""The rates an imported good starts at, from Muhick Settings."""
+	return {field: flt(setting(usual, DEFAULTS[usual])) for field, (usual, _account) in TAX_RATES.items()}
+
+
+def item_tax_rates(item_code, company) -> dict:
+	"""The rates an imported item pays: the usual ones, unless the Item Tax Template on the item or its item group,
+	the one valid today, gives its own rate for a tax or marks it not applicable. The accounts in Muhick Settings
+	say which line of a template is which tax."""
+	rates = usual_tax_rates()
+	accounts = {field: setting(account) for field, (_usual, account) in TAX_RATES.items() if account and setting(account)}
+	if not (item_code and company and accounts):
+		return rates
+	from erpnext.stock.get_item_details import NOT_APPLICABLE_TAX, get_item_tax_map, get_item_tax_template
+
+	template = get_item_tax_template(frappe._dict(item_code=item_code, company=company, transaction_date=today()))
+	lines = get_item_tax_map(doc={"company": company}, tax_template=template, as_json=False) if template else {}
+	for field, account in accounts.items():
+		if account in lines:
+			rates[field] = 0 if lines[account] == NOT_APPLICABLE_TAX else flt(lines[account])
+	return rates
+
+
+@frappe.whitelist()
+def get_tax_rates(items, company: str | None = None) -> dict:
+	"""{usual: the usual rates, items: {item: its rates}, countries: {item: its Country of Origin}} for imported goods."""
+	frappe.has_permission("Item", "read", throw=True)
+	codes = [code for code in frappe.parse_json(items) if code]
+	return {
+		"usual": usual_tax_rates(),
+		"items": {code: item_tax_rates(code, company) for code in codes},
+		"countries": dict(frappe.get_all("Item", filters={"name": ("in", codes)}, fields=["name", "country_of_origin"], as_list=True)) if codes else {},
+	}
 
 
 def tax_cost_lines(rows) -> list:
@@ -265,11 +312,13 @@ def get_boq_lines(opportunity: str, items) -> list:
 @frappe.whitelist()
 def get_item_details(item_code: str, uom: str | None = None, opportunity: str | None = None, company: str | None = None) -> dict:
 	"""What a line of an item from the item master takes from it: its description (the item's, else its
-	name), unit, brand and default cost code, and the price it starts at per unit of uom (the item's unit
-	when none is given): the lowest valid supplier quotation for the bid, else the item's last purchase
-	price. {} for an item not in the item master."""
+	name), unit, brand, default cost code, country of origin and tax rates, and the price it starts at per
+	unit of uom (the item's unit when none is given): the lowest valid supplier quotation for the bid, else
+	the item's last purchase price. {} for an item not in the item master."""
 	frappe.has_permission("Item", "read", throw=True)
-	item = frappe.db.get_value("Item", item_code, ["item_name", "description", "stock_uom", "brand", "muhick_cost_code"], as_dict=True)
+	item = frappe.db.get_value(
+		"Item", item_code, ["item_name", "description", "stock_uom", "brand", "muhick_cost_code", "country_of_origin"], as_dict=True
+	)
 	if not item:
 		return {}
 	if opportunity:
@@ -286,8 +335,49 @@ def get_item_details(item_code: str, uom: str | None = None, opportunity: str | 
 		price = {"rate": rate, "currency": company_currency, "exchange_rate": 1} if rate else None
 	return {
 		"description": strip_html(item.description or "").strip() or item.item_name, "uom": item.stock_uom,
-		"brand": item.brand, "cost_code": item.muhick_cost_code, "price": price,
+		"brand": item.brand, "cost_code": item.muhick_cost_code, "price": price, "country_of_origin": item.country_of_origin,
+		"tax_rates": item_tax_rates(item_code, company),
 	}
+
+
+@frappe.whitelist()
+def set_bid_price(opportunity: str, margin_percent: float, apply: int = 0) -> dict:
+	"""The bid price a target margin gives on the saved estimate, all in the company's currency: {cost, price,
+	priced: BOQ lines it prices, unpriced: those with no cost in the estimate}. With apply it is set: on the
+	BOQ's rates (see calc.price_boq), or as the bid price when there is no BOQ. Rates are without VAT."""
+	doc = frappe.get_doc("Opportunity", opportunity)
+	doc.check_permission("write")
+	lines, goods, boq = estimate_lines(doc), doc.get(TAX_TABLE) or [], doc.get("items") or []
+	fixed = [line for line in lines if not flt(line.contract_percent)]
+	cost = sum(flt(line.amount) for line in fixed) + sum(flt(good.cost) for good in goods)
+	shares = sum(flt(line.contract_percent) for line in lines)
+	price = calc.price_for_margin(cost, margin_percent, shares) if cost else None
+	own = [(r.item_code, r.stage, flt(r.amount)) for r in fixed if r.item_code]
+	own += [(g.item_code, g.stage, flt(g.cost)) for g in goods if g.item_code]
+	amounts = calc.price_boq([(i.item_code, i.get("muhick_stage"), flt(i.qty), flt(i.base_amount)) for i in boq], own, price) if price else [None] * len(boq)
+	result = {
+		"cost": cost + (price or 0) * shares / 100, "price": price,
+		"priced": sum(1 for amount in amounts if amount is not None),
+		"unpriced": [i.item_code for i, amount in zip(boq, amounts) if amount is None],
+	}
+	if not cint(apply):
+		return result
+	if doc.status != "Open" or doc.sales_stage not in ("Qualified", "In Preparation"):
+		frappe.throw(_("The price of a bid is set while it is being prepared."))
+	if not cost:
+		frappe.throw(_("The estimate has no costs yet."))
+	if not price:
+		frappe.throw(_("A margin of {0}% leaves nothing for the costs.").format(flt(margin_percent)))
+	if boq and not result["priced"]:
+		frappe.throw(_("None of the BOQ items has a cost in the estimate. Use Cost Estimate > Get Lines from the BOQ first."))
+	rate = flt(doc.conversion_rate) or 1
+	for item, amount in zip(boq, amounts):
+		if amount is not None:
+			item.rate = amount / flt(item.qty) / rate
+	if not boq:
+		doc.opportunity_amount = price / rate
+	doc.save()
+	return result
 
 
 @frappe.whitelist()
@@ -559,7 +649,7 @@ EXCEL_COLUMNS = (
 	("stage", "Stage"), ("item_code", "Item Code"), ("description", "Description"), ("uom", "UOM"), ("brand", "Brand"),
 	("supplier", "Supplier"), ("people", "People"), ("qty", "Qty"), ("rate", "Rate"), ("currency", "Currency"),
 	("exchange_rate", "Exchange Rate"), ("rate_includes_vat", "Rate Includes VAT"), ("contract_percent", "% of Contract Value"),
-	("cost_code", "Cost Code"), ("procurement_type", "Procurement Type"), ("remarks", "Remarks"),
+	("cost_code", "Cost Code"), ("procurement_type", "Procurement Type"), ("remarks", "Remarks"), ("vat_percent", "VAT Rate %"),
 )
 # other headings budget sheets use for the same columns
 HEADING_ALIASES = {
@@ -687,17 +777,17 @@ def _lines_sheet(book, title, lines, vat, lists):
 		sheet.append([(_yes(line.get(f)) if f == "rate_includes_vat" else line.get(f)) for f, _heading in EXCEL_COLUMNS])
 	last = len(lines) + 200
 	for r in range(2, last + 1):
-		# G people, H qty, I rate, K exchange rate, L rate includes VAT, M % of contract value
-		sheet[f"Q{r}"] = (
+		# G people, H qty, I rate, K exchange rate, L rate includes VAT, M % of contract value, Q VAT rate
+		sheet[f"R{r}"] = (
 			f'=IF(N(M{r})>0,"",IF(N(G{r})>0,G{r},1)*N(H{r})*N(I{r})*IF(N(K{r})>0,K{r},1)'
-			f'/IF(UPPER(L{r})="YES",1+{vat}/100,1))'
+			f'/IF(UPPER(L{r})="YES",1+IF(N(Q{r})>0,Q{r},{vat})/100,1))'
 		)
-		for column in "HIKQ":
+		for column in "HIKR":
 			sheet[f"{column}{r}"].number_format = "#,##0.00"
 	for cell in sheet[1]:
 		cell.font = Font(bold=True)
 	sheet.freeze_panes = "A2"
-	for column, width in zip("ABCDEFGHIJKLMNOPQ", (22, 18, 40, 8, 14, 22, 8, 10, 14, 9, 12, 10, 12, 12, 16, 24, 16)):
+	for column, width in zip("ABCDEFGHIJKLMNOPQR", (22, 18, 40, 8, 14, 22, 8, 10, 14, 9, 12, 10, 12, 12, 16, 24, 10, 16)):
 		sheet.column_dimensions[column].width = width
 	for column, field in (("A", "stage"), ("N", "cost_code"), ("J", "currency"), ("O", "procurement_type"), ("L", "rate_includes_vat")):
 		rule = DataValidation(type="list", formula1=lists[field], allow_blank=True)
@@ -842,7 +932,7 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 			if value and not row[field]:
 				unknown[_("Not in the {0} list, kept in the remarks").format(label.lower())].add(value)
 				extra.append(f"{label}: {value}")
-		problems += _numbers(values, row, ("people", "qty", "rate", "exchange_rate", "contract_percent"))
+		problems += _numbers(values, row, ("people", "qty", "rate", "exchange_rate", "vat_percent", "contract_percent"))
 		share = CONTRACT_SHARE.search(row["description"]) if not row.get("rate") and not row.get("contract_percent") else None
 		if share:
 			row["contract_percent"] = flt(share.group(1))
@@ -871,6 +961,9 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 			row["rate_includes_vat"] = 1 if _text(values.get("rate_includes_vat")).lower() in YES else 0
 		else:
 			row["rate_includes_vat"] = calc.rate_includes_vat_by_default(row["section"], bool(row.get("currency")))
+			# an item that pays no VAT is not quoted with it
+			if row["rate_includes_vat"] and row["item_code"] and not item_tax_rates(row["item_code"], company)["vat_percent"]:
+				row["rate_includes_vat"] = 0
 			vat_assumed += row["rate_includes_vat"]
 		kind = _text(values.get("procurement_type"))
 		row["procurement_type"] = next((k for k in PROCUREMENT_TYPES if k.lower() == kind.lower()), None) if kind else None

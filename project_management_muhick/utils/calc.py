@@ -94,6 +94,53 @@ def import_taxes(value, insurance_percent=0, duty_percent=0, vat_percent=0, levy
 	}
 
 
+def price_for_margin(cost, margin_percent, contract_share=0) -> float | None:
+	"""The price that leaves a margin on a cost, the margin being a share of the price: cost 930 at 7% ->
+	1,000. A cost priced as a share of the contract value rises with the price, so it comes off too: cost
+	920 with a 1% share at 7% -> 1,000. None when the margin and the shares leave nothing for the cost.
+	"""
+	left = round(100 - _f(margin_percent) - _f(contract_share), 6)
+	return _f(cost) * 100 / left if left > 0 else None
+
+
+def price_boq(boq, costs, price) -> list:
+	"""What each BOQ line sells for so that the BOQ comes to the price.
+
+	boq is [(item, stage, qty, amount it has now)] and costs [(item, stage, cost)]. A line's own cost is its
+	item's in its stage, else its item's left over from stages no line has, shared by qty among the lines
+	it goes to. Each line gets the share of the price its own cost is of all their own costs, so the
+	costs on no line (labour, tools, freight, overheads) and the margin are spread in proportion: own
+	costs 100 and 300, price 625 -> 156.25 and 468.75. A line with no cost of its own cannot be priced
+	this way: it keeps its amount, which comes off the price first, and reads None. All read None when
+	nothing is left to share.
+	"""
+	exact, loose = {}, {}
+	for item, stage, cost in costs:
+		exact[(item, stage)] = exact.get((item, stage), 0.0) + _f(cost)
+	on_a_line = {(line[0], line[1]) for line in boq}
+	for (item, stage), cost in exact.items():
+		if (item, stage) not in on_a_line:
+			loose[item] = loose.get(item, 0.0) + cost
+	exact_qty, loose_qty = {}, {}
+	for item, stage, qty, _amount in boq:
+		if exact.get((item, stage)):
+			exact_qty[(item, stage)] = exact_qty.get((item, stage), 0.0) + _f(qty)
+		else:
+			loose_qty[item] = loose_qty.get(item, 0.0) + _f(qty)
+	own = []
+	for item, stage, qty, _amount in boq:
+		if exact.get((item, stage)):
+			pool, shared = exact[(item, stage)], exact_qty[(item, stage)]
+		else:
+			pool, shared = loose.get(item, 0.0), loose_qty.get(item, 0.0)
+		own.append(pool * _f(qty) / shared if pool and shared else 0.0)
+	to_share = _f(price) - sum(_f(line[3]) for line, cost in zip(boq, own) if not cost)
+	total = sum(own)
+	if not total or to_share <= 0:
+		return [None] * len(boq)
+	return [cost * to_share / total if cost else None for cost in own]
+
+
 # the sections of a cost estimate and budget, in the order of the business's budget sheets
 COST_SECTIONS = (
 	"Equipment", "Installation Materials", "Taxes and Freight", "Labour", "Tools and Equipment", "Preliminaries", "Administrative",

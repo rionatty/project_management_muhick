@@ -1,0 +1,103 @@
+{#- The quotation a client receives: its lines under their stages, the totals with VAT, the terms and the signatures. -#}
+{%- from "templates/print_formats/standard_macros.html" import add_header with context -%}
+{%- macro money(value) -%}{{ frappe.utils.fmt_money(value, currency=doc.currency) }}{%- endmacro -%}
+{%- macro number(value) -%}{{ ("%.3f" | format(value or 0)).rstrip("0").rstrip(".") }}{%- endmacro -%}
+{%- set stages = doc.items | map(attribute="muhick_stage") | unique(case_sensitive=True) | list -%}
+{%- set bid = doc.items[0].prevdoc_docname if doc.items and doc.items[0].prevdoc_doctype == "Opportunity" else doc.opportunity -%}
+{%- set tender = frappe.db.get_value("Opportunity", bid, "muhick_tender_reference") if bid else None -%}
+{%- set row = namespace(number=0) -%}
+
+<style>
+	.muhick-quotation table.facts { width: 100%; margin-bottom: 14px; font-size: 12px; }
+	.muhick-quotation table.facts td { padding: 2px 12px 2px 0; vertical-align: top; }
+	.muhick-quotation table.grid { width: 100%; border-collapse: collapse; font-size: 11px; }
+	.muhick-quotation table.grid th,
+	.muhick-quotation table.grid td { border: 1px solid #d1d8dd; padding: 4px 6px; vertical-align: top; }
+	.muhick-quotation table.grid th { background: #f4f5f6; }
+	.muhick-quotation .num { text-align: right; white-space: nowrap; }
+	.muhick-quotation tr.stage td { font-weight: bold; background: #fafbfc; }
+	.muhick-quotation tr.subtotal td { font-weight: bold; }
+	.muhick-quotation table.totals { margin: 10px 0 0 auto; font-size: 12px; }
+	.muhick-quotation table.totals td { padding: 3px 8px; }
+	.muhick-quotation .terms { margin-top: 18px; font-size: 11px; }
+	.muhick-quotation table.signatures { width: 100%; margin-top: 30px; font-size: 12px; }
+	.muhick-quotation table.signatures td { width: 50%; padding: 4px 10px 4px 0; }
+</style>
+
+<div class="muhick-quotation">
+	{{ add_header(1, 1, doc, letter_head, no_letterhead, footer, print_settings, print_heading_template) }}
+
+	<table class="facts">
+		<tr>
+			<td style="width: 60%">
+				<b>{{ doc.customer_name or doc.party_name }}</b>
+				{% if doc.contact_display %}<br>{{ doc.contact_display }}{% endif %}
+				{% if doc.address_display %}<br>{{ doc.address_display }}{% endif %}
+			</td>
+			<td>
+				{{ _("Date") }}: {{ frappe.utils.format_date(doc.transaction_date) }}
+				{% if doc.valid_till %}<br>{{ _("Valid Until") }}: {{ frappe.utils.format_date(doc.valid_till) }}{% endif %}
+				{% if tender %}<br>{{ _("Tender Reference") }}: {{ tender }}{% endif %}
+			</td>
+		</tr>
+	</table>
+
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="width: 5%">{{ _("No.") }}</th>
+				<th>{{ _("Description") }}</th>
+				<th class="num" style="width: 8%">{{ _("Qty") }}</th>
+				<th style="width: 8%">{{ _("Unit") }}</th>
+				<th class="num" style="width: 15%">{{ _("Rate") }}</th>
+				<th class="num" style="width: 17%">{{ _("Amount") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for stage in stages %}
+			{% set lines = doc.items | selectattr("muhick_stage", "equalto", stage) | list %}
+			{% if stage %}<tr class="stage"><td colspan="6">{{ stage }}</td></tr>{% endif %}
+			{% for item in lines %}
+			{% set row.number = row.number + 1 %}
+			<tr>
+				<td>{{ row.number }}</td>
+				<td>{{ item.description or item.item_name }}</td>
+				<td class="num">{{ number(item.qty) }}</td>
+				<td>{{ item.uom or item.stock_uom or "" }}</td>
+				<td class="num">{{ money(item.rate) }}</td>
+				<td class="num">{{ money(item.amount) }}</td>
+			</tr>
+			{% endfor %}
+			{% if stages | length > 1 %}
+			<tr class="subtotal">
+				<td colspan="5">{{ _("Sub Total") }}{% if stage %}: {{ stage }}{% endif %}</td>
+				<td class="num">{{ money(lines | sum(attribute="amount")) }}</td>
+			</tr>
+			{% endif %}
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<table class="totals">
+		<tr><td>{{ _("Total") }}</td><td class="num">{{ money(doc.total) }}</td></tr>
+		{% if doc.discount_amount %}<tr><td>{{ _("Discount") }}</td><td class="num">{{ money(doc.discount_amount) }}</td></tr>{% endif %}
+		{% for tax in doc.taxes %}
+		{% if tax.tax_amount %}<tr><td>{{ tax.description }}</td><td class="num">{{ money(tax.tax_amount) }}</td></tr>{% endif %}
+		{% endfor %}
+		<tr><td><b>{{ _("Grand Total") }}</b></td><td class="num"><b>{{ money(doc.rounded_total or doc.grand_total) }}</b></td></tr>
+	</table>
+	{% if doc.in_words %}<p style="font-size: 11px; margin-top: 8px"><b>{{ _("In Words") }}:</b> {{ doc.in_words }}</p>{% endif %}
+
+	{% if doc.terms %}<div class="terms"><b>{{ _("Terms and Conditions") }}</b>{{ doc.terms }}</div>{% endif %}
+
+	<table class="signatures">
+		<tr>
+			<td>{{ _("Prepared by") }}: ____________________</td>
+			<td>{{ _("Authorised by") }}: ____________________</td>
+		</tr>
+		<tr>
+			<td>{{ _("Date") }}: ____________________</td>
+			<td>{{ _("Date") }}: ____________________</td>
+		</tr>
+	</table>
+</div>

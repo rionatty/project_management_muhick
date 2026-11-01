@@ -156,7 +156,11 @@ muhick.cost_lines = {
 		}
 		const rate = muhick.cost_lines.foreign(frm, row) ? flt(row.exchange_rate) || 1 : 1;
 		const amount = muhick.cost_lines.quoted(row) * rate;
-		return row.rate_includes_vat ? amount / (1 + flt(settings.vat_percent) / 100) : amount;
+		return row.rate_includes_vat ? amount / (1 + muhick.cost_lines.vat_of(row, settings) / 100) : amount;
+	},
+	// a line quoted with VAT keeps the rate it was first worked out at; one quoted without it has none
+	vat_of(row, settings) {
+		return row.rate_includes_vat ? flt(row.vat_percent) || flt(settings.vat_percent) : 0;
 	},
 	// the amount as the budget sheets show it: people x qty x rate in the line's currency, VAT as quoted
 	quoted(row) {
@@ -169,7 +173,9 @@ muhick.cost_lines = {
 			frappe.model.set_value(
 				cdt,
 				cdn,
-				flt(row.contract_percent) ? { amount, qty: 1, rate: amount, quoted_amount: amount } : { amount, quoted_amount: muhick.cost_lines.quoted(row) }
+				flt(row.contract_percent)
+					? { amount, qty: 1, rate: amount, quoted_amount: amount, vat_percent: 0 }
+					: { amount, quoted_amount: muhick.cost_lines.quoted(row), vat_percent: muhick.cost_lines.vat_of(row, settings) }
 			);
 		});
 	},
@@ -220,6 +226,7 @@ muhick.cost_lines = {
 				}
 				row.amount = muhick.cost_lines.amount(frm, row, settings);
 				row.quoted_amount = flt(row.contract_percent) ? row.amount : muhick.cost_lines.quoted(row);
+				row.vat_percent = muhick.cost_lines.vat_of(row, settings);
 				touched.add(table);
 			});
 			touched.forEach((table) => frm.refresh_field(table));
@@ -232,11 +239,11 @@ muhick.cost_lines = {
 	take_item(frm, cdt, cdn, fields) {
 		const item_code = locals[cdt][cdn].item_code;
 		if (!item_code) {
-			return;
+			return Promise.resolve(null);
 		}
 		const before = locals[cdt][cdn].__item || {};
 		const row = locals[cdt][cdn];
-		frappe
+		return frappe
 			.xcall("project_management_muhick.muhick_projects.estimate.get_item_details", {
 				item_code,
 				uom: row.uom && row.uom !== before.uom ? row.uom : null,
@@ -246,7 +253,7 @@ muhick.cost_lines = {
 			.then((item) => {
 				const now = locals[cdt][cdn];
 				if (!item.description || !now || now.item_code !== item_code) {
-					return;
+					return null;
 				}
 				const values = {};
 				fields.forEach((field) => {
@@ -259,7 +266,7 @@ muhick.cost_lines = {
 					Object.assign(values, price);
 				}
 				now.__item = item;
-				frappe.model.set_value(cdt, cdn, values);
+				return frappe.model.set_value(cdt, cdn, values).then(() => item);
 			});
 	},
 	// the lines to and from Excel: a file of the saved lines to prepare or change in Excel, and an upload
@@ -407,7 +414,7 @@ muhick.cost_lines = {
 
 frappe.ui.form.on("Project Budget Line", {
 	...Object.fromEntries(
-		["qty", "rate", "people", "rate_includes_vat", "contract_percent"].map((field) => [
+		["qty", "rate", "people", "rate_includes_vat", "vat_percent", "contract_percent"].map((field) => [
 			field,
 			(frm, cdt, cdn) => muhick.cost_lines.set_amount(frm, cdt, cdn),
 		])
@@ -420,7 +427,14 @@ frappe.ui.form.on("Project Budget Line", {
 		muhick.cost_lines.set_exchange_rate(frm, cdt, cdn);
 		muhick.cost_lines.set_amount(frm, cdt, cdn);
 	},
-	item_code: (frm, cdt, cdn) => muhick.cost_lines.take_item(frm, cdt, cdn, ["description", "uom", "brand", "cost_code"]),
+	// an item that pays no VAT is not quoted with it
+	item_code(frm, cdt, cdn) {
+		muhick.cost_lines.take_item(frm, cdt, cdn, ["description", "uom", "brand", "cost_code"]).then((item) => {
+			if (item && !flt(item.tax_rates.vat_percent) && locals[cdt][cdn].rate_includes_vat) {
+				frappe.model.set_value(cdt, cdn, "rate_includes_vat", 0);
+			}
+		});
+	},
 	// a new line is in the company's currency until another is chosen, so its amounts show in it
 	...Object.fromEntries(
 		["lines", ...Object.keys(muhick.cost_lines.sections)].map((table) => [

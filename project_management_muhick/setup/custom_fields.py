@@ -599,6 +599,7 @@ PROPERTY_SETTERS = (
 	("Opportunity Item", "amount", "columns", "2", "Int"),
 	("Opportunity", "opportunity_amount", "label", "Bid Price", "Data"),
 	("Opportunity", "opportunity_amount", "in_list_view", "1", "Check"),
+	("Quotation", None, "default_print_format", "Muhick Quotation", "Data"),
 	("Opportunity", "base_opportunity_amount", "label", "Bid Price (Company Currency)", "Data"),
 	("Opportunity", "organization_details_section", "label", "Organisation", "Data"),
 	("Opportunity", "market_segment", "label", "Sector", "Data"),

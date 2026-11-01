@@ -37,6 +37,9 @@
   "estimates_section",
   "vat_percent",
   "import_cost_code",
+  "import_vat_account",
+  "import_duty_account",
+  "import_levy_account",
   "column_break_13",
   "import_insurance_percent",
   "import_duty_percent",
@@ -287,6 +290,24 @@
    "fieldtype": "Link",
    "label": "Cost Code for Import Costs",
    "options": "Cost Code"
+  },
+  {
+   "fieldname": "import_vat_account",
+   "fieldtype": "Link",
+   "label": "VAT Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "import_duty_account",
+   "fieldtype": "Link",
+   "label": "Import Duty Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "import_levy_account",
+   "fieldtype": "Link",
+   "label": "Infrastructure Levy Account",
+   "options": "Account"
   },
   {
    "fieldname": "column_break_13",
@@ -635,7 +656,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-01 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Settings",

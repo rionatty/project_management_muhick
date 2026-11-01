@@ -17,6 +17,7 @@ frappe.ui.form.on("Project Budget", {
 	},
 
 	refresh(frm) {
+		frm.__cost_settings = null;
 		muhick.cost_lines.render_summary(frm);
 		frm.fields_dict.lines.grid.clear_custom_buttons();
 		muhick.cost_lines.excel_buttons(frm, frm.doc.docstatus === 0 && frm.perm[0].write);

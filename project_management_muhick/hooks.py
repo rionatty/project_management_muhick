@@ -46,6 +46,7 @@ doctype_js = {
 	"Task": "public/js/task.js",
 	"Lead": "public/js/lead.js",
 	"Opportunity": "public/js/opportunity.js",
+	"Quotation": "public/js/quotation.js",
 }
 
 # the opportunity list shows each bid's status

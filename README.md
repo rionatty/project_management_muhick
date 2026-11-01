@@ -34,7 +34,21 @@ and certificates, retention, payments and the controls around them.
   customs value (C.I), import duty (ID), VAT, infrastructure levy (IL) and total tax, at its own
   rates (goods from the East African Community pay VAT only), with the freight and clearing lines,
   the total with freight (CFR) and what the imports cost the budget (insurance, duty, levy and
-  freight; the VAT is claimed back).
+  freight; the VAT is claimed back). A good starts at the usual rates in Muhick Settings, or at those
+  of the Item Tax Template on its item or item group, the one valid that day: a template line gives
+  its own rate or marks the tax Not Applicable, and the settings name the account of each tax. A rate
+  can still be changed on the row, and Apply Current Rates puts today's on an open bid. A line quoted
+  with VAT keeps the VAT rate it was worked out at, so a later change of the rate leaves old bids as
+  they are.
+- Pricing the bid: Set Bid Price (under Cost Estimate) takes a target margin and works out the price as
+  the cost divided by one less the margin, counting lines priced as a share of the contract value. It
+  sets the BOQ's rates without VAT so the BOQ comes to that price, each line by its own cost in the
+  estimate, the costs on no BOQ line and the margin spread in proportion; a line with no cost keeps
+  its rate. With no BOQ it sets the Bid Price. Rates can still be changed by hand.
+- The quotation goes out from the opportunity (Create > Quotation), once the BOQ has its rates: the
+  client's copy prints as Muhick Quotation, its lines under their stages with VAT, the terms and the
+  signatures, and Email to Client sends it with the print attached. The lead form no longer offers its
+  own quotation, so every quote carries its bid's costs and margin.
 - The Budget Summary tab (equipment and materials system by system with their suppliers, the origin,
   shipment and taxes of the imported ones, then taxes and freight, installation costs and overheads,
   the grand total, contract value, project cost and profit) and the Profitability tab (the contract

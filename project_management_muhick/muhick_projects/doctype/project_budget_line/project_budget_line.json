@@ -21,6 +21,7 @@
   "currency",
   "exchange_rate",
   "rate_includes_vat",
+  "vat_percent",
   "contract_percent",
   "quoted_amount",
   "amount",
@@ -158,6 +159,13 @@
   },
   {
    "columns": 1,
+   "depends_on": "eval:doc.rate_includes_vat",
+   "fieldname": "vat_percent",
+   "fieldtype": "Percent",
+   "label": "VAT Rate %"
+  },
+  {
+   "columns": 1,
    "fieldname": "contract_percent",
    "fieldtype": "Percent",
    "label": "% of Contract Value"
@@ -237,7 +245,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-11-01 12:00:00.000000",
+ "modified": "2026-11-01 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget Line",

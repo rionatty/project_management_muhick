@@ -17,6 +17,8 @@ frappe.ui.form.on("Lead", {
 		// after this script has run
 		setTimeout(() => {
 			frm.remove_custom_button("Prospect", "Create");
+			// a quotation goes out from the opportunity, where the bid's costs and margin are
+			frm.remove_custom_button("Quotation", "Create");
 			frm.remove_custom_button("Add to Prospect", "Action");
 		});
 	},
