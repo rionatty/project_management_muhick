@@ -5,33 +5,52 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "row_id",
+  "outline_level",
   "subject",
-  "phase_name",
+  "duration",
   "start_date",
   "end_date",
-  "task_weight",
-  "depends_on_subject",
+  "predecessors",
+  "responsibility",
   "column_break_1",
+  "phase_name",
+  "task_weight",
   "description",
-  "task"
+  "task",
+  "is_summary"
  ],
  "fields": [
+  {
+   "columns": 1,
+   "fieldname": "row_id",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "ID",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "outline_level",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Level"
+  },
   {
    "columns": 3,
    "fieldname": "subject",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Activity (Task)",
+   "label": "Task Name",
    "reqd": 1
   },
   {
-   "columns": 2,
-   "fieldname": "phase_name",
-   "fieldtype": "Select",
+   "columns": 1,
+   "fieldname": "duration",
+   "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Milestone / Phase",
-   "options": "",
-   "reqd": 1
+   "label": "Duration (Days)",
+   "read_only_depends_on": "eval:doc.is_summary"
   },
   {
    "columns": 1,
@@ -39,33 +58,46 @@
    "fieldtype": "Date",
    "in_list_view": 1,
    "label": "Start",
-   "reqd": 1
+   "read_only_depends_on": "eval:doc.is_summary || doc.predecessors"
   },
   {
    "columns": 1,
    "fieldname": "end_date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "End",
-   "reqd": 1
-  },
-  {
-   "columns": 1,
-   "fieldname": "task_weight",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Weight"
+   "label": "Finish",
+   "read_only_depends_on": "eval:doc.is_summary"
   },
   {
    "columns": 2,
-   "fieldname": "depends_on_subject",
+   "fieldname": "predecessors",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Depends On (Task)"
+   "label": "Predecessors"
+  },
+  {
+   "columns": 1,
+   "default": "Muhick",
+   "fieldname": "responsibility",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Responsibility",
+   "options": "Muhick\nClient\nSubcontractor\nJoint"
   },
   {
    "fieldname": "column_break_1",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "phase_name",
+   "fieldtype": "Data",
+   "label": "Milestone / Phase",
+   "read_only": 1
+  },
+  {
+   "fieldname": "task_weight",
+   "fieldtype": "Float",
+   "label": "Weight"
   },
   {
    "fieldname": "description",
@@ -79,13 +111,21 @@
    "no_copy": 1,
    "options": "Task",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_summary",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Has Rows Under It",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-02 08:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Activity Plan Activity",

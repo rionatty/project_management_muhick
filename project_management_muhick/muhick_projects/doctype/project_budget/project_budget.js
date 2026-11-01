@@ -8,10 +8,11 @@ frappe.ui.form.on("Project Budget", {
 		muhick.sheets.setup(frm);
 		muhick.cost_lines.tables().forEach((table) => {
 			frm.set_query("phase", table, () => muhick.phase_filters(frm.doc.project));
-			// an activity is a task of the line's milestone
+			// an activity is a task under the line's milestone, however deep
 			frm.set_query("activity", table, (doc, cdt, cdn) => {
 				const row = locals[cdt][cdn];
-				return { filters: { project: frm.doc.project || "", parent_task: row.phase || "", status: ["!=", "Cancelled"] } };
+				const under = row.phase ? { name: ["descendants of", row.phase], is_group: 0 } : { parent_task: "" };
+				return { filters: { project: frm.doc.project || "", status: ["!=", "Cancelled"], ...under } };
 			});
 		});
 		frm.set_query("boq", () => ({ filters: { project: frm.doc.project || "", docstatus: 1 } }));

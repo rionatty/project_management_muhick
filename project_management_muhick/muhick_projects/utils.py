@@ -60,14 +60,22 @@ def get_phases(project, fields=PHASE_FIELDS):
 	)
 
 
+def milestone_of(task) -> str:
+	"""The milestone a task sits under, however deep: the top-level group task above it."""
+	parent = frappe.db.get_value("Task", task, "parent_task")
+	while parent:
+		task, parent = parent, frappe.db.get_value("Task", parent, "parent_task")
+	return task
+
+
 def phase_done(phase) -> bool:
 	return phase.get("status") == "Completed" or flt(phase.get("progress")) >= 100
 
 
 def check_phase(project, phase, label=None):
-	"""Throw unless phase is a phase (group task) of the project."""
-	task = frappe.db.get_value("Task", phase, ["project", "is_group"], as_dict=True)
-	if not task or task.project != project or not task.is_group:
+	"""Throw unless phase is a phase (top-level group task) of the project."""
+	task = frappe.db.get_value("Task", phase, ["project", "is_group", "parent_task"], as_dict=True)
+	if not task or task.project != project or not task.is_group or task.parent_task:
 		frappe.throw(_("{0}: {1} is not a milestone (phase) of project {2}.").format(label or _("Milestone / Phase"), phase, project))
 
 

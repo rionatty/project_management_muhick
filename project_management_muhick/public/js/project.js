@@ -6,6 +6,7 @@ frappe.ui.form.on("Project", {
 		if (frm.is_new()) {
 			return;
 		}
+		show_schedule(frm);
 		const stage = frm.doc.muhick_stage || "Planning";
 		const project = { project: frm.doc.name };
 
@@ -89,3 +90,18 @@ frappe.ui.form.on("Project", {
 		report(__("Material Consumption"), "Project Material Consumption");
 	},
 });
+
+// the approved plan's schedule, and where it stands now
+function show_schedule(frm) {
+	const place = frm.fields_dict.muhick_schedule_view;
+	if (!place || !frm.doc.muhick_activity_plan || !frappe.model.can_read("Project Activity Plan")) {
+		return;
+	}
+	frappe
+		.xcall("project_management_muhick.muhick_projects.doctype.project_activity_plan.project_activity_plan.get_live_schedule", {
+			plan: frm.doc.muhick_activity_plan,
+		})
+		.then((result) =>
+			muhick.schedule.render(place.$wrapper, result.rows, { ...result, can_write: frappe.model.can_write("Task"), on_change: () => show_schedule(frm) })
+		);
+}

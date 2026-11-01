@@ -6,6 +6,8 @@
 Nothing in this module imports frappe, so the rules can be unit tested without a site.
 """
 
+import re
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 
 FULL_ROUTE = "Full Route"
@@ -311,6 +313,184 @@ def weighted_progress(rows) -> float:
 	if total_weight <= 0:
 		return round(sum(p for _, p in rows) / len(rows), 2)
 	return round(sum(w * p for w, p in rows) / total_weight, 2)
+
+
+# ------------------------------------------------------------------ the activity schedule
+class ScheduleError(Exception):
+	"""What is wrong with a schedule: kind is format, unknown or loop, row the ID of the row at fault and text the
+	predecessor it names."""
+
+	def __init__(self, kind, row, text=""):
+		super().__init__(kind, row, text)
+		self.kind, self.row, self.text = kind, row, text
+
+
+PREDECESSOR = re.compile(r"^(\d+)\s*(FS|SS|FF|SF)?\s*(?:([+-])\s*(\d+)\s*(d|days?|w|wks?|weeks?)?)?$", re.IGNORECASE)
+
+
+def add_workdays(day, count=0):
+	"""The day count working days on from day, Monday to Friday, back when count is negative. A day at a weekend
+	first moves on to the Monday."""
+	while day.weekday() > 4:
+		day += timedelta(days=1)
+	step = timedelta(days=1 if count > 0 else -1)
+	for _ in range(abs(int(count))):
+		day += step
+		while day.weekday() > 4:
+			day += step
+	return day
+
+
+def workdays_between(start, end) -> int:
+	"""The working days from start to end, both counted; at least one."""
+	return max(sum(1 for offset in range((end - start).days + 1) if (start + timedelta(days=offset)).weekday() < 5), 1)
+
+
+def parse_predecessors(text) -> list:
+	"""[(ID, kind, lag in working days)] from predecessors as scheduling tools write them: 25,28 or 6SS or 25FS+2 days
+	or 31SS+7 days,46SS+7 days. ValueError with the part that reads otherwise."""
+	links = []
+	for part in re.split(r"[,;]", str(text or "")):
+		part = part.strip()
+		if not part:
+			continue
+		found = PREDECESSOR.match(part)
+		if not found:
+			raise ValueError(part)
+		row, kind, sign, lag, unit = found.groups()
+		days = int(lag or 0) * (5 if unit and unit[0].lower() == "w" else 1) * (-1 if sign == "-" else 1)
+		links.append((int(row), (kind or "FS").upper(), days))
+	return links
+
+
+def write_predecessors(links) -> str:
+	"""Predecessors written back the same way."""
+
+	def one(row, kind, lag):
+		if not lag:
+			return f"{row}{'' if kind == 'FS' else kind}"
+		return f"{row}{kind}{lag:+d} day{'' if abs(lag) == 1 else 's'}"
+
+	return ",".join(one(*link) for link in links)
+
+
+def outline_parents(levels) -> list:
+	"""For each row of an outline, the position of the row it sits under (the last one above it at a lesser level),
+	or None."""
+	parents, open_rows = [], []
+	for position, level in enumerate(levels):
+		while open_rows and levels[open_rows[-1]] >= level:
+			open_rows.pop()
+		parents.append(open_rows[-1] if open_rows else None)
+		open_rows.append(position)
+	return parents
+
+
+def outline_milestones(levels) -> list:
+	"""The positions of an outline's milestones: its top rows, going past a lone row that only wraps sections, such as
+	one naming the project and then CONSTRUCTION."""
+	children = defaultdict(list)
+	for position, parent in enumerate(outline_parents(levels)):
+		children[parent].append(position)
+	top = children[None]
+	while len(top) == 1 and any(children[child] for child in children[top[0]]):
+		top = children[top[0]]
+	return top
+
+
+def work_out_schedule(rows, first_day) -> list:
+	"""An outline schedule worked out as a scheduling tool does it, Monday to Friday. rows are {id, level, duration,
+	start, end, predecessors} in their order. A row's new ID is its place, its predecessors following (a row moved or
+	added keeps its links). A task lasts its duration, or the days from its start to its end, or a day. It starts when
+	its predecessors and those of the rows it sits under allow; with none, on its own start, else the nearest above
+	it, else first_day. A row with rows under it runs from the first of their starts to the last of their finishes.
+	Returns for each row {id, predecessors, start, end, duration, summary, milestone: the position of its milestone,
+	None above the milestones}. ScheduleError for a predecessor that reads wrongly, is not in the schedule, or loops."""
+	new_ids = {row["id"]: place for place, row in enumerate(rows) if row.get("id")}
+	levels = [int(row.get("level") or 0) for row in rows]
+	parents = outline_parents(levels)
+	children = defaultdict(list)
+	for position, parent in enumerate(parents):
+		children[parent].append(position)
+	links = []
+	for position, row in enumerate(rows):
+		try:
+			parsed = parse_predecessors(row.get("predecessors"))
+		except ValueError as error:
+			raise ScheduleError("format", position + 1, str(error)) from error
+		for other, _kind, _lag in parsed:
+			if other not in new_ids:
+				raise ScheduleError("unknown", position + 1, str(other))
+		links.append([(new_ids[other], kind, lag) for other, kind, lag in parsed])
+	started, finished, busy = {}, {}, set()
+
+	def guard(key):
+		if key in busy:
+			raise ScheduleError("loop", key[1] + 1)
+		busy.add(key)
+
+	def days_of(i):
+		row = rows[i]
+		if int(row.get("duration") or 0) > 0:
+			return int(row["duration"])
+		if row.get("start") and row.get("end") and row["end"] >= row["start"]:
+			return workdays_between(row["start"], row["end"])
+		return 1
+
+	def bound(other, kind, lag, i):
+		if kind == "SS":
+			return add_workdays(start_of(other), lag)
+		if kind == "FS":
+			return add_workdays(finish_of(other), 1 + lag)
+		finish = add_workdays(finish_of(other), lag) if kind == "FF" else add_workdays(start_of(other), lag - 1)
+		return add_workdays(finish, 1 - days_of(i))
+
+	def task_start(i):
+		bounds, above = [], i
+		while above is not None:
+			bounds += [bound(other, kind, lag, i) for other, kind, lag in links[above]]
+			above = parents[above]
+		if bounds:
+			return max(bounds)
+		above = i
+		while above is not None:
+			if rows[above].get("start"):
+				return add_workdays(rows[above]["start"])
+			above = parents[above]
+		return add_workdays(first_day)
+
+	def start_of(i):
+		if i not in started:
+			guard(("start", i))
+			started[i] = min(map(start_of, children[i])) if children[i] else task_start(i)
+			busy.discard(("start", i))
+		return started[i]
+
+	def finish_of(i):
+		if i not in finished:
+			guard(("finish", i))
+			finished[i] = max(map(finish_of, children[i])) if children[i] else add_workdays(start_of(i), days_of(i) - 1)
+			busy.discard(("finish", i))
+		return finished[i]
+
+	top = set(outline_milestones(levels))
+	out = []
+	for i in range(len(rows)):
+		milestone = i
+		while milestone is not None and milestone not in top:
+			milestone = parents[milestone]
+		out.append(
+			{
+				"id": i + 1,
+				"predecessors": write_predecessors([(other + 1, kind, lag) for other, kind, lag in links[i]]),
+				"start": start_of(i),
+				"end": finish_of(i),
+				"duration": workdays_between(start_of(i), finish_of(i)) if children[i] else days_of(i),
+				"summary": bool(children[i]),
+				"milestone": milestone,
+			}
+		)
+	return out
 
 
 # ------------------------------------------------------------------ BOQ progress

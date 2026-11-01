@@ -38,7 +38,7 @@ CARDS = [
 		("Activity Plan", "Project Activity Plan", D),
 		# filtered views of the standard Task list: a milestone is a group task, its activities child tasks
 		("Milestones (Master List)", "Task Type", D),
-		("Project Milestones", "Task", D, [["Task", "is_group", "=", 1]]),
+		("Project Milestones", "Task", D, [["Task", "is_group", "=", 1], ["Task", "parent_task", "is", "not set"]]),
 		("Tasks", "Task", D, [["Task", "is_group", "=", 0]]),
 	]),
 	("Budget and Cost Control", [

@@ -87,7 +87,7 @@ def on_update(doc, method=None):
 
 
 def roll_up(phase):
-	"""A phase's progress is the weighted progress of its activities."""
+	"""A milestone's or section's progress is the weighted progress of what is under it, and goes on up from there."""
 	children = frappe.get_all(
 		"Task",
 		filters={"parent_task": phase, "status": ("!=", "Cancelled")},
@@ -109,7 +109,9 @@ def roll_up(phase):
 	before = frappe._dict(progress=task.progress, status=task.status)
 	frappe.db.set_value("Task", phase, values, update_modified=False)
 	task.update(values)
-	if not task.parent_task:
+	if task.parent_task:
+		roll_up(task.parent_task)
+	else:
 		_announce_completion(task, before)
 		project_api.update_progress(task.project)
 
@@ -128,13 +130,13 @@ def _announce_completion(task, before):
 
 @frappe.whitelist()
 def get_milestone_overview(task: str) -> dict:
-	"""For the milestone's own form: its activities, the items the approved plan needs for it
-	against what has been requested so far, and its budget."""
+	"""For the milestone's own form: its activities, however deep they sit, the items the approved plan
+	needs for it against what has been requested so far, and its budget."""
 	doc = frappe.get_doc("Task", task)
 	doc.check_permission("read")
 	activities = frappe.get_all(
 		"Task",
-		filters={"parent_task": task, "status": ("!=", "Cancelled")},
+		filters={"project": doc.project, "lft": (">", doc.lft), "rgt": ("<", doc.rgt), "is_group": 0, "status": ("!=", "Cancelled")},
 		fields=["name", "subject", "status", "progress", "exp_start_date", "exp_end_date"],
 		order_by="exp_start_date asc, lft asc",
 	)

@@ -19,12 +19,13 @@
   "change_driver",
   "column_break_2",
   "revision_reason",
-  "phases_section",
-  "phases",
+  "schedule_section",
+  "schedule_view",
   "activities_section",
   "activities",
-  "items_section",
-  "items",
+  "milestones_tab",
+  "phases_section",
+  "phases",
   "plan_summary_section",
   "plan_start",
   "plan_end",
@@ -33,6 +34,9 @@
   "contract_value",
   "column_break_4",
   "total_planned_valuation",
+  "items_tab",
+  "items_section",
+  "items",
   "amended_from"
  ],
  "fields": [
@@ -139,40 +143,44 @@
    "mandatory_depends_on": "eval:doc.revision_of"
   },
   {
-   "fieldname": "phases_section",
+   "fieldname": "schedule_section",
    "fieldtype": "Section Break",
-   "label": "Milestones / Phases"
+   "label": "Schedule"
   },
   {
-   "allow_bulk_edit": 1,
-   "fieldname": "phases",
-   "fieldtype": "Table",
-   "label": "Milestones / Phases",
-   "options": "Project Activity Plan Phase",
-   "reqd": 1
+   "fieldname": "schedule_view",
+   "fieldtype": "HTML",
+   "label": "Schedule"
   },
   {
    "fieldname": "activities_section",
    "fieldtype": "Section Break",
-   "label": "Activities (Tasks)"
+   "label": "Schedule Table",
+   "collapsible": 1
   },
   {
    "allow_bulk_edit": 1,
    "fieldname": "activities",
    "fieldtype": "Table",
-   "label": "Activities",
+   "label": "Schedule",
    "options": "Project Activity Plan Activity"
   },
   {
-   "fieldname": "items_section",
-   "fieldtype": "Section Break",
-   "label": "Items Required per Milestone"
+   "fieldname": "milestones_tab",
+   "fieldtype": "Tab Break",
+   "label": "Milestones"
   },
   {
-   "fieldname": "items",
+   "fieldname": "phases_section",
+   "fieldtype": "Section Break",
+   "label": "Milestones"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "phases",
    "fieldtype": "Table",
-   "label": "Items Required",
-   "options": "Project Activity Plan Item"
+   "label": "Milestones",
+   "options": "Project Activity Plan Phase"
   },
   {
    "fieldname": "plan_summary_section",
@@ -219,6 +227,22 @@
    "read_only": 1
   },
   {
+   "fieldname": "items_tab",
+   "fieldtype": "Tab Break",
+   "label": "Items Required"
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Items Required per Milestone"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items Required",
+   "options": "Project Activity Plan Item"
+  },
+  {
    "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
@@ -232,7 +256,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-02 08:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Activity Plan",

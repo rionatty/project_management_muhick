@@ -79,7 +79,7 @@ muhick.set_row_amount = function (cdt, cdn, qty_field, rate_field, amount_field)
 
 // a milestone (phase) is a group task of the project
 muhick.phase_filters = function (project) {
-	return { filters: { project: project || "", is_group: 1, status: ["!=", "Cancelled"] } };
+	return { filters: { project: project || "", is_group: 1, parent_task: ["is", "not set"], status: ["!=", "Cancelled"] } };
 };
 
 // {task name: subject} for milestones shown in a summary
@@ -840,6 +840,252 @@ function get_imported_goods(frm) {
 }
 
 muhick.sheets = { setup: setup_sheets, render: render_estimate, taxes_of, tax_rates, rates_of, get_imported_goods, lines_of, esc, money, cell, company_currency };
+
+// ---------------------------------------------------------------- the activity schedule
+// A plan's schedule as the business writes it, ID, task name in its outline, duration, start, finish, predecessors and
+// a bar for each row, on the plan and the project. Milestones and sections fold, and once the plan is approved each
+// shows where it stands. The rows are worked out by calc.work_out_schedule; outline here reads them the same way.
+muhick.schedule = (() => {
+	const WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	const DAY = 86400000;
+	const COLUMNS = "display: grid; grid-template-columns: 36px minmax(260px, 2fr) 56px 88px 88px 92px minmax(220px, 2fr) 44px; gap: 8px; align-items: center; padding: 4px 8px;";
+	const utc = (value) => {
+		const [year, month, day] = String(value).slice(0, 10).split("-").map(Number);
+		return Date.UTC(year, month - 1, day);
+	};
+	const two = (number) => String(number).padStart(2, "0");
+	const shown_date = (value) => {
+		if (!value) {
+			return "";
+		}
+		const day = new Date(utc(value));
+		return `${WEEK[day.getUTCDay()]} ${two(day.getUTCDate())}/${two(day.getUTCMonth() + 1)}/${String(day.getUTCFullYear()).slice(2)}`;
+	};
+
+	function outline(rows) {
+		const levels = rows.map((row) => cint(row.outline_level));
+		const parents = [];
+		const open = [];
+		levels.forEach((level, i) => {
+			while (open.length && levels[open[open.length - 1]] >= level) {
+				open.pop();
+			}
+			parents.push(open.length ? open[open.length - 1] : null);
+			open.push(i);
+		});
+		const children = rows.map(() => []);
+		const roots = [];
+		parents.forEach((parent, i) => (parent === null ? roots : children[parent]).push(i));
+		let top = roots;
+		while (top.length === 1 && children[top[0]].some((child) => children[child].length)) {
+			top = children[top[0]];
+		}
+		return { levels, parents, children, milestones: new Set(top) };
+	}
+
+	function request_signoff(row, options) {
+		frappe.prompt(
+			[
+				{ fieldname: "email", fieldtype: "Data", options: "Email", label: __("Send To"), reqd: 1, default: options.client_email },
+				{ fieldname: "message", fieldtype: "Small Text", label: __("Message"), reqd: 1, default: __("Please confirm that {0} is complete.", [row.subject]) },
+			],
+			(values) => frappe.xcall("project_management_muhick.muhick_projects.doctype.project_activity_plan.project_activity_plan.request_signoff", { task: row.task, ...values }).then(options.on_change),
+			__("Request Client Sign-off"),
+			__("Send")
+		);
+	}
+
+	function record_signoff(row, options) {
+		frappe.prompt(
+			{ fieldname: "signed_on", fieldtype: "Date", label: __("Signed Off On"), reqd: 1, default: frappe.datetime.get_today() },
+			(values) => frappe.xcall("project_management_muhick.muhick_projects.doctype.project_activity_plan.project_activity_plan.record_signoff", { task: row.task, signed_on: values.signed_on }).then(options.on_change),
+			__("Record Client Sign-off"),
+			__("Record")
+		);
+	}
+
+	function render($wrapper, unsorted, options = {}) {
+		const el = $wrapper[0];
+		const rows = [...unsorted].sort((a, b) => a.idx - b.idx);
+		const state = (el.__schedule = el.__schedule || { folded: new Set(), filter: "All" });
+		const { levels, parents, children, milestones } = outline(rows);
+		const can_add = Boolean(options.on_add);
+		const add_button = can_add ? `<button class="btn btn-xs btn-default" data-act="add-milestone">${__("Add Milestone")}</button>` : "";
+		const problem = options.error ? `<div class="text-danger" style="margin-bottom: 8px">${esc(options.error)}</div>` : "";
+		el.onclick = (event) => {
+			const target = event.target.closest("[data-act]");
+			if (!target) {
+				return;
+			}
+			event.preventDefault();
+			const act = target.dataset.act;
+			const row = rows[cint(target.dataset.row)];
+			if (act === "edit") {
+				options.on_edit(row);
+			} else if (act === "add") {
+				options.on_add(row);
+			} else if (act === "add-milestone") {
+				options.on_add(null);
+			} else if (act === "request") {
+				request_signoff(row, options);
+			} else if (act === "record") {
+				record_signoff(row, options);
+			} else {
+				if (act === "fold") {
+					state.folded[state.folded.has(row.name) ? "delete" : "add"](row.name);
+				} else if (act === "fold-all") {
+					const shut = [...milestones].filter((i) => children[i].length).every((i) => state.folded.has(rows[i].name));
+					state.folded = new Set(shut ? [] : [...milestones].map((i) => rows[i].name));
+				} else if (act === "filter") {
+					state.filter = target.dataset.value;
+				}
+				render($wrapper, unsorted, options);
+			}
+		};
+		if (!rows.length) {
+			el.innerHTML = problem + add_button;
+			return;
+		}
+		const live = options.live;
+		const task_of = (row) => (live && live[row.task]) || {};
+		const is_done = (row) => task_of(row).status === "Completed" || flt(task_of(row).progress) >= 100;
+		const has_begun = (row) => task_of(row).status === "Working" || flt(task_of(row).progress) > 0;
+		const tasks_under = (i) => (children[i].length ? children[i].flatMap(tasks_under) : [i]);
+		const passes = (i) => (children[i].length ? children[i].some(passes) : state.filter === "All" || (rows[i].responsibility || "Muhick") === state.filter);
+		const hidden = (i) => {
+			for (let above = parents[i]; above !== null; above = parents[above]) {
+				if (state.folded.has(rows[above].name)) {
+					return true;
+				}
+			}
+			return false;
+		};
+		const dated = rows.filter((row) => row.start_date && row.end_date);
+		const first = dated.length ? Math.min(...dated.map((row) => utc(row.start_date))) : 0;
+		const last = dated.length ? Math.max(...dated.map((row) => utc(row.end_date))) : 0;
+		const span = Math.max(last - first + DAY, DAY);
+		const month = (30 * DAY * 100) / span;
+		const lines = `background-image: repeating-linear-gradient(90deg, var(--border-color) 0, var(--border-color) 1px, transparent 1px, transparent ${month}%);`;
+		const lowest = Math.min(...levels);
+
+		const bar = (row, i) => {
+			if (!row.start_date || !row.end_date) {
+				return "";
+			}
+			const left = ((utc(row.start_date) - first) / span) * 100;
+			const width = Math.max(((utc(row.end_date) - utc(row.start_date) + DAY) / span) * 100, 0.8);
+			if (children[i].length) {
+				return `<div style="position: absolute; left: ${left}%; width: ${width}%; top: 5px; height: 4px; background: var(--text-color);"></div>`;
+			}
+			const done = is_done(row) ? 100 : flt(task_of(row).progress);
+			return (
+				`<div style="position: absolute; left: ${left}%; width: ${width}%; top: 2px; height: 10px; border-radius: 2px; background: var(--blue-300, #93c5fd);">` +
+				(done ? `<div style="height: 100%; width: ${done}%; border-radius: 2px; background: var(--green-500, #22c55e);"></div>` : "") +
+				`</div>`
+			);
+		};
+
+		// a milestone, once approved: how far it has got and its sign-off
+		const standing = (row, i) => {
+			if (!live || !row.task) {
+				return "";
+			}
+			const under = tasks_under(i).map((at) => rows[at]);
+			const done = under.filter(is_done).length;
+			const task = task_of(row);
+			let signoff = "";
+			if (task.muhick_client_signed_off_on) {
+				signoff = `<span class="text-muted">${__("Client signed off {0}", [shown_date(task.muhick_client_signed_off_on)])}</span>`;
+			} else if (options.can_write) {
+				signoff =
+					(task.muhick_signoff_requested_on
+						? `<span class="text-muted">${__("Sign-off requested {0}", [shown_date(task.muhick_signoff_requested_on)])}</span> `
+						: `<a data-act="request" data-row="${i}" href="#">${__("Request client sign-off")}</a> · `) +
+					`<a data-act="record" data-row="${i}" href="#">${__("Record sign-off")}</a>`;
+			}
+			return (
+				`<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; font-weight: normal; font-size: var(--text-xs, 11px);">` +
+				`<span style="display: inline-block; width: 90px; height: 4px; border-radius: 2px; background: var(--border-color);">` +
+				`<span style="display: block; height: 100%; width: ${under.length ? (done / under.length) * 100 : 0}%; border-radius: 2px; background: var(--green-500, #22c55e);"></span></span>` +
+				`<span class="text-muted">${__("{0} of {1} tasks done", [done, under.length])}</span>${signoff}</div>`
+			);
+		};
+
+		const badge = (row, i) => {
+			if (!live || !row.task) {
+				return "";
+			}
+			const under = tasks_under(i).map((at) => rows[at]);
+			const [label, colour] = under.every(is_done) ? [__("Done"), "green"] : under.some((r) => is_done(r) || has_begun(r)) ? [__("In Progress"), "blue"] : [__("Upcoming"), "gray"];
+			return ` <span class="indicator-pill ${colour}" style="font-weight: normal; margin-left: 4px;">${label}</span>`;
+		};
+
+		const line = (row, i) => {
+			const summary = children[i].length > 0;
+			const milestone = milestones.has(i);
+			const fold = summary
+				? `<a data-act="fold" data-row="${i}" href="#" style="margin-right: 4px; text-decoration: none;">${state.folded.has(row.name) ? "&#9656;" : "&#9662;"}</a>`
+				: "";
+			const mark = live && !summary && row.task ? `<span style="margin-right: 4px; color: var(--${is_done(row) ? "green" : has_begun(row) ? "blue" : "gray"}-500, inherit);">${is_done(row) ? "&#10004;" : has_begun(row) ? "&#9680;" : "&#9675;"}</span>` : "";
+			const text = live && row.task ? `<a href="${frappe.utils.get_form_link("Task", row.task)}">${esc(row.subject)}</a>` : esc(row.subject);
+			const struck = live && !summary && is_done(row) ? " text-decoration: line-through;" : "";
+			const who = !summary && row.responsibility && row.responsibility !== "Muhick" ? ` <span class="text-muted" style="font-size: var(--text-xs, 11px);">${esc(row.responsibility)}</span>` : "";
+			const actions = can_add
+				? `<a data-act="edit" data-row="${i}" href="#" title="${__("Edit")}" style="text-decoration: none;">&#9998;</a> <a data-act="add" data-row="${i}" href="#" title="${__("Add under this row")}" style="text-decoration: none;">+</a>`
+				: "";
+			const style = milestone
+				? "background: var(--subtle-fg, var(--control-bg)); border-radius: 6px; margin-top: 8px; font-weight: 600;"
+				: summary
+					? "font-weight: 600; border-top: 1px solid var(--border-color);"
+					: "border-top: 1px solid var(--border-color);";
+			return (
+				`<div style="${COLUMNS} ${style}" data-schedule-row="${esc(String(row.row_id || i + 1))}">` +
+				`<span class="text-muted" style="font-weight: normal;">${esc(String(row.row_id || ""))}</span>` +
+				`<div style="padding-left: ${(levels[i] - lowest) * 14}px; ${struck}">${fold}${mark}${text}${who}${milestone ? badge(row, i) : ""}${milestone ? standing(row, i) : ""}</div>` +
+				`<span style="text-align: right;">${cint(row.duration) || ""}</span>` +
+				`<span>${shown_date(row.start_date)}</span><span>${shown_date(row.end_date)}</span>` +
+				`<span class="text-muted" style="font-weight: normal; overflow-wrap: anywhere;">${esc(row.predecessors)}</span>` +
+				`<div style="position: relative; height: 14px; ${lines}">${bar(row, i)}</div>` +
+				`<span style="text-align: right; font-weight: normal;">${actions}</span>` +
+				`</div>`
+			);
+		};
+
+		const ticks = [];
+		for (let n = 0; n * 30 * DAY < span; n += 1) {
+			ticks.push(`<span style="position: absolute; left: ${n * month}%;">M${n + 1}</span>`);
+		}
+		const all_shut = [...milestones].filter((i) => children[i].length).every((i) => state.folded.has(rows[i].name));
+		const pills = ["All", "Muhick", "Client", "Subcontractor", "Joint"]
+			.map((value) => `<button class="btn btn-xs ${state.filter === value ? "btn-primary" : "btn-default"}" data-act="filter" data-value="${value}">${__(value)}</button>`)
+			.join(" ");
+		el.innerHTML =
+			problem +
+			`<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">` +
+			`<b>${__("Milestones")}</b><span class="text-muted">${milestones.size} · ${shown_date(dated.length ? new Date(first).toISOString() : "")} – ${shown_date(dated.length ? new Date(last).toISOString() : "")}</span>` +
+			`<span style="flex: 1;"></span><button class="btn btn-xs btn-default" data-act="fold-all">${all_shut ? __("Expand All") : __("Collapse All")}</button>${add_button}</div>` +
+			`<div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;"><span class="text-muted">${__("Responsibility")}</span>${pills}</div>` +
+			`<div style="overflow-x: auto;"><div style="min-width: 960px;">` +
+			`<div style="${COLUMNS} font-weight: 600;"><span>${__("ID")}</span><span>${__("Task Name")}</span><span style="text-align: right;">${__("Days")}</span><span>${__("Start")}</span><span>${__("Finish")}</span><span>${__("Predecessors")}</span>` +
+			`<div class="text-muted" style="position: relative; height: 16px; font-weight: normal;">${ticks.join("")}</div><span></span></div>` +
+			rows.map((row, i) => (passes(i) && !hidden(i) ? line(row, i) : "")).join("") +
+			`</div></div>`;
+	}
+
+	return {
+		render,
+		// the names of the milestones of some rows in their order
+		milestones(rows) {
+			const sorted = [...rows].sort((a, b) => a.idx - b.idx);
+			return [...outline(sorted).milestones].map((i) => sorted[i].phase_name || sorted[i].subject);
+		},
+		milestone_level(rows) {
+			const sorted = [...rows].sort((a, b) => a.idx - b.idx);
+			const { levels, milestones } = outline(sorted);
+			return sorted.length ? levels[[...milestones][0]] : 0;
+		},
+	};
+})();
 
 // run a whitelisted method of the open document, then reload it
 muhick.run = function (frm, method, args) {

@@ -5,7 +5,7 @@ frappe.ui.form.on("Material Request", {
 	setup(frm) {
 		// a milestone (phase) is a group task of the project
 		frm.set_query("muhick_phase", () => ({
-			filters: { project: frm.doc.muhick_project || "", is_group: 1, status: ["!=", "Cancelled"] },
+			filters: { project: frm.doc.muhick_project || "", is_group: 1, parent_task: ["is", "not set"], status: ["!=", "Cancelled"] },
 		}));
 		frm.set_query("muhick_cost_code", "items", () => ({ filters: { disabled: 0 } }));
 	},

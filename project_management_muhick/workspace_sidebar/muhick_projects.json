@@ -112,7 +112,7 @@
   {
    "child": 1,
    "collapsible": 1,
-   "filters": "[[\"Task\", \"is_group\", \"=\", 1]]",
+   "filters": "[[\"Task\", \"is_group\", \"=\", 1], [\"Task\", \"parent_task\", \"is\", \"not set\"]]",
    "indent": 0,
    "keep_closed": 0,
    "label": "Project Milestones",
@@ -1245,7 +1245,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-28 23:41:57.265571",
+ "modified": "2026-11-02 08:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",

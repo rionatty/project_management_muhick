@@ -87,9 +87,19 @@ and certificates, retention, payments and the controls around them.
 - Commitments: approved purchase orders, subcontracts, requisitions and labour reduce the available
   budget at once, before anything is paid. Original Budget, Approved Variations, Current Budget and
   Forecast Final Cost are kept separately; an approved budget is changed only by a revision.
-- Activity plan: each phase with its activities and the items it needs, a baseline, and revisions
-  that state why the schedule moved. Phases and activities are standard ERPNext Tasks (a phase is a
-  group task, its activities are child tasks), loaded from a Project Template or entered on the plan.
+- Activity plan laid out as the business's activity schedule, in one outline: ID, task name, level,
+  duration in working days (Monday to Friday), start, finish and predecessors written as scheduling
+  tools write them (25,28 or 6SS or 25FS+2 days), with a bar for each row. Dates work themselves out from
+  the durations and predecessors, and IDs and links follow when a row is moved or added; a start is typed
+  only where neither a row nor a section above it has predecessors. The top rows are the milestones,
+  past a row that only wraps them such as the project's name; a row with rows under it is a section,
+  the others activities. All are standard ERPNext Tasks in the same tree, loaded from a Project Template,
+  uploaded from Excel (also a scheduling tool's export) or entered on the plan. Milestones and sections
+  fold, and each activity has a responsibility to filter by. Once approved, each milestone shows its tasks
+  done and where it stands, on the plan and on the project, with the client's sign-off requested by email
+  and its date recorded. The Milestones tab holds weights, valuations and claims, and Items Required what
+  each milestone needs. The first approved dates stay as a baseline, and revisions state why the schedule
+  moved.
 - Cash requisitions with accountability, weekly labour schedules and casual sheets.
 - Subcontract RFQ and evaluation, agreement, and a service receipt note that gates the invoice.
 - Claims that mirror the BOQ, the client's certificate, the invoice, retention and its release,
@@ -314,14 +324,16 @@ again: it only creates what is missing.
 
 - **Milestones come from one shared list**, ERPNext's Task Type ("Milestones (Master List)" in the
   menu). BOQ lines and the activity plan pick from it; Get Milestones adds names it does not know.
-- **Milestones (phases) are standard Tasks.** A milestone is a group task of the project and its
-  activities are its child tasks, so the Task tree, Gantt chart and timesheets work as usual. Every
+- **Milestones (phases) are standard Tasks.** A milestone is a top-level group task of the project, a
+  section a group task under it and an activity a task under either, at any depth, so the Task tree,
+  Gantt chart and timesheets work as usual. Every
   project task must belong to a milestone (the Task field "Milestone / Phase"). A milestone's form
   shows its activities, the items the plan needs for it against what has been requested, its budget,
   and (under Connections) its material requests, stock entries, labour, requisitions and claims. Keep standard phase lists
   in Project Templates; "Get Milestones" on a new activity plan loads one. The plan sets each task's
   name, dates and weight (change them through a plan revision); progress on the activities rolls up
-  to the phase and then to the project. Give items a Default Cost Code so budget lines fill it in.
+  through their sections to the milestone and then to the project, a longer activity counting for more
+  unless it is given a weight. Give items a Default Cost Code so budget lines fill it in.
 
 - **Workflows belong to the site once created.** Change steps or roles in the Workflow screen;
   a later migrate will not overwrite them. To recreate them from code:

@@ -29,7 +29,7 @@ from frappe.model.document import Document
 from frappe.utils import flt
 
 from project_management_muhick.muhick_projects import budget_engine, estimate
-from project_management_muhick.muhick_projects.utils import check_phase
+from project_management_muhick.muhick_projects.utils import check_phase, milestone_of
 from project_management_muhick.utils import calc
 
 KEEP = ("opening_actual", "opening_paid", "etc_is_manual", "estimate_to_complete")
@@ -79,10 +79,10 @@ class ProjectBudget(Document):
 	def validate_phases(self, lines):
 		for line in lines:
 			if line.activity:
-				parent = frappe.db.get_value("Task", line.activity, "parent_task")
-				if line.phase and parent != line.phase:
+				milestone = milestone_of(line.activity)
+				if line.phase and milestone != line.phase:
 					frappe.throw(_("{0}: {1} is not a task of milestone {2}.").format(self.where(line), line.activity, line.phase))
-				line.phase = line.phase or parent
+				line.phase = line.phase or milestone
 			if line.phase:
 				check_phase(self.project, line.phase, self.where(line))
 

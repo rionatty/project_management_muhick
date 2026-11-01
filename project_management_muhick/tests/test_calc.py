@@ -279,5 +279,84 @@ class TestBids(unittest.TestCase):
 		self.assertEqual(calc.price_gap_percent(90, 100), -10)
 		self.assertEqual(calc.price_gap_percent(110, 0), 0)
 
+class TestSchedule(unittest.TestCase):
+	ROWS = [
+		dict(level=0), dict(level=1), dict(level=2), dict(level=3, duration=5, start=calc.date(2026, 3, 2)), dict(level=3, duration=3, predecessors="4"),
+		dict(level=2, predecessors="3"), dict(level=3, duration=10), dict(level=3, duration=5, predecessors="7FS+2 days"), dict(level=3, duration=2, predecessors="8SS"),
+	]
+
+	def rows(self):
+		return [dict(row, id=i) for i, row in enumerate(self.ROWS, 1)]
+
+	def worked(self):
+		return calc.work_out_schedule(self.rows(), calc.date(2026, 1, 5))
+
+	def test_working_days_run_monday_to_friday(self):
+		self.assertEqual(calc.add_workdays(calc.date(2026, 3, 6), 1), calc.date(2026, 3, 9))
+		self.assertEqual(calc.add_workdays(calc.date(2026, 3, 9), -1), calc.date(2026, 3, 6))
+		self.assertEqual(calc.add_workdays(calc.date(2026, 3, 7)), calc.date(2026, 3, 9))
+		self.assertEqual(calc.workdays_between(calc.date(2026, 3, 2), calc.date(2026, 3, 9)), 6)
+
+	def test_predecessors_read_and_write_as_scheduling_tools_do(self):
+		for text, links in (
+			("25,28", [(25, "FS", 0), (28, "FS", 0)]), ("6SS", [(6, "SS", 0)]), ("25FS+2 days", [(25, "FS", 2)]),
+			("31SS+7 days,46SS+7 days", [(31, "SS", 7), (46, "SS", 7)]),
+		):
+			self.assertEqual(calc.parse_predecessors(text), links)
+			self.assertEqual(calc.write_predecessors(links), text)
+		self.assertEqual(calc.parse_predecessors("3 ss + 1 wk; 4ff-2d"), [(3, "SS", 5), (4, "FF", -2)])
+		self.assertEqual(calc.parse_predecessors(None), [])
+		with self.assertRaises(ValueError):
+			calc.parse_predecessors("after the slab")
+
+	def test_rows_above_the_milestones_only_wrap_them(self):
+		self.assertEqual(calc.outline_parents([0, 1, 2, 3, 3, 2, 3]), [None, 0, 1, 2, 2, 1, 5])
+		self.assertEqual(calc.outline_milestones([0, 1, 2, 3, 3, 2, 3]), [2, 5])
+		self.assertEqual(calc.outline_milestones([0, 1, 0, 1]), [0, 2])
+		self.assertEqual(calc.outline_milestones([0, 1, 1]), [0])
+		self.assertEqual(calc.outline_milestones([]), [])
+
+	def test_dates_follow_durations_and_predecessors(self):
+		worked = self.worked()
+		self.assertEqual((worked[3]["start"], worked[3]["end"]), (calc.date(2026, 3, 2), calc.date(2026, 3, 6)))
+		self.assertEqual((worked[4]["start"], worked[4]["end"]), (calc.date(2026, 3, 9), calc.date(2026, 3, 11)))
+		# a task with no predecessor of its own starts when the section it sits under may
+		self.assertEqual((worked[6]["start"], worked[6]["end"]), (calc.date(2026, 3, 12), calc.date(2026, 3, 25)))
+		self.assertEqual((worked[7]["start"], worked[7]["end"]), (calc.date(2026, 3, 30), calc.date(2026, 4, 3)))
+		self.assertEqual((worked[8]["start"], worked[8]["end"]), (calc.date(2026, 3, 30), calc.date(2026, 3, 31)))
+
+	def test_a_section_runs_over_what_is_under_it(self):
+		worked = self.worked()
+		self.assertEqual((worked[5]["start"], worked[5]["end"], worked[5]["duration"], worked[5]["summary"]), (calc.date(2026, 3, 12), calc.date(2026, 4, 3), 17, True))
+		self.assertEqual([row["milestone"] for row in worked], [None, None, 2, 2, 2, 5, 5, 5, 5])
+
+	def test_ids_follow_the_order_and_links_follow_the_ids(self):
+		rows = self.rows()
+		rows.insert(4, dict(level=3, duration=1, start=calc.date(2026, 3, 2)))
+		worked = calc.work_out_schedule(rows, calc.date(2026, 1, 5))
+		self.assertEqual([row["id"] for row in worked], list(range(1, 11)))
+		self.assertEqual([row["predecessors"] for row in worked][5:], ["4", "3", "", "8FS+2 days", "9SS"])
+
+	def test_a_task_with_nothing_to_go_on_starts_on_the_first_day(self):
+		worked = calc.work_out_schedule([dict(id=1, level=0, duration=2)], calc.date(2026, 1, 3))
+		self.assertEqual((worked[0]["start"], worked[0]["end"]), (calc.date(2026, 1, 5), calc.date(2026, 1, 6)))
+
+	def test_a_duration_comes_from_the_dates_when_none_is_given(self):
+		worked = calc.work_out_schedule([dict(id=1, level=0, start=calc.date(2026, 3, 2), end=calc.date(2026, 3, 9))], calc.date(2026, 1, 5))
+		self.assertEqual((worked[0]["duration"], worked[0]["end"]), (6, calc.date(2026, 3, 9)))
+
+	def test_a_schedule_that_cannot_work_is_refused(self):
+		for rows, kind, row in (
+			([dict(id=1, level=0, predecessors="what")], "format", 1),
+			([dict(id=1, level=0, predecessors="9")], "unknown", 1),
+			([dict(id=1, level=0, predecessors="2"), dict(id=2, level=0, predecessors="1")], "loop", 1),
+			([dict(id=1, level=0, predecessors="1")], "loop", 1),
+			([dict(id=1, level=0), dict(id=2, level=1, predecessors="1")], "loop", 2),
+		):
+			with self.assertRaises(calc.ScheduleError) as caught:
+				calc.work_out_schedule(rows, calc.date(2026, 1, 5))
+			self.assertEqual(caught.exception.kind, kind)
+
+
 if __name__ == "__main__":
 	unittest.main()

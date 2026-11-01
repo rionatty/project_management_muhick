@@ -115,6 +115,8 @@ PROJECT = _chain(
 		dict(fieldname="muhick_opening_advance_recovered", label="Advance Recovered Before Go-Live", fieldtype="Currency"),
 		_sec("muhick_brands_section", "Client-Approved Brands and Specifications"),
 		dict(fieldname="muhick_approved_brands", label="Approved Brands", fieldtype="Table", options="Project Approved Brand"),
+		dict(fieldname="muhick_schedule_tab", fieldtype="Tab Break", label="Activity Schedule"),
+		dict(fieldname="muhick_schedule_view", label="Activity Schedule", fieldtype="HTML"),
 	],
 )
 
@@ -206,6 +208,8 @@ CUSTOM_FIELDS = {
 			_ro("muhick_planned_valuation", "Planned Valuation", depends_on="eval:doc.is_group"),
 			_ro("muhick_planned_claim_date", "Planned Claim Date", "Date", depends_on="eval:doc.is_group"),
 			_ro("muhick_billing_status", "Billing Status", "Select", options="\nClaimed\nCertified", depends_on="eval:doc.is_group"),
+			_ro("muhick_signoff_requested_on", "Client Sign-off Requested On", "Date", depends_on="eval:doc.is_group"),
+			_ro("muhick_client_signed_off_on", "Client Signed Off On", "Date", depends_on="eval:doc.is_group"),
 		],
 	),
 	"Item": [
