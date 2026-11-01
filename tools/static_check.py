@@ -195,7 +195,8 @@ for name, d in OURS.items():
 	in_list = [f for f in flds if f.get("in_list_view")]
 	if d.get("istable") and not in_list:
 		warn(f"{name}: child table with no columns in the grid")
-	if d.get("istable") and sum(int(f.get("columns") or 0) for f in in_list) > 12 and any(f.get("columns") for f in in_list):
+	# Import Tax Line has every column of the Taxes sheet: past 10 units the grid flexes, and scrolls if it must
+	if d.get("istable") and name != "Import Tax Line" and sum(int(f.get("columns") or 0) for f in in_list) > 12 and any(f.get("columns") for f in in_list):
 		# frappe shows up to 10 grid columns by default; flag heavy tables
 		tot = sum(int(f.get("columns") or 2) for f in in_list)
 		warn(f"{name}: grid columns total {tot}")
