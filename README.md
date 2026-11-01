@@ -24,7 +24,8 @@ and certificates, retention, payments and the controls around them.
   amount without VAT, supplier) and its sub totals by system under it. Every line's item or service
   (equipment, materials, labour, transport, commissions...) is picked from the item master and brings
   its name, unit, brand, default cost code and price (the bid's lowest supplier quotation, else the
-  last purchase price); a line still without a cost code is given its section's. Its lines are those
+  last purchase price). A cost code is optional on the estimate and suggested from the item, the
+  description or the tab; on the project budget every line needs one. Its lines are those
   of the project budget: a stage from the shared milestone list (the system or phase it is for), its
   supplier, brand and cost code, its amount as quoted in its currency and its amount
   in the company's currency without VAT (people x qty x rate at the line's exchange rate, a rate

@@ -631,7 +631,7 @@ function get_boq_lines(frm) {
 	frappe.xcall("project_management_muhick.muhick_projects.estimate.get_boq_lines", { opportunity: frm.doc.name, items }).then((rows) =>
 		muhick.cost_lines.add_rows(frm, rows).then(() =>
 			frappe.show_alert({
-				message: __("{0} line(s) added from the BOQ to Equipment and Installation Materials. Check their rates and cost codes, then add labour, tools and administration.", [
+				message: __("{0} line(s) added from the BOQ to Equipment and Installation Materials. Check their rates, then add labour, tools and administration.", [
 					rows.length,
 				]),
 				indicator: "green",

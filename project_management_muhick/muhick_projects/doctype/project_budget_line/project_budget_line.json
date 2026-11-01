@@ -179,13 +179,15 @@
    "read_only": 1
   },
   {
+   "columns": 1,
    "fetch_from": "item_code.muhick_cost_code",
    "fetch_if_empty": 1,
    "fieldname": "cost_code",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Cost Code",
-   "options": "Cost Code",
-   "reqd": 1
+   "mandatory_depends_on": "eval:parent.doctype=='Project Budget'",
+   "options": "Cost Code"
   },
   {
    "fetch_from": "cost_code.budget_section",
@@ -235,7 +237,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-01 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget Line",

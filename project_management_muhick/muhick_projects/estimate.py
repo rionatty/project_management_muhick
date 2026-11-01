@@ -88,7 +88,8 @@ def arrange(lines):
 
 
 def propose_cost_code(section, description, item_code, enabled) -> str | None:
-	"""The cost code for a line given none (see SECTION_CODES), among the enabled codes."""
+	"""The cost code for a line given none (see SECTION_CODES), among the enabled codes; None when nothing points
+	to one. A budget's line must have one (ProjectBudget.check_cost_codes), an estimate's need not."""
 	code = frappe.get_cached_value("Item", item_code, "muhick_cost_code") if item_code else None
 	if code in enabled:
 		return code
@@ -338,6 +339,7 @@ def get_estimate_lines(project: str) -> list:
 		frappe.throw(_("Project {0} did not come from a bid with a cost estimate.").format(project))
 	lines = [frappe._dict(row) for row in rows]
 	resolve_stages(project, lines)
+	propose_cost_codes(lines)
 	return lines
 
 
@@ -364,6 +366,7 @@ def make_budget(handover):
 	for row in rows:
 		budget.append("lines", row)
 	budget.flags.ignore_permissions = True
+	budget.flags.from_estimate = True
 	budget.insert()
 	try:
 		from frappe.desk.form.assign_to import add as assign
@@ -420,7 +423,7 @@ def budget_summary(doc) -> dict:
 		"total": total,
 		"cost_codes": [
 			{"cost_code": code, "name": frappe.get_cached_value("Cost Code", code, "cost_code_name") or "", "amount": amount}
-			for code, amount in sorted(by_code.items()) if code
+			for code, amount in sorted((c, a) for c, a in by_code.items() if c)
 		],
 		"variations": flt(doc.get("total_approved_variations")),
 		"current": current,
@@ -862,7 +865,7 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 			row["cost_code"] = propose_cost_code(row["section"], row["description"], row["item_code"], enabled)
 			if row["cost_code"]:
 				proposed += 1
-			else:
+			elif doctype != "Opportunity":
 				problems.append(_("give a cost code"))
 		if vat_given:
 			row["rate_includes_vat"] = 1 if _text(values.get("rate_includes_vat")).lower() in YES else 0
@@ -952,7 +955,7 @@ def read_cost_lines(doctype: str, filename: str, content: str, name: str | None 
 		notes.append(_("Not in the milestone list, so their lines have no stage: {0}").format(", ".join(sorted(set(new_stages.values())))))
 	if unplaced:
 		notes.append(_("{0} line(s) under no section heading were put in Installation Materials, or Equipment when priced in another currency; check them.").format(unplaced))
-	if proposed:
+	if proposed and doctype != "Opportunity":
 		notes.append(_("{0} line(s) had no cost code and were given one from their item, description or section; check them.").format(proposed))
 	if vat_assumed:
 		notes.append(_("{0} local equipment, materials and tools line(s) were taken as quoted with VAT, as the budget sheets have them.").format(vat_assumed))

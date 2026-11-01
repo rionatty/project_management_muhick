@@ -40,6 +40,7 @@ class ProjectBudget(Document):
 		estimate.resolve_stages(self.project, self.lines)
 		estimate.arrange(self.lines)
 		estimate.propose_cost_codes(self.lines)
+		self.check_cost_codes()
 		self.contract_value = budget_engine.revised_contract_value(self.project)
 		estimate.set_amounts(self, self.lines, self.contract_value)
 		self.build_cost_code_summary()
@@ -72,11 +73,20 @@ class ProjectBudget(Document):
 			if line.phase:
 				check_phase(self.project, line.phase, _("Budget Lines row {0}").format(line.idx))
 
+	def check_cost_codes(self):
+		"""A budget is controlled by cost code, so every line needs one. The draft made from a bid's estimate,
+		where a cost code is optional, may still lack some for the Project Manager to give."""
+		missing = [str(line.idx) for line in self.lines if not line.cost_code]
+		if missing and not self.flags.get("from_estimate"):
+			frappe.throw(_("Budget Lines row {0}: give a cost code.").format(", ".join(missing)))
+
 	def build_cost_code_summary(self):
 		"""One control row per cost code, rebuilt from the lines while the budget is a draft."""
 		kept = {row.cost_code: {f: row.get(f) for f in KEEP} for row in self.cost_codes}
 		totals, sections = defaultdict(float), {}
 		for line in self.lines:
+			if not line.cost_code:
+				continue
 			disabled, section = frappe.get_cached_value("Cost Code", line.cost_code, ["disabled", "budget_section"])
 			if disabled:
 				frappe.throw(_("Budget Lines row {0}: cost code {1} is disabled.").format(line.idx, line.cost_code))
