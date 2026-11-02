@@ -7,7 +7,15 @@ frappe.ui.form.on("Payment Plan", {
 			filters: { company: frm.doc.company, is_group: 0, account_type: ["in", ["Bank", "Cash"]] },
 		});
 		frm.set_query("pay_from", paying_accounts);
-		frm.set_query("paid_from", "lines", paying_accounts);
+		// an account in another currency pays only what is owed in that currency
+		frm.set_query("paid_from", "lines", (doc, cdt, cdn) => {
+			const query = paying_accounts();
+			const owed = locals[cdt][cdn].currency;
+			if (owed) {
+				query.filters.account_currency = ["in", [erpnext.get_currency(frm.doc.company), owed]];
+			}
+			return query;
+		});
 	},
 
 	onload(frm) {
@@ -22,11 +30,15 @@ frappe.ui.form.on("Payment Plan", {
 		}
 	},
 
-	// the lines that were following the plan's account go on following it; a line given its own keeps it
-	pay_from(frm) {
+	// the lines that were following the plan's account go on following it, where it can pay them; a line given its own keeps it
+	async pay_from(frm) {
+		const home = erpnext.get_currency(frm.doc.company);
+		const account = frm.doc.pay_from ? await frappe.db.get_value("Account", frm.doc.pay_from, "account_currency") : null;
+		const held_in = account && account.message.account_currency;
 		(frm.doc.lines || []).forEach((line) => {
 			if (!line.paid_from || line.paid_from === frm.pay_from_was) {
-				frappe.model.set_value(line.doctype, line.name, "paid_from", frm.doc.pay_from);
+				const fits = !held_in || held_in === home || held_in === line.currency;
+				frappe.model.set_value(line.doctype, line.name, "paid_from", fits ? frm.doc.pay_from : null);
 			}
 		});
 		frm.pay_from_was = frm.doc.pay_from;
@@ -85,16 +97,14 @@ function set_period(frm) {
 	frm.set_value("period_to", (monthly ? frappe.datetime.month_end() : frappe.datetime.week_end()).slice(0, 10));
 }
 
-// what each account pays out under the plan, as the lines are allocated
+// what each account pays out under the plan as the lines are allocated, in the account's own currency
 function show_allocation(frm) {
-	const allocated = {};
-	(frm.doc.lines || []).forEach((line) => {
-		if (line.paid_from && !["Held", "Not Executed"].includes(line.line_status)) {
-			allocated[line.paid_from] = (allocated[line.paid_from] || 0) + flt(line.approved_amount);
-		}
-	});
+	const home = erpnext.get_currency(frm.doc.company);
 	(frm.doc.accounts || []).forEach((account) => {
-		account.allocated = allocated[account.account] || 0;
+		const foreign = account.currency && account.currency !== home;
+		account.allocated = (frm.doc.lines || [])
+			.filter((line) => line.paid_from === account.account && !["Held", "Not Executed"].includes(line.line_status))
+			.reduce((sum, line) => sum + flt(line.approved_amount) / (foreign ? flt(line.exchange_rate) || 1 : 1), 0);
 		account.balance_after = flt(account.balance) - account.allocated;
 	});
 	frm.refresh_field("accounts");
@@ -128,7 +138,9 @@ function issue_funds(frm, lines) {
 				options: "Account",
 				reqd: 1,
 				default: lines[0].paid_from,
-				get_query: () => ({ filters: { company: frm.doc.company, is_group: 0, account_type: ["in", ["Bank", "Cash"]] } }),
+				get_query: () => ({
+					filters: { company: frm.doc.company, is_group: 0, account_type: ["in", ["Bank", "Cash"]], account_currency: erpnext.get_currency(frm.doc.company) },
+				}),
 			},
 			{ fieldname: "issued_on", fieldtype: "Date", label: __("Issued On"), reqd: 1, default: frappe.datetime.get_today() },
 			{ fieldname: "payment_reference", fieldtype: "Data", label: __("Payment Reference") },

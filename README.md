@@ -139,7 +139,9 @@ and certificates, retention, payments and the controls around them.
   requisitions and bid security requests) and the bank fees of guarantees and bonds falling due are
   issued from it only; expense claims refunded by journal entry.
 - The plan names itself from its type and period, and has a bank account to pay from, which each line can
-  change. The position shows what each account pays under the plan and what that leaves. A supplier on an
+  change. Its amounts are in the company's currency; an account in that currency can pay anything, and one in
+  another currency only what is owed in that currency. The position shows what each account pays under the
+  plan and what that leaves, in the account's own currency. A supplier on an
   approved requisition can be scheduled with Get > Approved Requisitions: the advance, or the whole amount on
   delivery. Raise Payments makes a draft Payment Entry from the line's account, against the approved order
   or, until there is one, on account. Once submitted it is linked on the line and carried along: the
