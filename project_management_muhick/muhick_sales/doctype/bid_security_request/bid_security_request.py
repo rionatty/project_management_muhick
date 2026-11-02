@@ -91,6 +91,15 @@ class BidSecurityRequest(Document):
 		settle_plan_line(self.doctype, self.name, amount_issued)
 		notify([self.requested_by], _("Funds for bid security request {0} have been issued.").format(self.name), doc=self)
 
+	def reverse_funds(self, reference=None):
+		"""Its payment was cancelled, so the funds are not out after all: not once a security has been recorded from them."""
+		require_roles(*FINANCE_ROLES)
+		if self.status != "Funds Issued":
+			frappe.throw(_("This is not possible while the request is {0}.").format(_(self.status)))
+		if any(row.bank_instrument for row in self.securities):
+			frappe.throw(_("A security has been recorded from these funds. Cancel it before cancelling the payment."))
+		self.db_set({"amount_issued": 0, "issued_on": None, "payment_reference": None, "status": "Approved"})
+
 
 def ready_to_record(request) -> bool:
 	"""Approved, with its funds issued or none needed."""

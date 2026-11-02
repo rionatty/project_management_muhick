@@ -264,6 +264,8 @@ CUSTOM_FIELDS = {
 	"Sales Order Item": [dict(STAGE)],
 	"Journal Entry": [
 		_ro("muhick_reimbursement_claim", "Reimbursement Claim", "Link", options="Reimbursement Claim", insert_after="user_remark"),
+		_ro("muhick_payment_plan", "Payment Plan", "Link", options="Payment Plan", insert_after="muhick_reimbursement_claim"),
+		dict(fieldname="muhick_payment_plan_line", label="Payment Plan Line", fieldtype="Data", hidden=1, no_copy=1, insert_after="muhick_payment_plan"),
 	],
 	"Lead": [
 		# the lead's own Email belongs to its contact person; the organisation has its own

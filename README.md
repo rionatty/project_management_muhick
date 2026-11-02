@@ -137,7 +137,8 @@ and certificates, retention, payments and the controls around them.
 
 - Weekly or monthly payment plan from which supplier payments are raised; the money for a bid (sales
   requisitions and bid security requests) and the bank fees of guarantees and bonds falling due are
-  issued from it only; expense claims refunded by journal entry.
+  paid from it only, with a draft journal entry from the line's account to the account Muhick Settings names
+  for each, which marks the document paid when it is submitted; expense claims refunded by journal entry.
 - The plan names itself from its type and period, and has a bank account to pay from, which each line can
   change. Its amounts are in the company's currency; an account in that currency can pay anything, and one in
   another currency only what is owed in that currency. The position shows what each account pays under the
@@ -249,8 +250,8 @@ and certificates, retention, payments and the controls around them.
   later quarterly fees) goes to the cost of the project made from it: the project budget counts it
   under the cost code set in Muhick Settings (ADM-600, Cost of Winning the Bid), and the handover
   shows the amount.
-- Sales requisitions for the cost of preparing a bid, paid through the weekly payment plan only: Issue
-  Funds on its approved plan line records the money issued, with the date it must be accounted for
+- Sales requisitions for the cost of preparing a bid, paid through the weekly payment plan only: the
+  journal entry raised from its approved plan line records the money issued, with the date it must be accounted for
   by, and the requisition shows the plan it is on. As for project requisitions, a new one is refused only while an earlier one of
   the same person is past that date and still not accounted for.
 - Bid security requests, raised from the opportunity with their securities and the expenses of
@@ -359,7 +360,7 @@ again: it only creates what is missing.
   things the business does not use (such as the Sales Pro mobile app) are blanked on every migrate
   (`FOREIGN_DESCRIPTIONS` in `setup/custom_fields.py`).
 - **One colour for the buttons.** On every document, standard ones included, the buttons a form adds
-  to its header (Create, View and the other groups, Close, Issue Funds and so on) have the colour of
+  to its header (Create, View and the other groups, Close, Raise Payments and so on) have the colour of
   its Save button (`public/js/muhick_common.bundle.js`).
 
 - **Milestones come from one shared list**, ERPNext's Task Type ("Milestones (Master List)" in the

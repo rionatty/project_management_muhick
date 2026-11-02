@@ -6,7 +6,7 @@ against the cash and bank position. It is approved by the Finance Manager and th
 Manager, who may reduce an amount or hold a line. Payments are then raised from the approved
 lines, so every supplier payment traces back to an approved plan. The money for a bid (its sales
 requisitions and bid security requests) and the bank fees of guarantees and bonds falling due are
-issued from the plan only. Each line says which bank account pays it; the position shows what that
+paid from the plan only, with a journal entry. Each line says which bank account pays it; the position shows what that
 leaves in each account. A supplier may go on the plan as soon as its requisition is approved: the
 payment is then linked to the line and the requisition, and carried to the order and the invoice.
 
@@ -19,14 +19,20 @@ from frappe.model.document import Document
 from frappe.utils import flt, formatdate, getdate, nowdate
 
 from project_management_muhick.muhick_projects.utils import draft_status, leaving_draft, validate_dates
-from project_management_muhick.utils.common import FINANCE_ROLES, require_roles
+from project_management_muhick.utils.common import FINANCE_ROLES, get_settings, require_roles
 
 DONE = ("Paid", "Held", "Not Executed")
 OPEN_PLAN = ("Draft", "Pending Approval", "Approved")
 # documents paid with a Payment Entry; the others are paid from their own form
 PAID_BY_PAYMENT_ENTRY = ("Purchase Invoice", "Purchase Order", "Payment Request", "Procurement Requisition")
-# documents whose funds can also be issued from the plan: the method that records them on the document
-ISSUED_FROM_PLAN = {"Sales Requisition": "mark_paid", "Bid Security Request": "issue_funds", "Bank Instrument": "pay_fees"}
+# documents with no supplier, paid with a Journal Entry: the setting naming the account it charges, and the method
+# that records the money on the document when the entry is submitted
+PAID_BY_JOURNAL_ENTRY = {
+	"Sales Requisition": ("sales_requisition_account", "mark_paid"),
+	"Bid Security Request": ("bid_security_account", "issue_funds"),
+	"Bank Instrument": ("bank_charges_account", "pay_fees"),
+}
+RAISED_FROM_PLAN = (*PAID_BY_PAYMENT_ENTRY, *PAID_BY_JOURNAL_ENTRY)
 # a guarantee or bond whose bank fees are still charged
 FEES_RUNNING = ("Requested", "Active", "Cancellation Requested")
 
@@ -416,7 +422,7 @@ class PaymentPlan(Document):
 
 	@frappe.whitelist()
 	def raise_payments(self) -> dict:
-		"""A draft payment for every approved line paid with one. A line that cannot be raised does not hold up the others:
+		"""A draft payment for every approved line paid from the plan. A line that cannot be raised does not hold up the others:
 		it is reported, and one whose document has nothing left to pay is closed as not executed, saying why."""
 		require_roles(*FINANCE_ROLES)
 		if self.docstatus != 1 or self.status != "Approved":
@@ -429,7 +435,7 @@ class PaymentPlan(Document):
 		frappe.flags.mute_messages = True
 		try:
 			for row in self.lines:
-				if row.line_status != "Approved" or row.payment_entry or row.reference_doctype not in PAID_BY_PAYMENT_ENTRY:
+				if row.line_status != "Approved" or row.payment_entry or row.journal_entry or row.reference_doctype not in RAISED_FROM_PLAN:
 					continue
 				frappe.db.savepoint("plan_payment")
 				try:
@@ -448,15 +454,16 @@ class PaymentPlan(Document):
 		return result
 
 	def make_payment(self, line: str):
-		"""The outgoing payment of one approved line, as a draft Payment Entry, for no more than is left to pay. With
-		nothing left, because it was paid by other means, the line is closed and there is no payment."""
+		"""The outgoing payment of one approved line, as a draft, for no more than is left to pay: a Payment Entry to a
+		supplier, a Journal Entry for a line with none. With nothing left, because it was paid by other means, the line is
+		closed and there is no payment."""
 		row = next((l for l in self.lines if l.name == line), None)
 		if not row or row.line_status != "Approved":
 			frappe.throw(_("This line is not approved for payment."))
-		if row.payment_entry:
-			return row.payment_entry
-		if row.reference_doctype not in PAID_BY_PAYMENT_ENTRY:
-			frappe.throw(_("{0} {1} is paid from its own form or with Issue Funds.").format(_(row.reference_doctype), row.reference_name))
+		if row.payment_entry or row.journal_entry:
+			return row.payment_entry or row.journal_entry
+		if row.reference_doctype not in RAISED_FROM_PLAN:
+			frappe.throw(_("{0} {1} is paid from its own form.").format(_(row.reference_doctype), row.reference_name))
 		self.set_line_details(row)
 		if flt(row.outstanding_amount) <= 0:
 			reason = _("Nothing is left to pay on {0}.").format(row.reference_name)
@@ -466,6 +473,11 @@ class PaymentPlan(Document):
 		if not row.paid_from:
 			frappe.throw(_("Payment Lines row {0}: choose the bank account to pay {1} from.").format(row.idx, row.reference_name))
 		self.check_account_currency(row, row.paid_from)
+		if row.reference_doctype in PAID_BY_JOURNAL_ENTRY:
+			entry = _journal_entry(self, row)
+			entry.insert()
+			frappe.db.set_value("Payment Plan Line", row.name, "journal_entry", entry.name, update_modified=False)
+			return entry.name
 		rate = flt(row.exchange_rate) or self.owed_in(row)[1]
 		doctype, name = row.reference_doctype, row.reference_name
 		if doctype == "Procurement Requisition":
@@ -489,47 +501,12 @@ class PaymentPlan(Document):
 		return entry.name
 
 	@frappe.whitelist()
-	def issue_funds(
-		self,
-		line: str,
-		issued_on: str | None = None,
-		payment_reference: str | None = None,
-		accountability_due_date: str | None = None,
-		paid_from: str | None = None,
-	):
-		"""Pay an approved sales requisition, bid security request or bank fee line: the document records
-		the funds issued (or the fees paid), and its line here is marked paid, from which account and when."""
-		require_roles(*FINANCE_ROLES)
-		if self.docstatus != 1 or self.status != "Approved":
-			frappe.throw(_("Funds can only be issued from an approved plan."))
-		row = next((l for l in self.lines if l.name == line), None)
-		if not row or row.line_status != "Approved":
-			frappe.throw(_("This line is not approved for payment."))
-		method = ISSUED_FROM_PLAN.get(row.reference_doctype)
-		if not method:
-			frappe.throw(_("Funds for {0} {1} are not issued from the plan.").format(_(row.reference_doctype), row.reference_name))
-		paid_from = paid_from or row.paid_from
-		if not paid_from:
-			frappe.throw(_("Payment Lines row {0}: choose the bank account to pay {1} from.").format(row.idx, row.reference_name))
-		self.check_account_currency(row, paid_from)
-		doc = frappe.get_doc(row.reference_doctype, row.reference_name)
-		# a requisition is accounted for by a date; a bid security request is not
-		extra = {"accountability_due_date": accountability_due_date} if method == "mark_paid" else {}
-		getattr(doc, method)(flt(row.approved_amount), issued_on or nowdate(), payment_reference, **extra)
-		frappe.db.set_value(
-			"Payment Plan Line",
-			row.name,
-			{"paid_from": paid_from, "paid_on": issued_on or nowdate(), "payment_reference": payment_reference},
-			update_modified=False,
-		)
-
-	@frappe.whitelist()
 	def refresh_lines(self):
 		"""Pick up lines paid from their own form (requisitions, casual sheets, expense claims)."""
 		if self.docstatus != 1:
 			frappe.throw(_("Only an approved plan is refreshed."))
 		for row in self.lines:
-			if row.reference_doctype in PAID_BY_PAYMENT_ENTRY or row.line_status != "Approved":
+			if row.reference_doctype in RAISED_FROM_PLAN or row.line_status != "Approved":
 				continue
 			status = frappe.db.get_value(row.reference_doctype, row.reference_name, "status")
 			if status in ("Paid", "Funds Issued", "Accountability Submitted", "Accounted", "Closed"):
@@ -552,6 +529,38 @@ def _account_position(account) -> dict:
 		"balance": flt(get_balance_on(account, date=nowdate())),
 		"base_balance": flt(get_balance_on(account, date=nowdate(), in_account_currency=False)),
 	}
+
+
+def _journal_entry(plan, row):
+	"""The draft that pays a line with no supplier: from the line's account to the one Muhick Settings names for it. The
+	bank's reference is entered before it is submitted, and submitting it marks the document paid."""
+	account = get_settings().get(PAID_BY_JOURNAL_ENTRY[row.reference_doctype][0])
+	if not account:
+		frappe.throw(_("Muhick Settings has no account for paying a {0}.").format(_(row.reference_doctype)))
+	amount = flt(row.approved_amount)
+	entry = frappe.new_doc("Journal Entry")
+	entry.update(
+		{
+			"voucher_type": "Cash Entry" if frappe.get_cached_value("Account", row.paid_from, "account_type") == "Cash" else "Bank Entry",
+			"company": plan.company,
+			"posting_date": nowdate(),
+			"mode_of_payment": row.mode_of_payment,
+			"user_remark": _("{0} {1}, {2}: payment plan {3}").format(_(row.reference_doctype), row.reference_name, row.party, plan.name),
+			"muhick_payment_plan": plan.name,
+			"muhick_payment_plan_line": row.name,
+		}
+	)
+	entry.append(
+		"accounts",
+		{
+			"account": account,
+			"debit_in_account_currency": amount,
+			"project": row.project,
+			"cost_center": frappe.get_cached_value("Company", plan.company, "cost_center"),
+		},
+	)
+	entry.append("accounts", {"account": row.paid_from, "credit_in_account_currency": amount})
+	return entry
 
 
 def _payment_against(doctype, name, company, row, rate):
@@ -720,6 +729,49 @@ def on_payment(entry, cancelled=False):
 	update_progress(frappe.db.get_value("Payment Plan Line", line, "parent"))
 	if entry.get("muhick_procurement_requisition"):
 		carry_to_requisition(entry.muhick_procurement_requisition, entry.party)
+
+
+def on_journal_entry(entry, cancelled=False):
+	"""A Journal Entry raised from a line, submitted or cancelled: the document it pays and the line follow."""
+	line = entry.get("muhick_payment_plan_line")
+	if not line or not frappe.db.exists("Payment Plan Line", line):
+		return
+	row = frappe.db.get_value(
+		"Payment Plan Line", line, ["parent", "reference_doctype", "reference_name", "line_status", "approved_amount"], as_dict=True
+	)
+	doc = frappe.get_doc(row.reference_doctype, row.reference_name)
+	if cancelled:
+		doc.reverse_funds(entry.name)
+		values = {"line_status": "Approved", "paid_amount": 0, "journal_entry": None, "paid_on": None, "payment_reference": None}
+	else:
+		if frappe.db.get_value("Payment Plan", row.parent, ["docstatus", "status"]) != (1, "Approved") or row.line_status != "Approved":
+			frappe.throw(_("Line {0} of Payment Plan {1} is not approved for payment.").format(row.reference_name, row.parent))
+		paying = [r for r in entry.get("accounts") if frappe.get_cached_value("Account", r.account, "account_type") in ("Bank", "Cash")]
+		amount = sum(flt(r.credit) for r in paying)
+		if amount > flt(row.approved_amount) + 0.5:
+			frappe.throw(
+				_("The payment ({0}) is more than the amount approved on the payment plan ({1}).").format(
+					frappe.format_value(amount, "Currency"), frappe.format_value(row.approved_amount, "Currency")
+				)
+			)
+		# the document settles the line, for what it takes
+		getattr(doc, PAID_BY_JOURNAL_ENTRY[row.reference_doctype][1])(amount, entry.posting_date, entry.name)
+		values = {
+			"journal_entry": entry.name,
+			"paid_from": paying[0].account if paying else None,
+			"paid_on": entry.posting_date,
+			"payment_reference": entry.get("cheque_no"),
+		}
+	frappe.db.set_value("Payment Plan Line", line, values, update_modified=False)
+	update_progress(row.parent)
+
+
+def payment_deleted(doc, method=None):
+	"""A draft payment deleted: its line can be raised again."""
+	line = doc.get("muhick_payment_plan_line")
+	if line:
+		field = "payment_entry" if doc.doctype == "Payment Entry" else "journal_entry"
+		frappe.db.set_value("Payment Plan Line", line, field, None, update_modified=False)
 
 
 def approved_amount_for(entry) -> float | None:

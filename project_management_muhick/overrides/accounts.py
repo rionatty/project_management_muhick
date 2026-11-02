@@ -157,7 +157,9 @@ def on_submit_payment_request(doc, method=None):
 # ------------------------------------------------------------------ Journal Entry
 def on_submit_journal_entry(doc, method=None):
 	reimbursement_claim.on_refund(doc)
+	payment_plan.on_journal_entry(doc)
 
 
 def on_cancel_journal_entry(doc, method=None):
 	reimbursement_claim.on_refund(doc, cancelled=True)
+	payment_plan.on_journal_entry(doc, cancelled=True)

@@ -86,6 +86,14 @@ class BankInstrument(Document):
 		self.save()
 		settle_plan_line(self.doctype, self.name, flt(amount) - left)
 
+	def reverse_funds(self, reference):
+		"""Its payment was cancelled: the fees it paid are owed again."""
+		for fee in self.fees:
+			if fee.paid and fee.reference == reference:
+				fee.update({"paid": 0, "paid_on": None, "reference": None})
+		self.flags.ignore_permissions = True
+		self.save()
+
 	def on_update(self):
 		update_utilisation(self.bank_facility)
 		if self.flags.previous_facility and self.flags.previous_facility != self.bank_facility:

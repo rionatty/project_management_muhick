@@ -93,6 +93,15 @@ class SalesRequisition(Document):
 		refresh_bid_status(self.opportunity)
 		notify([self.requested_by], _("{0} has been paid. Account for it by {1}.").format(self.name, self.accountability_due_date), doc=self)
 
+	def reverse_funds(self, reference=None):
+		"""Its payment was cancelled, so the money is not out after all: not once it is being accounted for."""
+		require_roles(*FINANCE_ROLES)
+		self._require_status("Paid")
+		if self.expenses:
+			frappe.throw(_("Expenses are recorded against {0}. Remove them before cancelling its payment.").format(self.name))
+		self.db_set({"amount_issued": 0, "issued_on": None, "payment_reference": None, "accountability_due_date": None, "status": "Approved"})
+		refresh_bid_status(self.opportunity)
+
 	@frappe.whitelist()
 	def submit_accountability(self):
 		self._require_status("Paid")

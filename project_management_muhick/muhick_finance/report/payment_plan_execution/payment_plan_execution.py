@@ -27,6 +27,7 @@ def execute(filters=None):
 		{"fieldname": "paid_from", "label": _("Pay From Account"), "fieldtype": "Link", "options": "Account", "width": 220},
 		{"fieldname": "paid_on", "label": _("Paid On"), "fieldtype": "Date", "width": 110},
 		{"fieldname": "payment_entry", "label": _("Payment Entry"), "fieldtype": "Link", "options": "Payment Entry", "width": 160},
+		{"fieldname": "journal_entry", "label": _("Journal Entry"), "fieldtype": "Link", "options": "Journal Entry", "width": 160},
 		{"fieldname": "payment_reference", "label": _("Payment Reference"), "fieldtype": "Data", "width": 150},
 		{"fieldname": "hold_reason", "label": _("Reason Held / Not Executed"), "fieldtype": "Data", "width": 280},
 	]
@@ -44,7 +45,7 @@ def execute(filters=None):
 		f"""
 		select p.name as plan, p.period_to, l.reference_doctype, l.reference_name, l.party, l.project,
 			l.proposed_amount, l.approved_amount, l.paid_amount, l.line_status, l.mode_of_payment,
-			l.paid_from, l.paid_on, l.payment_entry, l.payment_reference, l.hold_reason
+			l.paid_from, l.paid_on, l.payment_entry, l.journal_entry, l.payment_reference, l.hold_reason
 		from `tabPayment Plan Line` l
 		inner join `tabPayment Plan` p on p.name = l.parent
 		where {" and ".join(conditions)}

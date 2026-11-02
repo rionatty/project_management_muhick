@@ -128,6 +128,7 @@ doc_events = {
 	"Journal Entry": {
 		"on_submit": "project_management_muhick.overrides.accounts.on_submit_journal_entry",
 		"on_cancel": "project_management_muhick.overrides.accounts.on_cancel_journal_entry",
+		"on_trash": "project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan.payment_deleted",
 	},
 	"Purchase Invoice": {
 		"before_validate": "project_management_muhick.overrides.buying.before_validate_purchase_invoice",
@@ -140,6 +141,7 @@ doc_events = {
 		"validate": "project_management_muhick.overrides.accounts.validate_payment_entry",
 		"on_submit": "project_management_muhick.overrides.accounts.after_payment",
 		"on_cancel": "project_management_muhick.overrides.accounts.after_payment",
+		"on_trash": "project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan.payment_deleted",
 	},
 	"Stock Entry": {
 		"before_validate": "project_management_muhick.overrides.stock.before_validate_stock_entry",
