@@ -119,6 +119,9 @@ doc_events = {
 	"Payment Request": {
 		"on_submit": "project_management_muhick.overrides.accounts.on_submit_payment_request",
 	},
+	"Bank Account": {
+		"on_update": "project_management_muhick.overrides.accounts.bank_details_changed",
+	},
 	"Journal Entry": {
 		"on_submit": "project_management_muhick.overrides.accounts.on_submit_journal_entry",
 		"on_cancel": "project_management_muhick.overrides.accounts.on_cancel_journal_entry",
@@ -135,6 +138,7 @@ doc_events = {
 		"on_cancel": "project_management_muhick.overrides.accounts.after_payment",
 	},
 	"Stock Entry": {
+		"before_validate": "project_management_muhick.overrides.stock.before_validate_stock_entry",
 		"validate": "project_management_muhick.overrides.stock.validate_stock_entry",
 		"on_update": _track,
 		"on_submit": ["project_management_muhick.overrides.stock.refresh_budgets", _track, _boq],

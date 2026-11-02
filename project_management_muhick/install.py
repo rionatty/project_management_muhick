@@ -5,7 +5,12 @@ import frappe
 
 from project_management_muhick.setup.custom_fields import setup_custom_fields
 from project_management_muhick.setup.defaults import setup_defaults
-from project_management_muhick.setup.roles import setup_role_profiles, setup_roles, setup_standard_permissions
+from project_management_muhick.setup.roles import (
+	restrict_bank_details,
+	setup_role_profiles,
+	setup_roles,
+	setup_standard_permissions,
+)
 from project_management_muhick.setup.workflows import setup_workflows
 
 # ERPNext's own desk icon for its Projects workspace
@@ -34,6 +39,7 @@ CRM_HIDDEN = (("Contact", "Prospect", "DocType", "Prospect", 1),)
 def after_install():
 	setup()
 	setup_defaults()
+	restrict_bank_details()
 
 
 def after_migrate():

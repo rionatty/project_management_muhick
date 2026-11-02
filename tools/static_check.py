@@ -109,7 +109,7 @@ wf_mod = importlib.import_module(f"{PKG}.setup.workflows")
 
 CUSTOM = cf_mod.CUSTOM_FIELDS
 STD_ROLES = {
-	"System Manager", "Stock User", "Stock Manager", "Purchase User", "Purchase Manager", "Projects User", "Projects Manager",
+	"System Manager", "Item Manager", "Stock User", "Stock Manager", "Purchase User", "Purchase Manager", "Projects User", "Projects Manager",
 	"Accounts User", "Accounts Manager", "Sales User", "Sales Manager", "Desk User", "Employee",
 }
 ROLES = set(roles_mod.ROLES) | STD_ROLES

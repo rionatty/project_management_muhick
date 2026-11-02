@@ -47,6 +47,10 @@ ACTIONS = [
 PENDING_STATES = (P_COO, P_FM, P_GM, P_PRM, P_HOS, P_ADM, "Pending Acceptance")
 
 
+# the approval route that ends at the first approver, and at the second
+ROUTE_ENDS = ("First Approver Only", "Up to Second Approver")
+
+
 def _state(state, doc_status, *roles):
 	return [dict(state=state, doc_status=str(doc_status), allow_edit=role) for role in roles]
 
@@ -62,11 +66,12 @@ def _t(state, action, next_state, roles, condition=None):
 	]
 
 
-def _chain(originators, approvers, post_approval_editors=(), pending_editors=(), submit_action=SUBMIT):
+def _chain(originators, approvers, post_approval_editors=(), pending_editors=(), submit_action=SUBMIT, route=None):
 	"""Draft -> one pending step per approver -> Approved, with a Reject at every step.
 
 	approvers: ordered (pending_state, role) pairs.
 	pending_editors: roles that may still edit while the document is under approval.
+	route: the document's field that holds its approval route, when approval limits can end it early.
 	"""
 	states = _state(DRAFT, 0, *originators)
 	transitions = []
@@ -75,7 +80,11 @@ def _chain(originators, approvers, post_approval_editors=(), pending_editors=(),
 	for i, (pending, role) in enumerate(approvers):
 		states += _state(pending, 0, role, *pending_editors)
 		next_state = approvers[i + 1][0] if i + 1 < len(approvers) else APPROVED
-		transitions += _t(pending, APPROVE, next_state, role)
+		if route and next_state != APPROVED:
+			transitions += _t(pending, APPROVE, APPROVED, role, f'doc.{route} == "{ROUTE_ENDS[i]}"')
+			transitions += _t(pending, APPROVE, next_state, role, f'doc.{route} != "{ROUTE_ENDS[i]}"')
+		else:
+			transitions += _t(pending, APPROVE, next_state, role)
 		transitions += _t(pending, REJECT, REJECTED, role)
 	final_role = approvers[-1][1]
 	states += _state(APPROVED, 1, final_role, *post_approval_editors)
@@ -218,19 +227,25 @@ def _supplier_quotation():
 
 
 def _purchase_order():
+	"""The Finance Manager, then the General Manager; the approval limits can end it at the Finance Manager."""
 	officers = ["Purchase User", PRO, PRM]
+	route = "doc.muhick_approval_route"
 	states = (
 		_state(DRAFT, 0, *officers)
+		+ _state(P_FM, 0, FM)
 		+ _state(P_GM, 0, GM)
-		+ _state(APPROVED, 1, GM, "Purchase User", "Purchase Manager")
+		+ _state(APPROVED, 1, GM, FM, "Purchase User", "Purchase Manager")
 		+ _state(REJECTED, 0, *officers)
 		+ _state(CANCELLED, 2, GM)
 	)
 	transitions = (
-		_t(DRAFT, SUBMIT, P_GM, officers)
+		_t(DRAFT, SUBMIT, P_FM, officers)
+		+ _t(P_FM, APPROVE, APPROVED, FM, f'{route} == "{ROUTE_ENDS[0]}"')
+		+ _t(P_FM, APPROVE, P_GM, FM, f'{route} != "{ROUTE_ENDS[0]}"')
+		+ _t(P_FM, REJECT, REJECTED, FM)
 		+ _t(P_GM, APPROVE, APPROVED, GM)
 		+ _t(P_GM, REJECT, REJECTED, GM)
-		+ _t(REJECTED, SUBMIT, P_GM, officers)
+		+ _t(REJECTED, SUBMIT, P_FM, officers)
 		+ _t(APPROVED, CANCEL, CANCELLED, [GM, "Purchase Manager"])
 	)
 	return states, transitions
@@ -397,7 +412,9 @@ def get_workflows():
 		# procurement: supplier selection, requisition, order, goods received
 		"Supplier Quotation": _supplier_quotation(),
 		# the officer may still correct prices while it is under approval; the change is logged
-		"Procurement Requisition": _chain([PRO, PRM], FULL_CHAIN, post_approval_editors=[PRO, PRM], pending_editors=[PRO]),
+		"Procurement Requisition": _chain(
+			[PRO, PRM], FULL_CHAIN, post_approval_editors=[PRO, PRM], pending_editors=[PRO], route="approval_route"
+		),
 		"Purchase Order": _purchase_order(),
 		"Purchase Receipt": _purchase_receipt(),
 		# stores

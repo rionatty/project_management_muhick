@@ -27,3 +27,4 @@ project_management_muhick.patches.line_vat_rate
 project_management_muhick.patches.budget_lines_in_tabs
 project_management_muhick.patches.schedule_outline
 project_management_muhick.patches.schedule_groups
+project_management_muhick.patches.approval_limits

@@ -214,7 +214,13 @@ class TestApprovals(unittest.TestCase):
 
 	def test_risk_specific_limit(self):
 		self.assertEqual(calc.approval_route(1_500_000, self.THRESHOLDS, "Low"), calc.FIRST_APPROVER)
-		self.assertEqual(calc.approval_route(1_500_000, self.THRESHOLDS, "High"), calc.SECOND_APPROVER)
+		self.assertEqual(calc.approval_route(1_500_000, self.THRESHOLDS, "Medium"), calc.SECOND_APPROVER)
+
+	def test_high_risk_only_follows_limits_for_high_risk(self):
+		self.assertEqual(calc.approval_route(100, self.THRESHOLDS, "High"), calc.FULL_ROUTE)
+		limits = [*self.THRESHOLDS, {"upto_amount": 1_000, "approval_route": calc.SECOND_APPROVER, "risk_class": "High"}]
+		self.assertEqual(calc.approval_route(100, limits, "High"), calc.SECOND_APPROVER)
+		self.assertEqual(calc.approval_route(2_000, limits, "High"), calc.FULL_ROUTE)
 
 
 class TestThreeWayMatch(unittest.TestCase):

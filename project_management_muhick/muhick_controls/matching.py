@@ -72,18 +72,37 @@ def _lines(doc) -> list[dict]:
 			"invoice_rate": flt(row.base_rate),
 		}
 		if has_order:
-			po = frappe.db.get_value("Purchase Order Item", row.po_detail, ["qty", "received_qty", "base_rate"], as_dict=True)
+			po = frappe.db.get_value("Purchase Order Item", row.po_detail, ["qty", "base_rate"], as_dict=True)
 			if not po:
 				line["has_order"] = False
 			else:
 				line.update(
 					ordered_qty=flt(po.qty),
-					received_qty=flt(po.received_qty),
+					received_qty=_accepted_qty(row.po_detail),
 					order_rate=flt(po.base_rate),
 					billed_qty=_billed_before(row.po_detail, doc.name) + flt(row.qty),
 				)
 		lines.append(line)
 	return lines
+
+
+def _accepted_qty(po_detail) -> float:
+	"""What was accepted against an order line: goods received notes less their returns, and invoices that
+	also received the stock. The order's own received quantity counts rejected goods too, which are not owed."""
+	accepted = frappe.db.sql(
+		"""
+		select sum(qty) from (
+			select pri.qty from `tabPurchase Receipt Item` pri
+			where pri.purchase_order_item = %(row)s and pri.docstatus = 1
+			union all
+			select pii.qty from `tabPurchase Invoice Item` pii
+			inner join `tabPurchase Invoice` pi on pi.name = pii.parent
+			where pii.po_detail = %(row)s and pi.docstatus = 1 and pi.update_stock = 1
+		) accepted
+		""",
+		{"row": po_detail},
+	)
+	return flt(accepted[0][0]) if accepted else 0.0
 
 
 def _billed_before(po_detail, this_invoice) -> float:

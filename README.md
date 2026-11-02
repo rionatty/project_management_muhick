@@ -127,9 +127,18 @@ and certificates, retention, payments and the controls around them.
   issued from it only; expense claims refunded by journal entry.
 - Bank facilities and the guarantees, bonds and letters of credit drawn on them, with expiry and
   quarterly fee reminders; funds lent between projects with approval.
-- Three-way match (order, receipt, supplier invoice), segregation of duties on the purchase cycle,
-  quarantine stock, approval limits by value, turnaround time per approval step with alerts, and a
-  role and permission matrix.
+- Three-way match (order, what was accepted on the receipt, supplier invoice; rejected goods are not
+  owed), segregation of duties across supplier creation, receipt, invoice, payment and bank details,
+  quarantine stock, client-owned stock (received at no value and kept apart from the company's),
+  turnaround time per approval step with alerts, and a role and permission matrix.
+- Approval limits by value and risk on the Procurement Requisition, the Purchase Order, the Project
+  Requisition, fuel and vehicle service: the table in Muhick Settings says how far up each one goes. A
+  requisition's risk is chosen, and is high whatever was chosen for a single quotation, an advance payment
+  or international procurement (each can be switched off). High risk takes the full route unless the table
+  has a row for it, and so does anything over budget. Orders go to the Finance Manager, then the General
+  Manager. A quotation in another currency is read in the company's for the budget and the limits.
+- Only the Finance Manager changes bank details, and the General Manager hears of each change. The
+  Procurement Manager holds the item list.
 
 **Sales and bids**
 
@@ -302,7 +311,7 @@ again: it only creates what is missing.
    - Projects: parent warehouse for site stores (a group), central store, goods-in-transit warehouse.
    - Billing: the item used on certificate invoices, the item used on subcontract invoices, and the
      retention invoicing method (confirm with Finance).
-   - Approvals: thresholds by value, allowed hours per approval step, escalation role.
+   - Approvals: limits by value and risk, allowed hours per approval step, escalation role.
    - Controls and Procurement and Payments: each control is Off, Warn or Block. They start on Warn.
    - "Project Managers Can Open Purchase Orders" is off at the start, so Project Managers do not
      see purchase prices on orders. It works on the whole document, not field by field.

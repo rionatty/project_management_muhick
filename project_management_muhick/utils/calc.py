@@ -279,13 +279,15 @@ def approval_route(amount, thresholds, risk_class="Any") -> str:
 	"""Pick the approval route for a document total.
 
 	thresholds: iterable of dicts with upto_amount, approval_route and optional risk_class.
-	The lowest matching limit wins; with no match the full route applies.
+	A limit for any risk applies to everything but a high-risk document, which only a limit for high risk
+	can shorten. The lowest matching limit wins; with no match the full route applies.
 	"""
+	risks = (risk_class,) if risk_class == "High" else ("Any", risk_class)
 	matches = [
 		t
 		for t in thresholds or []
 		if _f(amount) <= _f(t.get("upto_amount"))
-		and (t.get("risk_class") or "Any") in ("Any", risk_class)
+		and (t.get("risk_class") or "Any") in risks
 	]
 	if not matches:
 		return FULL_ROUTE
@@ -301,7 +303,8 @@ def three_way_match(lines, qty_tolerance_percent=0, rate_tolerance_percent=0) ->
 	"""Compare supplier invoice lines with what was ordered and received.
 
 	lines: dicts with item, billed_qty (this invoice plus earlier ones), ordered_qty,
-	received_qty, invoice_rate, order_rate, has_order, needs_receipt.
+	received_qty (what was accepted; rejected goods are not owed), invoice_rate, order_rate, has_order,
+	needs_receipt.
 	Returns one message per exception; an empty list means the invoice matches.
 	"""
 	exceptions = []
@@ -315,7 +318,7 @@ def three_way_match(lines, qty_tolerance_percent=0, rate_tolerance_percent=0) ->
 		if billed > ordered * tolerance + 1e-9:
 			exceptions.append(f"{item}: invoiced {billed:g} but only {ordered:g} ordered")
 		if line.get("needs_receipt", True) and billed > received * tolerance + 1e-9:
-			exceptions.append(f"{item}: invoiced {billed:g} but only {received:g} received")
+			exceptions.append(f"{item}: invoiced {billed:g} but only {received:g} received and accepted")
 		order_rate, invoice_rate = _f(line.get("order_rate")), _f(line.get("invoice_rate"))
 		if order_rate and invoice_rate > order_rate * (1 + _f(rate_tolerance_percent) / 100) + 1e-9:
 			exceptions.append(f"{item}: invoice rate {invoice_rate:,.2f} is above the order rate {order_rate:,.2f}")

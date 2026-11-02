@@ -3,7 +3,8 @@
 
 """Procurement Requisition: raised once the supplier is selected, carrying the chosen supplier,
 itemised prices, payment and delivery terms. Approved COO -> Finance Manager -> General Manager,
-and only then is the Purchase Order raised from it.
+as far as the approval limits ask for its value and risk, and only then is the Purchase Order raised
+from it. Its prices are in the quotation's currency; the budget and the limits read them in the company's.
 
 Prices are compared with the project budget line by line and any variance is flagged. Prices or
 quantities may still be corrected while it is under approval: the change needs a written summary,
@@ -15,15 +16,18 @@ from collections import defaultdict
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, getdate, now_datetime, nowdate
+from frappe.utils import cint, flt, getdate, now_datetime, nowdate
 
 from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.muhick_projects.utils import draft_status
 from project_management_muhick.overrides.buying import _approved_overrun
-from project_management_muhick.utils.common import COO, FINANCE_ROLES, notify_roles
+from project_management_muhick.utils import calc
+from project_management_muhick.utils.approval import get_route
+from project_management_muhick.utils.common import COO, FINANCE_ROLES, get_settings, notify_roles
 
 BEING_PREPARED = (None, "", "Draft", "Rejected")
 RANK = {"Not Applicable": 0, "Within Budget": 1, "Exceeds Budget": 2, "Not Budgeted": 3}
+RISKS = ("Low", "Medium", "High")
 
 
 class ProcurementRequisition(Document):
@@ -31,12 +35,16 @@ class ProcurementRequisition(Document):
 		self.set_supplier()
 		self.set_item_values()
 		self.set_budget_status()
+		self.set_route()
 		self.status = draft_status(self)
 		self.log_change()
 
 	def set_supplier(self):
 		quotation = frappe.db.get_value(
-			"Supplier Quotation", self.supplier_quotation, ["docstatus", "supplier", "supplier_name"], as_dict=True
+			"Supplier Quotation",
+			self.supplier_quotation,
+			["docstatus", "supplier", "supplier_name", "currency", "conversion_rate"],
+			as_dict=True,
 		)
 		if not quotation or quotation.docstatus != 1:
 			frappe.throw(
@@ -45,6 +53,7 @@ class ProcurementRequisition(Document):
 				)
 			)
 		self.supplier, self.supplier_name = quotation.supplier, quotation.supplier_name
+		self.currency, self.conversion_rate = quotation.currency, quotation.conversion_rate
 		other = frappe.db.get_value(
 			"Procurement Requisition",
 			{"supplier_quotation": self.supplier_quotation, "docstatus": ("<", 2), "name": ("!=", self.name or "")},
@@ -75,16 +84,20 @@ class ProcurementRequisition(Document):
 			if not row.cost_code and row.project:
 				row.cost_code = budget_engine.get_budget_cost_code(row.project, row.item_code)
 			row.budget_rate = budget_engine.get_budget_rate(row.project, row.item_code) if row.project else 0
-			row.price_variance = (flt(row.rate) - flt(row.budget_rate)) * flt(row.qty) if flt(row.budget_rate) else 0
+			row.price_variance = (self.in_company_currency(row.rate) - flt(row.budget_rate)) * flt(row.qty) if flt(row.budget_rate) else 0
 			self.total_amount += row.amount
 			self.total_budget_amount += flt(row.budget_rate) * flt(row.qty)
 			self.total_price_variance += row.price_variance
+		self.base_total_amount = self.in_company_currency(self.total_amount)
+
+	def in_company_currency(self, amount) -> float:
+		return flt(amount) * (flt(self.conversion_rate) or 1)
 
 	def amounts_by_project(self) -> dict:
 		amounts = defaultdict(lambda: defaultdict(float))
 		for row in self.items:
 			if row.project:
-				amounts[row.project][row.cost_code or ""] += flt(row.amount)
+				amounts[row.project][row.cost_code or ""] += self.in_company_currency(row.amount)
 		return amounts
 
 	def new_quantities(self, project) -> dict:
@@ -110,6 +123,27 @@ class ProcurementRequisition(Document):
 			if note:
 				remarks.append(f"{project}: {note}")
 		self.budget_remarks = "; ".join(remarks)
+
+	def set_route(self):
+		"""Who approves follows the value and the risk. What is over budget takes the full route."""
+		settings = get_settings()
+		reasons = [
+			reason
+			for applies, reason in (
+				(settings.high_risk_single_quotation and cint(self.quotations_compared) < 2, _("single quotation")),
+				(settings.high_risk_advance_payment and self.payment_terms_type == "Advance", _("advance payment")),
+				(settings.high_risk_international and self.procurement_type == "International", _("international procurement")),
+			)
+			if applies
+		]
+		self.risk_reasons = ", ".join(reasons)
+		self.risk_class = "High" if reasons else (self.risk_class or "Medium")
+		# under approval it can go up, not down: that would shorten the route it is on
+		before = self.get_doc_before_save()
+		if before and before.get("workflow_state") not in BEING_PREPARED and RISKS.index(self.risk_class) < RISKS.index(before.risk_class or "Low"):
+			self.risk_class = before.risk_class
+		over_budget = self.budget_status in ("Exceeds Budget", "Not Budgeted")
+		self.approval_route = calc.FULL_ROUTE if over_budget else get_route(self.doctype, self.base_total_amount, self.risk_class)
 
 	def log_change(self):
 		"""A change made while the requisition is under approval is logged, not restarted."""
@@ -185,6 +219,8 @@ def make_from_supplier_quotation(source_name: str):
 			"supplier_quotation": quotation.name,
 			"supplier": quotation.supplier,
 			"supplier_name": quotation.supplier_name,
+			"currency": quotation.currency,
+			"conversion_rate": quotation.conversion_rate,
 			"company": quotation.company,
 			"project": quotation.project or frappe.db.get_value("Material Request", material_requests[0], "muhick_project"),
 		}
@@ -226,6 +262,8 @@ def make_purchase_order(source_name: str):
 		{
 			"supplier": requisition.supplier,
 			"company": requisition.company,
+			"currency": requisition.currency,
+			"conversion_rate": requisition.conversion_rate,
 			"project": requisition.project,
 			"muhick_procurement_requisition": requisition.name,
 			"muhick_payment_type": requisition.payment_terms_type,

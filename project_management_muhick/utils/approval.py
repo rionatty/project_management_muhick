@@ -33,6 +33,8 @@ NOTIFY_ON_APPROVAL = {
 	"Fuel Requisition": [FO],
 	"Vehicle Service Request": [FO],
 	"Project Budget": [PRM, FO],
+	# its approval creates the project's tasks and milestones
+	"Project Activity Plan": [COO, PRM],
 	"Project Budget Revision": [PRM, FO],
 	"Project Requisition": [FM, FO],
 	"Labour Schedule": [FM, FO],
@@ -114,12 +116,13 @@ def _on_state_change(doc, state, previous=None):
 		).insert(ignore_permissions=True)
 		subject = _("{0}{1} is waiting for your approval").format(_("URGENT: ") if _is_urgent(doc) else "", label)
 		notify_roles(get_approver_roles(doc.doctype, state), subject, doc=doc)
-		notify_roles(
-			NOTIFY_ON_PENDING.get(doc.doctype, []),
-			_("{0} has been raised and is awaiting approval").format(label),
-			doc=doc,
-			extra_users=_project_managers(doc),
-		)
+		told = list(NOTIFY_ON_PENDING.get(doc.doctype, []))
+		if doc.doctype == "Material Request" and doc.get("muhick_request_origin") in ("Administration", "User Department"):
+			# a department's own request: the General Manager sees it, though only Finance approves it
+			told.append(GM)
+		notify_roles(told, _("{0} has been raised and is awaiting approval").format(label), doc=doc, extra_users=_project_managers(doc))
+	elif state == "RFQ Issued":
+		notify_roles([FM, PRM], _("{0} has been issued to subcontractors").format(label), doc=doc)
 	elif state in RETURNED_STATES:
 		reason = (doc.get("rejection_reason") or "").strip()
 		notify([doc.owner], _("{0} was returned: {1}").format(label, f"{_(state)}. {reason}" if reason else _(state)), doc=doc)

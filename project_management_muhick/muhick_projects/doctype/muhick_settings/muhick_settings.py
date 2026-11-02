@@ -7,6 +7,10 @@ from frappe.model.document import Document
 from frappe.utils import flt
 
 
+# the documents whose approval steps follow the limits
+LIMITED_DOCUMENTS = ("Procurement Requisition", "Purchase Order", "Project Requisition", "Fuel Requisition", "Vehicle Service Request")
+
+
 class MuhickSettings(Document):
 	def validate(self):
 		parent = self.site_store_parent_warehouse
@@ -18,6 +22,8 @@ class MuhickSettings(Document):
 		for row in self.approval_thresholds:
 			if flt(row.upto_amount) <= 0:
 				frappe.throw(_("Approval Thresholds row {0}: Up To Amount must be more than zero.").format(row.idx))
+			if row.document_type not in LIMITED_DOCUMENTS:
+				frappe.throw(_("Approval Thresholds row {0}: {1} does not follow approval limits.").format(row.idx, _(row.document_type)))
 		for row in self.turnaround_rules:
 			if flt(row.max_hours) <= 0:
 				frappe.throw(_("Turnaround Rules row {0}: Allowed Hours must be more than zero.").format(row.idx))

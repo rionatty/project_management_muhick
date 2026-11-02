@@ -57,6 +57,9 @@
   "approvals_tab",
   "approval_limits_by_value_and_risk_section",
   "approval_thresholds",
+  "high_risk_single_quotation",
+  "high_risk_advance_payment",
+  "high_risk_international",
   "turnaround_time_section",
   "default_turnaround_hours",
   "send_turnaround_alerts",
@@ -402,6 +405,24 @@
    "options": "Approval Threshold"
   },
   {
+   "default": "1",
+   "fieldname": "high_risk_single_quotation",
+   "fieldtype": "Check",
+   "label": "Single Quotation Is High Risk"
+  },
+  {
+   "default": "1",
+   "fieldname": "high_risk_advance_payment",
+   "fieldtype": "Check",
+   "label": "Advance Payment Is High Risk"
+  },
+  {
+   "default": "1",
+   "fieldname": "high_risk_international",
+   "fieldtype": "Check",
+   "label": "International Procurement Is High Risk"
+  },
+  {
    "fieldname": "turnaround_time_section",
    "fieldtype": "Section Break",
    "label": "Turnaround Time"
@@ -656,7 +677,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-01 18:00:00.000000",
+ "modified": "2026-11-02 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Settings",

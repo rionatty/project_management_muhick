@@ -1,7 +1,8 @@
 # Copyright (c) 2026, CyveTech and contributors
 # For license information, please see license.txt
 
-"""Stock Entry, Delivery Note and Warehouse hooks: site stores, quarantine and store charges."""
+"""Stock Entry, Delivery Note and Warehouse hooks: site stores, quarantine, client-owned stock and store
+charges."""
 
 import frappe
 from frappe import _
@@ -19,9 +20,40 @@ def _warehouse(name) -> frappe._dict:
 	return frappe._dict(store_type=values[0], project=values[1], ownership=values[2])
 
 
+# ------------------------------------------------------------------ client-owned stock
+def _is_client_stock(warehouse) -> bool:
+	return _warehouse(warehouse).ownership == "Client"
+
+
+def before_validate_stock_entry(doc, method=None):
+	"""What the client owns is received at no value, so it never reaches Muhick's stock account."""
+	for row in doc.items:
+		if row.t_warehouse and not row.s_warehouse and _is_client_stock(row.t_warehouse):
+			row.allow_zero_valuation_rate = 1
+
+
+def _keep_client_stock_apart(doc):
+	"""Moving between the client's stock and Muhick's would carry value across, or none at all."""
+	for row in doc.items:
+		if not (row.s_warehouse and row.t_warehouse):
+			continue
+		if _is_client_stock(row.s_warehouse) == _is_client_stock(row.t_warehouse):
+			continue
+		if "Goods In Transit" not in (_warehouse(row.s_warehouse).store_type, _warehouse(row.t_warehouse).store_type):
+			frappe.throw(_("Row {0}: {1} and {2} hold stock of different owners, so it cannot move between them.").format(row.idx, row.s_warehouse, row.t_warehouse))
+
+
+def refuse_client_store(doc):
+	"""Goods Muhick buys are its own: they are not received into a store of the client's stock."""
+	for row in doc.items:
+		if _is_client_stock(row.warehouse):
+			frappe.throw(_("Row {0}: {1} holds the client's own stock. Receive goods bought by Muhick into another store.").format(row.idx, row.warehouse))
+
+
 # ------------------------------------------------------------------ Stock Entry
 def validate_stock_entry(doc, method=None):
 	_block_quarantine(doc, [(row.s_warehouse, row.t_warehouse) for row in doc.items])
+	_keep_client_stock_apart(doc)
 	doc.muhick_approval_route = _approval_route(doc)
 	origin = _origin_warehouse(doc)
 	for row in doc.items:

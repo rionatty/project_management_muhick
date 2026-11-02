@@ -15,7 +15,10 @@ from frappe.utils import flt
 
 from project_management_muhick.muhick_controls import matching, sod
 from project_management_muhick.muhick_projects import budget_engine
+from project_management_muhick.overrides import stock as stock_api
 from project_management_muhick.overrides import supplier as supplier_api
+from project_management_muhick.utils import calc
+from project_management_muhick.utils.approval import get_route
 from project_management_muhick.utils.common import PRO, get_settings, notify_roles
 
 OVER_BUDGET = ("Exceeds Budget", "Not Budgeted")
@@ -68,7 +71,9 @@ def _approved_overrun(doc) -> dict:
 	return allowance
 
 
-def _check_budget(doc, enforce=False):
+def _check_budget(doc, enforce=False) -> bool:
+	"""Whether the document is over budget on any project."""
+	over_budget = False
 	allowance = _approved_overrun(doc) if doc.doctype == "Purchase Order" else {}
 	for project, amounts in _amounts_by_project(doc).items():
 		status, remarks = budget_engine.evaluate(project, amounts, allowance=allowance.get(project))
@@ -80,12 +85,14 @@ def _check_budget(doc, enforce=False):
 		status, remarks = budget_engine.with_quantities(project, status, remarks, budget_engine.beyond_requests(rows))
 		if status not in OVER_BUDGET:
 			continue
+		over_budget = True
 		if enforce:
 			budget_engine.enforce(doc, "budget_action_on_purchase_order", status, f"{project}: {remarks}")
 		else:
 			frappe.msgprint(
 				_("{0}: {1}. {2}").format(project, _(status), remarks), title=_("Budget Check"), indicator="orange"
 			)
+	return over_budget
 
 
 # ------------------------------------------------------------------ Purchase Order
@@ -94,9 +101,20 @@ def validate_purchase_order(doc, method=None):
 	# checks only stop the order once it is sent for approval, so a draft can always be saved
 	enforce = doc.docstatus == 1 or doc.get("workflow_state") not in (None, "", "Draft", "Rejected")
 	if doc.docstatus == 0:
-		_check_budget(doc)
+		_set_route(doc, _check_budget(doc))
 	_check_requisition(doc, enforce)
 	supplier_api.check_purchase_order(doc, enforce)
+
+
+def _set_route(doc, over_budget):
+	"""Who approves follows the value and the requisition's risk. With no requisition, an order from approved
+	requests is of medium risk and one with nothing approved behind it high. What is over budget takes the
+	full route."""
+	requisition = doc.get("muhick_procurement_requisition")
+	doc.muhick_risk_class = (requisition and frappe.db.get_value("Procurement Requisition", requisition, "risk_class")) or (
+		"Medium" if all(row.get("material_request_item") for row in doc.items) else "High"
+	)
+	doc.muhick_approval_route = calc.FULL_ROUTE if over_budget else get_route(doc.doctype, doc.base_net_total, doc.muhick_risk_class)
 
 
 def _check_requisition(doc, enforce):
@@ -107,7 +125,10 @@ def _check_requisition(doc, enforce):
 	requisition = doc.get("muhick_procurement_requisition")
 	if requisition:
 		approved = frappe.db.get_value(
-			"Procurement Requisition", requisition, ["docstatus", "supplier", "purchase_order", "total_amount"], as_dict=True
+			"Procurement Requisition",
+			requisition,
+			["docstatus", "supplier", "purchase_order", "currency", "total_amount", "base_total_amount"],
+			as_dict=True,
 		)
 		if not approved or approved.docstatus != 1:
 			frappe.throw(_("Procurement Requisition {0} is not approved.").format(requisition))
@@ -115,10 +136,14 @@ def _check_requisition(doc, enforce):
 			frappe.throw(_("Procurement Requisition {0} was approved for supplier {1}.").format(requisition, approved.supplier))
 		if approved.purchase_order and approved.purchase_order != doc.name:
 			frappe.throw(_("Procurement Requisition {0} is already ordered on {1}.").format(requisition, approved.purchase_order))
-		if flt(doc.base_net_total) > flt(approved.total_amount) + 0.5:
+		# in the requisition's own currency, so a change in the exchange rate does not trip it
+		same_currency = doc.currency == approved.currency
+		ordered = doc.net_total if same_currency else doc.base_net_total
+		limit = approved.total_amount if same_currency else approved.base_total_amount
+		if flt(ordered) > flt(limit) + 0.5:
 			frappe.throw(
 				_("The order ({0}) is more than the approved requisition ({1}). Amend the requisition first.").format(
-					frappe.format_value(doc.base_net_total, "Currency"), frappe.format_value(approved.total_amount, "Currency")
+					frappe.format_value(ordered, "Currency"), frappe.format_value(limit, "Currency")
 				)
 			)
 		return
@@ -164,6 +189,8 @@ def refresh_budgets(doc, method=None):
 # ------------------------------------------------------------------ Purchase Receipt
 def validate_purchase_receipt(doc, method=None):
 	_fill_cost_codes(doc, "Purchase Order Item", "purchase_order_item")
+	stock_api.refuse_client_store(doc)
+	sod.check_purchase_receipt(doc)
 
 
 # ------------------------------------------------------------------ Purchase Invoice

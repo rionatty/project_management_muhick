@@ -4,6 +4,11 @@
 frappe.ui.form.on("Muhick Settings", {
 	setup(frm) {
 		frm.set_query("site_store_parent_warehouse", () => ({ filters: { is_group: 1 } }));
+		frm.set_query("document_type", "approval_thresholds", () => ({
+			filters: {
+				name: ["in", ["Procurement Requisition", "Purchase Order", "Project Requisition", "Fuel Requisition", "Vehicle Service Request"]],
+			},
+		}));
 		["import_vat_account", "import_duty_account", "import_levy_account"].forEach((field) => {
 			frm.set_query(field, () => ({ filters: { is_group: 0 } }));
 		});

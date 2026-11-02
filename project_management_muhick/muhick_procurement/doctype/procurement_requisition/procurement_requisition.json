@@ -10,6 +10,8 @@
   "supplier_quotation",
   "supplier",
   "supplier_name",
+  "currency",
+  "conversion_rate",
   "column_break_1",
   "company",
   "project",
@@ -28,6 +30,8 @@
   "delivery_location",
   "supplier_selection_section",
   "quotations_compared",
+  "risk_class",
+  "risk_reasons",
   "column_break_4",
   "evaluation_summary",
   "items_section",
@@ -35,10 +39,12 @@
   "section_break_1",
   "budget_status",
   "budget_remarks",
+  "approval_route",
   "column_break_5",
   "total_budget_amount",
   "total_price_variance",
   "total_amount",
+  "base_total_amount",
   "changes_while_under_approval_section",
   "amendment_summary",
   "amendments",
@@ -85,6 +91,21 @@
    "fieldname": "supplier_name",
    "fieldtype": "Data",
    "label": "Supplier Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.conversion_rate != 1",
+   "fieldname": "conversion_rate",
+   "fieldtype": "Float",
+   "label": "Exchange Rate",
+   "precision": "9",
    "read_only": 1
   },
   {
@@ -207,6 +228,22 @@
    "read_only": 1
   },
   {
+   "default": "Medium",
+   "fieldname": "risk_class",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Risk Class",
+   "options": "Low\nMedium\nHigh"
+  },
+  {
+   "depends_on": "risk_reasons",
+   "fieldname": "risk_reasons",
+   "fieldtype": "Data",
+   "label": "High Risk Because",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_4",
    "fieldtype": "Column Break"
   },
@@ -249,6 +286,14 @@
    "read_only": 1
   },
   {
+   "fieldname": "approval_route",
+   "fieldtype": "Select",
+   "label": "Approval Route",
+   "no_copy": 1,
+   "options": "\nFirst Approver Only\nUp to Second Approver\nFull Route",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_5",
    "fieldtype": "Column Break"
   },
@@ -256,12 +301,14 @@
    "fieldname": "total_budget_amount",
    "fieldtype": "Currency",
    "label": "Budgeted Amount",
+   "options": "Company:company:default_currency",
    "read_only": 1
   },
   {
    "fieldname": "total_price_variance",
    "fieldtype": "Currency",
    "label": "Price Variance",
+   "options": "Company:company:default_currency",
    "read_only": 1
   },
   {
@@ -270,6 +317,16 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Total Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "depends_on": "eval:doc.conversion_rate != 1",
+   "fieldname": "base_total_amount",
+   "fieldtype": "Currency",
+   "label": "Total in Company Currency",
+   "options": "Company:company:default_currency",
    "read_only": 1
   },
   {
@@ -319,7 +376,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-02 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Procurement",
  "name": "Procurement Requisition",

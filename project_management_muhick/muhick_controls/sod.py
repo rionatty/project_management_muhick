@@ -29,26 +29,46 @@ def _exempt(user) -> bool:
 	return user == "Administrator" or (get_settings().segregation_of_duties_action or "Warn") == "Off"
 
 
+def _created_supplier(supplier, user) -> bool:
+	return bool(supplier) and frappe.db.get_value("Supplier", supplier, "owner") == user
+
+
+def check_purchase_receipt(doc):
+	"""The person raising a goods received note should not be the one who created the supplier."""
+	user = frappe.session.user
+	if _exempt(user) or doc.is_return or doc.owner != user:
+		return
+	if _created_supplier(doc.supplier, user):
+		_act([_("You created supplier {0} and are also receiving its goods.").format(doc.supplier)])
+
+
 def check_purchase_invoice(doc):
-	"""The person posting the supplier invoice should not be the one who received the goods."""
+	"""The person posting the supplier invoice should not be the one who received the goods or created the
+	supplier."""
 	user = frappe.session.user
 	if _exempt(user) or doc.is_return:
 		return
+	violations = []
+	if _created_supplier(doc.supplier, user):
+		violations.append(_("You created supplier {0} and are also posting its invoice.").format(doc.supplier))
 	receipts = {row.purchase_receipt for row in doc.items if row.get("purchase_receipt")}
-	if not receipts:
-		return
-	mine = frappe.get_all("Purchase Receipt", filters={"name": ("in", list(receipts)), "owner": user}, pluck="name")
-	_act([_("You received the goods on {0} and are also posting the supplier invoice.").format(name) for name in mine])
+	if receipts:
+		for name in frappe.get_all("Purchase Receipt", filters={"name": ("in", list(receipts)), "owner": user}, pluck="name"):
+			violations.append(_("You received the goods on {0} and are also posting the supplier invoice.").format(name))
+	_act(violations)
 
 
 def check_payment_entry(doc):
-	"""The person paying should not have posted the invoice, received the goods or created the supplier."""
+	"""The person paying should not have posted the invoice, received the goods, created the supplier or
+	last changed its bank details."""
 	user = frappe.session.user
 	if _exempt(user) or doc.payment_type != "Pay" or doc.party_type != "Supplier":
 		return
 	violations = []
-	if doc.party and frappe.db.get_value("Supplier", doc.party, "owner") == user:
+	if _created_supplier(doc.party, user):
 		violations.append(_("You created supplier {0} and are also paying it.").format(doc.party))
+	if doc.party and frappe.db.exists("Bank Account", {"party_type": "Supplier", "party": doc.party, "modified_by": user}):
+		violations.append(_("You last changed the bank details of supplier {0} and are also paying it.").format(doc.party))
 	invoices = [r.reference_name for r in doc.get("references") or [] if r.reference_doctype == "Purchase Invoice"]
 	for name in frappe.get_all("Purchase Invoice", filters={"name": ("in", invoices), "owner": user}, pluck="name") if invoices else []:
 		violations.append(_("You posted supplier invoice {0} and are also paying it.").format(name))

@@ -243,6 +243,8 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_advance_percent", label="Advance %", fieldtype="Percent", depends_on="eval:doc.muhick_payment_type=='Advance'"),
 			dict(fieldname="muhick_delivery_location", label="Delivery Location", fieldtype="Data"),
 			dict(fieldname="muhick_acceptance_criteria", label="Acceptance Criteria", fieldtype="Small Text"),
+			_ro("muhick_risk_class", "Risk Class", "Select", options="\nLow\nMedium\nHigh"),
+			_ro("muhick_approval_route", "Approval Route", "Select", options="\nFirst Approver Only\nUp to Second Approver\nFull Route"),
 		],
 	),
 	"Payment Entry": _chain(

@@ -20,7 +20,8 @@ ROLE_PROFILES = {
 	"Muhick Finance Manager": [FM, "Accounts Manager", "Accounts User"],
 	"Muhick Finance Officer": [FO, "Accounts User"],
 	"Muhick General Manager": [GM, "Projects User"],
-	"Muhick Procurement Manager": [PRM, "Purchase Manager", "Purchase User", "Stock User"],
+	# the item list is theirs: nobody else creates or changes an item
+	"Muhick Procurement Manager": [PRM, "Purchase Manager", "Purchase User", "Stock User", "Item Manager"],
 	"Muhick Procurement Officer": [PRO, "Purchase User", "Stock User"],
 	"Muhick Storekeeper": [SK, "Stock User"],
 	"Muhick Site Storekeeper": [SSK, "Stock User"],
@@ -45,7 +46,7 @@ STANDARD_DOCTYPE_PERMISSIONS = {
 	"Supplier Quotation": {PRO: RAISE, PRM: APPROVE, SE: READ, GM: READ},
 	"Supplier": {SE: READ},
 	# Project Managers are added to this by Muhick Settings when they are allowed to see supplier prices
-	"Purchase Order": {PRO: RAISE, PRM: RAISE, GM: APPROVE, COO: READ, FM: READ, FO: READ},
+	"Purchase Order": {PRO: RAISE, PRM: RAISE, FM: APPROVE, GM: APPROVE, COO: READ, FO: READ},
 	"Vehicle": {ADMIN_MANAGER: RAISE, FLEET_OFFICER: READ, FM: READ, FO: READ},
 	"Purchase Receipt": {SK: RAISE, SSK: RAISE, PRM: APPROVE, FM: READ, FO: READ, PM: READ},
 	"Delivery Note": {SK: RAISE, PRM: APPROVE, FM: APPROVE, FO: APPROVE},
@@ -91,6 +92,16 @@ def setup_standard_permissions():
 			for ptype in ptypes:
 				if ptype != "read":
 					update_permission_property(doctype, role, 0, ptype, 1, validate=False)
+
+
+def restrict_bank_details():
+	"""Bank details belong to the Finance Manager (Accounts Manager): whoever makes the payments reads them
+	and does not change them. Run once, so a site can decide otherwise afterwards."""
+	from frappe.permissions import update_permission_property
+
+	for ptype in ("create", "write", "delete"):
+		update_permission_property("Bank Account", "Accounts User", 0, ptype, 0, validate=False)
+	frappe.clear_cache(doctype="Bank Account")
 
 
 def apply_price_visibility(show: bool):
