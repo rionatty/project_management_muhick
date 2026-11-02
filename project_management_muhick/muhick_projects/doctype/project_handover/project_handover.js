@@ -3,13 +3,16 @@
 
 frappe.ui.form.on("Project Handover", {
 	onload(frm) {
-		// a new handover starts with the mandatory handover pack from Muhick Settings
-		if (frm.is_new() && !(frm.doc.checklist || []).length) {
+		// a new handover starts with the mandatory handover pack from Muhick Settings, in place of the form's empty row
+		if (frm.is_new() && !(frm.doc.checklist || []).some((row) => row.checklist_item)) {
 			frappe
 				.call("project_management_muhick.muhick_projects.doctype.project_handover.project_handover.get_checklist_template")
 				.then((r) => {
-					(r.message || []).forEach((item) => frm.add_child("checklist", item));
-					frm.refresh_field("checklist");
+					if ((r.message || []).length) {
+						frm.clear_table("checklist");
+						r.message.forEach((item) => frm.add_child("checklist", item));
+						frm.refresh_field("checklist");
+					}
 				});
 		}
 		if (frm.is_new() && !frm.doc.sales_engineer) {

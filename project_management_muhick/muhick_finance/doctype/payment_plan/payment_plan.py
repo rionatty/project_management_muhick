@@ -34,6 +34,8 @@ FEES_RUNNING = ("Requested", "Active", "Cancellation Requested")
 class PaymentPlan(Document):
 	def validate(self):
 		validate_dates(self.period_from, self.period_to, _("Period From"), _("Period To"))
+		if not self.lines:
+			frappe.throw(_("Get the payments for this plan, or add one."))
 		# the plan names itself from its period
 		self.title = _("{0} Payment Plan: {1} to {2}").format(_(self.plan_type), formatdate(self.period_from), formatdate(self.period_to))
 		if not self.prepared_by:
@@ -291,7 +293,12 @@ class PaymentPlan(Document):
 		return {(l.reference_doctype, l.reference_name, l.supplier or None) for l in self.lines}
 
 	def add_line(self, doctype, name, amount=None, description=None, **values):
-		"""A line for the amount given, or for what the document has outstanding in the company's currency."""
+		"""A line for the amount given, or for what the document has outstanding in the company's currency. A row left
+		empty on the form gives way to it."""
+		if any(not line.reference_name for line in self.lines):
+			self.lines[:] = [line for line in self.lines if line.reference_name]
+			for idx, line in enumerate(self.lines, 1):
+				line.idx = idx
 		supplier = values.get("supplier")
 		if (doctype, name, supplier) in self.existing_keys() or self.other_plan(doctype, name, supplier):
 			return
@@ -302,6 +309,8 @@ class PaymentPlan(Document):
 			self.give_plan_account(line)
 		else:
 			self.lines.pop()
+		self.total_proposed = sum(flt(row.proposed_amount) for row in self.lines)
+		self.total_approved = sum(flt(row.approved_amount) for row in self.lines)
 
 	@frappe.whitelist()
 	def get_balances(self):

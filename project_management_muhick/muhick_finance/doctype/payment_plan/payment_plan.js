@@ -56,6 +56,7 @@ frappe.ui.form.on("Payment Plan", {
 					}
 					frm.call(method).then(() => {
 						frm.refresh_fields();
+						show_allocation(frm);
 						frm.dirty();
 					});
 				}, __("Get"));
