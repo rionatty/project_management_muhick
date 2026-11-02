@@ -72,6 +72,12 @@ def _check_budget(doc, enforce=False):
 	allowance = _approved_overrun(doc) if doc.doctype == "Purchase Order" else {}
 	for project, amounts in _amounts_by_project(doc).items():
 		status, remarks = budget_engine.evaluate(project, amounts, allowance=allowance.get(project))
+		rows = [
+			(row.item_code, budget_engine.row_stock_qty(row), row.get("material_request_item"))
+			for row in doc.items
+			if row.item_code and (row.project or doc.get("project")) == project
+		]
+		status, remarks = budget_engine.with_quantities(project, status, remarks, budget_engine.beyond_requests(rows))
 		if status not in OVER_BUDGET:
 			continue
 		if enforce:
@@ -171,13 +177,17 @@ def validate_purchase_invoice(doc, method=None):
 def before_submit_purchase_invoice(doc, method=None):
 	# an invoice with no purchase order commits the budget itself
 	direct = defaultdict(lambda: defaultdict(float))
+	quantities = defaultdict(lambda: defaultdict(float))
 	if not doc.get("muhick_subcontract_agreement") and not doc.is_return:
 		for row in doc.items:
 			project = row.project or doc.get("project")
 			if project and not row.purchase_order:
 				direct[project][row.get("muhick_cost_code") or ""] += flt(row.base_net_amount)
+				if row.item_code:
+					quantities[project][row.item_code] += budget_engine.row_stock_qty(row)
 	for project, amounts in direct.items():
 		status, remarks = budget_engine.evaluate(project, amounts)
+		status, remarks = budget_engine.with_quantities(project, status, remarks, quantities[project])
 		budget_engine.enforce(doc, "budget_action_on_purchase_order", status, f"{project}: {remarks}")
 
 

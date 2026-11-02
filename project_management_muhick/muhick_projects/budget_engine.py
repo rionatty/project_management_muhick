@@ -471,6 +471,149 @@ def _pending_material_requests(project, exclude=None) -> dict:
 	return {r.cost_code: flt(r.amount) for r in rows}
 
 
+# ------------------------------------------------------------------ quantities
+def in_stock_unit(item_code, qty, uom) -> float:
+	from erpnext.stock.get_item_details import get_conversion_factor
+
+	if not flt(qty) or not uom:
+		return flt(qty)
+	return flt(qty) * flt(get_conversion_factor(item_code, uom).get("conversion_factor") or 1)
+
+
+def row_stock_qty(row) -> float:
+	return flt(row.get("stock_qty")) or flt(row.qty) * flt(row.get("conversion_factor") or 1)
+
+
+def budgeted_quantities(project, items=None, stage=None) -> tuple[dict, set]:
+	"""({item: budgeted quantity in its stock unit}, {items the budget places in stages}). An approved
+	revision adds to the budget's lines and leaves them as they are. With a stage, a line of another stage
+	does not count; a line with no stage, and a revision, count for every stage. All items unless some are named."""
+	budget = get_approved_budget(project)
+	budgeted, staged, revised = defaultdict(float), set(), set()
+	if not budget or (items is not None and not items):
+		return {}, staged
+	named = ("in", list(items)) if items is not None else ("is", "set")
+	for line in frappe.get_all(
+		"Project Budget Line",
+		filters={"parent": budget, "parenttype": "Project Budget", "item_code": named},
+		fields=["item_code", "qty", "people", "uom", "stage", "contract_percent"],
+	):
+		if stage and line.stage:
+			staged.add(line.item_code)
+		if not (stage and line.stage) or line.stage == stage:
+			qty = calc.budget_line_quantity(line.qty, line.people, line.contract_percent)
+			budgeted[line.item_code] += in_stock_unit(line.item_code, qty, line.uom)
+	revisions = frappe.get_all("Project Budget Revision", filters={"project_budget": budget, "docstatus": 1}, pluck="name")
+	if revisions:
+		for line in frappe.get_all(
+			"Project Budget Revision Line",
+			filters={"parent": ("in", revisions), "parenttype": "Project Budget Revision", "item_code": named},
+			fields=["item_code", "change_qty"],
+		):
+			if flt(line.change_qty):
+				budgeted[line.item_code] += flt(line.change_qty)
+				revised.add(line.item_code)
+	return {item: max(qty, 0.0) for item, qty in budgeted.items() if qty > 0 or item in revised}, staged
+
+
+def quantity_to_date(project, items, exclude_request=None, stage=None) -> dict:
+	"""{item: stock quantity} asked for or bought on the project: approved purchase requests (a stopped one
+	for what was ordered from it), and orders and invoices raised without a request or order behind them.
+	With a stage, only the requests raised for a milestone of that stage: nothing else names one."""
+	if not items:
+		return {}
+	by_stage = "inner join `tabTask` phase on phase.name = mr.muhick_phase and phase.type = %(stage)s" if stage else ""
+	queries = [
+		f"""
+		select mri.item_code,
+			sum(case when mr.status = 'Stopped' then ifnull(mri.ordered_qty, 0)
+				else greatest(ifnull(mri.stock_qty, 0), ifnull(mri.ordered_qty, 0)) end) as qty
+		from `tabMaterial Request Item` mri
+		inner join `tabMaterial Request` mr on mr.name = mri.parent
+		{by_stage}
+		where mr.docstatus = 1 and mr.material_request_type = 'Purchase'
+			and mri.project = %(project)s and mri.item_code in %(items)s and mr.name != %(name)s
+		group by mri.item_code
+		"""
+	]
+	if not stage:
+		queries += [
+			# a closed order only for what was received, as in its commitment
+			"""
+			select poi.item_code,
+				sum(case when po.status = 'Closed' then ifnull(poi.received_qty, 0) * ifnull(poi.conversion_factor, 1)
+					else poi.stock_qty end) as qty
+			from `tabPurchase Order Item` poi
+			inner join `tabPurchase Order` po on po.name = poi.parent
+			where po.docstatus = 1 and poi.project = %(project)s and poi.item_code in %(items)s
+				and ifnull(poi.material_request_item, '') = ''
+			group by poi.item_code
+			""",
+			"""
+			select pii.item_code, sum(pii.stock_qty) as qty
+			from `tabPurchase Invoice Item` pii
+			inner join `tabPurchase Invoice` pi on pi.name = pii.parent
+			where pi.docstatus = 1 and pii.project = %(project)s and pii.item_code in %(items)s
+				and ifnull(pii.purchase_order, '') = '' and ifnull(pi.muhick_subcontract_agreement, '') = ''
+			group by pii.item_code
+			""",
+		]
+	params = {"project": project, "items": tuple(items), "name": exclude_request or "", "stage": stage}
+	total = defaultdict(float)
+	for query in queries:
+		for r in frappe.db.sql(query, params, as_dict=True):
+			total[r.item_code] += flt(r.qty)
+	return total
+
+
+def quantity_overruns(project, quantities, stage=None, exclude_request=None) -> list[str]:
+	"""Each budgeted item a document takes over its budgeted quantity; quantities: {item: stock quantity
+	it adds}. An item the budget places in stages is counted within the document's stage; any other over
+	the whole project. An item budgeted only under other stages is left to the request's phase check."""
+	budgeted, staged = budgeted_quantities(project, set(quantities), stage)
+	counted = set(quantities) & set(budgeted)
+	to_date = dict(quantity_to_date(project, counted - staged, exclude_request))
+	to_date.update(quantity_to_date(project, counted & staged, exclude_request, stage))
+	over = []
+	for item, total in calc.quantity_excess(budgeted, to_date, quantities).items():
+		if item in staged:
+			over.append(
+				_("{0}: {1} requested to date for {2} against {3} budgeted for it").format(item, f"{total:g}", stage, f"{budgeted[item]:g}")
+			)
+		else:
+			over.append(_("{0}: {1} requested or ordered to date against {2} budgeted").format(item, f"{total:g}", f"{budgeted[item]:g}"))
+	return over
+
+
+def beyond_requests(rows) -> dict:
+	"""{item: stock quantity} on the (item, stock quantity, request row) rows of a requisition or order
+	that no approved request covers."""
+	sources = tuple({row[2] for row in rows if row[2]})
+	open_qty = {}
+	if sources:
+		for r in frappe.db.sql(
+			"""
+			select mri.name, mri.stock_qty, mri.ordered_qty
+			from `tabMaterial Request Item` mri
+			inner join `tabMaterial Request` mr on mr.name = mri.parent
+			where mr.docstatus = 1 and mr.status != 'Stopped' and mri.name in %(rows)s
+			""",
+			{"rows": sources},
+			as_dict=True,
+		):
+			open_qty[r.name] = max(flt(r.stock_qty) - flt(r.ordered_qty), 0)
+	return calc.beyond_requests(rows, open_qty)
+
+
+def with_quantities(project, status, remarks, quantities, stage=None, exclude_request=None) -> tuple[str, str]:
+	"""A value check's result with the quantities checked too: an item over its budgeted quantity is over
+	budget however much its cost code has left."""
+	over = quantity_overruns(project, quantities, stage, exclude_request)
+	if not over:
+		return status, remarks
+	return (status if status == "Not Budgeted" else "Exceeds Budget"), "; ".join(filter(None, [remarks, *over]))
+
+
 def evaluate(project, amounts, pending_requests=False, exclude_material_request=None, allowance=None) -> tuple[str, str]:
 	"""Budget status and an explanation for a set of {cost_code: amount} about to be committed.
 

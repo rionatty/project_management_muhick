@@ -60,6 +60,35 @@ def budget_status(amount, available, budgeted=True) -> str:
 	return "Within Budget" if _f(amount) <= _f(available) + 0.005 else "Exceeds Budget"
 
 
+def budget_line_quantity(qty, people=1, contract_percent=0) -> float:
+	"""The quantity of its item a budget line allows: its quantity for each of its people. A line priced
+	as a share of the contract value is a sum of money, not a quantity."""
+	if _f(contract_percent):
+		return 0.0
+	return _f(qty) * (_f(people) or 1)
+
+
+def quantity_excess(budgeted, to_date, adding) -> dict:
+	"""{item: total} for the budgeted items a document takes over their budgeted quantity: what is already
+	asked for or bought, plus what it adds. An item it adds nothing to, or not budgeted by item, is left out."""
+	totals = {item: _f(to_date.get(item)) + _f(qty) for item, qty in adding.items() if _f(qty) > 0 and item in budgeted}
+	return {item: total for item, total in totals.items() if total > _f(budgeted[item]) + 1e-9}
+
+
+def beyond_requests(rows, open_on_requests) -> dict:
+	"""{item: quantity} on (item, quantity, request row) rows that their approved requests do not cover.
+	open_on_requests: {request row: quantity not yet ordered from it}. A request was checked against the
+	budget when it was approved, so only what goes beyond it is new."""
+	left = dict(open_on_requests)
+	beyond = {}
+	for item, qty, source in rows:
+		covered = min(_f(qty), left.get(source, 0.0))
+		if source in left:
+			left[source] -= covered
+		beyond[item] = beyond.get(item, 0.0) + _f(qty) - covered
+	return {item: qty for item, qty in beyond.items() if qty > 1e-9}
+
+
 # ------------------------------------------------------------------ cost estimates and budget lines
 def line_amount(qty, rate, people=1, exchange_rate=1, includes_vat=False, vat_percent=0, contract_percent=0, contract_value=0) -> float:
 	"""A cost estimate or budget line in the company's currency, without VAT.

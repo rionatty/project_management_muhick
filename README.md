@@ -83,7 +83,11 @@ and certificates, retention, payments and the controls around them.
   Budget Summary print (sections against the stages and their months, contract value, margin, cost
   codes and signatures) and a cash plan by month. A purchase request is checked against its milestone's
   budgeted quantities, and one for items the budget places only under another stage needs a
-  justification.
+  justification. Quantity counts like money: an item past its budgeted quantity is over budget however
+  much its cost code has left, on the request, the procurement requisition, an order or an invoice with
+  no request or order behind it. What an approved request covers is not asked again. Quantities are
+  compared in the item's stock unit, and a budget revision can change one (also in the stock unit)
+  without touching the budget's own lines.
 - Commitments: approved purchase orders, subcontracts, requisitions and labour reduce the available
   budget at once, before anything is paid. Original Budget, Approved Variations, Current Budget and
   Forecast Final Cost are kept separately; an approved budget is changed only by a revision.

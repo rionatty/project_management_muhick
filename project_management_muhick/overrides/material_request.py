@@ -89,82 +89,13 @@ def _check_budget(doc, project, stage=None):
 	status, remarks = budget_engine.evaluate(
 		project, amounts, pending_requests=True, exclude_material_request=doc.name
 	)
-	over_qty = _quantity_overruns(doc, project, stage) if status == "Within Budget" else []
-	if over_qty:
-		status = "Exceeds Budget"
-		remarks = "; ".join(over_qty)
-	doc.muhick_budget_status = status
-	doc.muhick_budget_remarks = remarks
-
-
-def _quantity_overruns(doc, project, stage=None) -> list[str]:
-	"""Requested quantity to date against the budgeted quantity of each budgeted item. An item the
-	budget places in stages is counted within the request's stage (its lines without a stage count for
-	every stage); any other item over the whole project. An item budgeted only under other stages is
-	left to _check_phase."""
-	budgeted, staged = _budgeted_quantities(doc, project, stage)
-	if not budgeted:
-		return []
-	in_stage = {item for item in budgeted if item in staged}
-	requested = _requested_to_date(project, set(budgeted) - in_stage, doc.name)
-	requested.update(_requested_to_date(project, in_stage, doc.name, stage))
+	quantities = defaultdict(float)
 	for row in doc.items:
-		if row.item_code in budgeted:
-			requested[row.item_code] = requested.get(row.item_code, 0) + flt(row.qty)
-	over = []
-	for item, qty in budgeted.items():
-		if requested.get(item, 0) <= qty + 1e-9:
-			continue
-		if item in in_stage:
-			over.append(
-				_("{0}: {1} requested to date for {2} against {3} budgeted for it").format(item, f"{requested[item]:g}", stage, f"{qty:g}")
-			)
-		else:
-			over.append(_("{0}: {1} requested to date against {2} budgeted").format(item, f"{requested[item]:g}", f"{qty:g}"))
-	return over
-
-
-def _budgeted_quantities(doc, project, stage=None):
-	"""({item: quantity budgeted for the request's stage}, {items the budget places in stages}). Without
-	a stage on the request, every line of an item counts."""
-	budget = budget_engine.get_approved_budget(project)
-	items = {row.item_code for row in doc.items if row.item_code}
-	budgeted, staged = defaultdict(float), set()
-	if not budget or not items:
-		return {}, staged
-	for line in frappe.get_all(
-		"Project Budget Line",
-		filters={"parent": budget, "parenttype": "Project Budget", "item_code": ("in", list(items))},
-		fields=["item_code", "qty", "stage"],
-	):
-		if stage and line.stage:
-			staged.add(line.item_code)
-		if not (stage and line.stage) or line.stage == stage:
-			budgeted[line.item_code] += flt(line.qty)
-	return {item: qty for item, qty in budgeted.items() if qty > 0}, staged
-
-
-def _requested_to_date(project, items, name, stage=None) -> dict:
-	"""{item: quantity on the project's approved purchase requests}, counting only requests raised for a
-	milestone of the stage when one is given."""
-	if not items:
-		return {}
-	by_stage = "inner join `tabTask` phase on phase.name = mr.muhick_phase and phase.type = %(stage)s" if stage else ""
-	rows = frappe.db.sql(
-		f"""
-		select mri.item_code, sum(mri.qty) as qty
-		from `tabMaterial Request Item` mri
-		inner join `tabMaterial Request` mr on mr.name = mri.parent
-		{by_stage}
-		where mr.docstatus = 1 and mr.material_request_type = 'Purchase'
-			and mr.status not in ('Stopped', 'Cancelled')
-			and mri.project = %(project)s and mri.item_code in %(items)s and mr.name != %(name)s
-		group by mri.item_code
-		""",
-		{"project": project, "items": tuple(items), "name": name or "", "stage": stage},
-		as_dict=True,
+		if row.item_code and (row.project or project) == project:
+			quantities[row.item_code] += budget_engine.row_stock_qty(row)
+	doc.muhick_budget_status, doc.muhick_budget_remarks = budget_engine.with_quantities(
+		project, status, remarks, quantities, stage, doc.name
 	)
-	return {r.item_code: flt(r.qty) for r in rows}
 
 
 def _check_brands(doc, project):

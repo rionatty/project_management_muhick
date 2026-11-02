@@ -87,6 +87,16 @@ class ProcurementRequisition(Document):
 				amounts[row.project][row.cost_code or ""] += flt(row.amount)
 		return amounts
 
+	def new_quantities(self, project) -> dict:
+		"""What the requisition asks for on the project beyond the approved requests it comes from."""
+		return budget_engine.beyond_requests(
+			[
+				(row.item_code, budget_engine.in_stock_unit(row.item_code, row.qty, row.uom), row.material_request_item)
+				for row in self.items
+				if row.item_code and row.project == project
+			]
+		)
+
 	def set_budget_status(self):
 		"""Worst result across the projects on the requisition (normally one)."""
 		self.budget_status, remarks = "Not Applicable", []
@@ -94,6 +104,7 @@ class ProcurementRequisition(Document):
 		allowance = _approved_overrun(self)
 		for project, amounts in self.amounts_by_project().items():
 			status, note = budget_engine.evaluate(project, amounts, allowance=allowance.get(project))
+			status, note = budget_engine.with_quantities(project, status, note, self.new_quantities(project))
 			if RANK[status] > RANK[self.budget_status]:
 				self.budget_status = status
 			if note:
@@ -147,6 +158,7 @@ class ProcurementRequisition(Document):
 	def before_submit(self):
 		for project, amounts in self.amounts_by_project().items():
 			status, note = budget_engine.evaluate(project, amounts, allowance=_approved_overrun(self).get(project))
+			status, note = budget_engine.with_quantities(project, status, note, self.new_quantities(project))
 			budget_engine.enforce(self, "budget_action_on_purchase_order", status, f"{project}: {note}")
 		self.status = "Approved"
 

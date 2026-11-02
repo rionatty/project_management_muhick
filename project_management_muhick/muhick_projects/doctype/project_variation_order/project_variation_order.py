@@ -38,12 +38,15 @@ class ProjectVariationOrder(Document):
 		budget_engine.refresh_projects([self.project])
 
 	def make_budget_revision(self):
-		by_cost_code = defaultdict(float)
+		lines = defaultdict(lambda: {"change_amount": 0.0, "change_qty": 0.0})
 		for row in self.items:
 			if flt(row.estimated_cost):
-				by_cost_code[row.cost_code] += flt(row.estimated_cost)
-		by_cost_code = {k: v for k, v in by_cost_code.items() if abs(v) > 0.005}
-		if not by_cost_code or not budget_engine.get_approved_budget(self.project):
+				line = lines[(row.cost_code, row.item_code)]
+				line["change_amount"] += flt(row.estimated_cost)
+				if row.item_code:
+					line["change_qty"] += budget_engine.in_stock_unit(row.item_code, row.qty, row.uom)
+		lines = {key: line for key, line in lines.items() if abs(line["change_amount"]) > 0.005}
+		if not lines or not budget_engine.get_approved_budget(self.project):
 			return
 		revision = frappe.new_doc("Project Budget Revision")
 		revision.update(
@@ -54,9 +57,10 @@ class ProjectVariationOrder(Document):
 				"reason": _("Variation {0}: {1}").format(self.name, self.title),
 			}
 		)
-		for cost_code, change in by_cost_code.items():
+		for (cost_code, item_code), line in lines.items():
 			revision.append(
-				"lines", {"cost_code": cost_code, "change_amount": change, "justification": self.description, "description": self.title}
+				"lines",
+				{"cost_code": cost_code, "item_code": item_code, **line, "justification": self.description, "description": self.title},
 			)
 		revision.insert(ignore_permissions=True)
 		self.db_set("budget_revision", revision.name)

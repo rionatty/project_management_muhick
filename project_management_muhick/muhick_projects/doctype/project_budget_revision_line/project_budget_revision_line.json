@@ -12,6 +12,7 @@
   "committed",
   "column_break_1",
   "change_amount",
+  "change_qty",
   "revised_budget",
   "justification"
  ],
@@ -26,15 +27,15 @@
    "reqd": 1
   },
   {
-   "columns": 2,
    "fieldname": "description",
    "fieldtype": "Small Text",
-   "in_list_view": 1,
    "label": "Description"
   },
   {
+   "columns": 2,
    "fieldname": "item_code",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Item",
    "options": "Item"
   },
@@ -57,12 +58,18 @@
    "fieldtype": "Column Break"
   },
   {
-   "columns": 2,
+   "columns": 1,
    "fieldname": "change_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Change (+ / -)",
-   "reqd": 1
+   "label": "Change (+ / -)"
+  },
+  {
+   "columns": 1,
+   "fieldname": "change_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity Change (+ / -)"
   },
   {
    "columns": 1,
@@ -85,7 +92,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-02 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Project Budget Revision Line",

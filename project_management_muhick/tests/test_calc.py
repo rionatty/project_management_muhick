@@ -130,6 +130,26 @@ class TestCostLines(unittest.TestCase):
 		self.assertEqual(calc.budget_status(30.01, 30), "Exceeds Budget")
 		self.assertEqual(calc.budget_status(1, 0, budgeted=False), "Not Budgeted")
 
+	def test_budget_line_quantity(self):
+		self.assertEqual(calc.budget_line_quantity(10, 3), 30)
+		self.assertEqual(calc.budget_line_quantity(10, 0), 10)
+		self.assertEqual(calc.budget_line_quantity(1, 1, 5), 0)
+
+	def test_quantity_excess(self):
+		budgeted = {"A": 100, "B": 50}
+		self.assertEqual(calc.quantity_excess(budgeted, {"A": 80}, {"A": 20}), {})
+		self.assertEqual(calc.quantity_excess(budgeted, {"A": 80}, {"A": 21}), {"A": 101})
+		# not budgeted by item: left to the check of its cost code's value
+		self.assertEqual(calc.quantity_excess(budgeted, {}, {"C": 999}), {})
+		# an item already over, which this document adds nothing to
+		self.assertEqual(calc.quantity_excess(budgeted, {"B": 70}, {"A": 1}), {})
+
+	def test_beyond_requests(self):
+		self.assertEqual(calc.beyond_requests([("A", 60, "r1")], {"r1": 100}), {})
+		self.assertEqual(calc.beyond_requests([("A", 60, "r1"), ("A", 60, "r1")], {"r1": 100}), {"A": 20})
+		self.assertEqual(calc.beyond_requests([("A", 5, None)], {}), {"A": 5})
+		self.assertEqual(calc.beyond_requests([("A", 5, "not approved")], {}), {"A": 5})
+
 	def test_paid_share_is_clamped(self):
 		self.assertEqual(calc.paid_share(100, 20), 0.8)
 		self.assertEqual(calc.paid_share(100, 120), 0.0)

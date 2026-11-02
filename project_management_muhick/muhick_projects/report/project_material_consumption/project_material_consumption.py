@@ -47,12 +47,8 @@ def execute(filters=None):
 			if r.item_code:
 				data[r.item_code][field] += flt(r.get(value_field))
 
-	budget = budget_engine.get_approved_budget(project)
-	if budget:
-		for line in frappe.get_all(
-			"Project Budget Line", filters={"parent": budget, "item_code": ("is", "set")}, fields=["item_code", "qty"]
-		):
-			data[line.item_code]["budget_qty"] += flt(line.qty)
+	for item, qty in budget_engine.budgeted_quantities(project)[0].items():
+		data[item]["budget_qty"] = qty
 
 	add(
 		"requested_qty",
