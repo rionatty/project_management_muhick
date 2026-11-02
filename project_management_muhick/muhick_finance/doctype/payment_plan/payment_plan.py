@@ -65,7 +65,11 @@ class PaymentPlan(Document):
 		"""Who is paid, for which project, how much is outstanding and when it falls due."""
 		dt, dn = line.reference_doctype, line.reference_name
 		source = frappe.db.get_value(dt, dn, "*", as_dict=True)
-		if not source or source.docstatus != 1:
+		if dt == "Bank Instrument":
+			# it is kept, not approved: its fees are owed for as long as the bank charges for it
+			if not source or source.status not in FEES_RUNNING:
+				frappe.throw(_("Payment Lines row {0}: Bank Instrument {1} is closed, so no fees run on it.").format(line.idx, dn))
+		elif not source or source.docstatus != 1:
 			frappe.throw(_("Payment Lines row {0}: {1} {2} is not an approved document.").format(line.idx, _(dt), dn))
 		if dt == "Purchase Invoice":
 			details = (source.supplier_name, source.project, source.outstanding_amount, source.due_date)
