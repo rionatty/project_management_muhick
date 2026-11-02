@@ -134,16 +134,12 @@ def price_for_margin(cost, margin_percent, contract_share=0) -> float | None:
 	return _f(cost) * 100 / left if left > 0 else None
 
 
-def price_boq(boq, costs, price) -> list:
-	"""What each BOQ line sells for so that the BOQ comes to the price.
+def boq_line_costs(boq, costs) -> list:
+	"""What each BOQ line costs of its own, 0 for a line with none.
 
 	boq is [(item, stage, qty, amount it has now)] and costs [(item, stage, cost)]. A line's own cost is its
 	item's in its stage, else its item's left over from stages no line has, shared by qty among the lines
-	it goes to. Each line gets the share of the price its own cost is of all their own costs, so the
-	costs on no line (labour, tools, freight, overheads) and the margin are spread in proportion: own
-	costs 100 and 300, price 625 -> 156.25 and 468.75. A line with no cost of its own cannot be priced
-	this way: it keeps its amount, which comes off the price first, and reads None. All read None when
-	nothing is left to share.
+	it goes to.
 	"""
 	exact, loose = {}, {}
 	for item, stage, cost in costs:
@@ -165,6 +161,19 @@ def price_boq(boq, costs, price) -> list:
 		else:
 			pool, shared = loose.get(item, 0.0), loose_qty.get(item, 0.0)
 		own.append(pool * _f(qty) / shared if pool and shared else 0.0)
+	return own
+
+
+def price_boq(boq, costs, price) -> list:
+	"""What each BOQ line sells for so that the BOQ comes to the price.
+
+	Each line gets the share of the price its own cost (see boq_line_costs) is of all their own costs, so the
+	costs on no line (labour, tools, freight, overheads) and the margin are spread in proportion: own
+	costs 100 and 300, price 625 -> 156.25 and 468.75. A line with no cost of its own cannot be priced
+	this way: it keeps its amount, which comes off the price first, and reads None. All read None when
+	nothing is left to share.
+	"""
+	own = boq_line_costs(boq, costs)
 	to_share = _f(price) - sum(_f(line[3]) for line, cost in zip(boq, own) if not cost)
 	total = sum(own)
 	if not total or to_share <= 0:

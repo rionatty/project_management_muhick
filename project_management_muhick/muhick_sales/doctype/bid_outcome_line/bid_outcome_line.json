@@ -18,6 +18,7 @@
   "valid_till",
   "quotes",
   "cost_rate",
+  "cost_source",
   "cost_amount",
   "margin",
   "margin_percent"
@@ -116,6 +117,15 @@
    "read_only_depends_on": "eval:doc.supplier_quotation"
   },
   {
+   "columns": 1,
+   "fieldname": "cost_source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Cost From",
+   "options": "\nSupplier Quotation\nEstimate\nLast Purchase\nEntered",
+   "read_only": 1
+  },
+  {
    "fieldname": "cost_amount",
    "fieldtype": "Currency",
    "label": "Cost Amount",
@@ -140,7 +150,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-03 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bid Outcome Line",

@@ -29,7 +29,6 @@
   "totals_section",
   "cost_of_works",
   "total_cost",
-  "lines_without_quotation",
   "column_break_4",
   "gross_profit",
   "gross_margin",
@@ -189,7 +188,7 @@
   {
    "fieldname": "lines",
    "fieldtype": "Table",
-   "label": "BOQ at Supplier Prices",
+   "label": "BOQ at Cost",
    "options": "Bid Outcome Line"
   },
   {
@@ -200,19 +199,13 @@
   {
    "fieldname": "cost_of_works",
    "fieldtype": "Currency",
-   "label": "Cost at Supplier Prices",
+   "label": "Cost of the Works",
    "read_only": 1
   },
   {
    "fieldname": "total_cost",
    "fieldtype": "Currency",
    "label": "Total Cost",
-   "read_only": 1
-  },
-  {
-   "fieldname": "lines_without_quotation",
-   "fieldtype": "Int",
-   "label": "Lines Without a Supplier Quotation",
    "read_only": 1
   },
   {
@@ -301,7 +294,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-03 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Bid Outcome",

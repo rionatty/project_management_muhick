@@ -236,8 +236,10 @@ and certificates, retention, payments and the controls around them.
   the Head of Sales and then the General Manager approve; only then is the bid marked won or lost,
   and cancelling an approved outcome reopens it. A won bid's report reviews the margin: its BOQ priced
   at the suppliers' latest quotations for the bid (asked for from the opportunity with ERPNext's
-  request for quotation), the lowest by default and any other on a line, or the last purchase price
-  where no supplier has quoted, less what was spent on the bid, set against the margin at bid; the
+  request for quotation), the lowest by default and any other on a line, less what was spent on the bid,
+  set against the margin at bid. Not every line needs a supplier: one with no quotation takes what the bid's
+  estimate has it costing, else the last purchase price, and Cost From says which; a line with no cost at
+  all does not stop the report, and a banner says the margin counts it in full. The
   Bid Margin Comparison report puts every supplier's price for each BOQ line side by side. A lost bid's
   report gives ERPNext's lost reasons and competitors and who won it at what price, and Finance is
   asked to cancel its bid security.

@@ -3,12 +3,14 @@
 
 """A bid's BOQ against the prices its suppliers quoted: each supplier's latest price per line side by
 side, the lowest picked out, and the gross profit at the lowest prices after what was spent on the
-bid. A line no supplier has quoted is costed at the item's last purchase price."""
+bid. A line no supplier has quoted is costed at what the bid's estimate has it costing, else the item's last
+purchase price."""
 
 import frappe
 from frappe import _
 from frappe.utils import flt
 
+from project_management_muhick.muhick_projects.estimate import estimated_rates
 from project_management_muhick.muhick_sales.bids import (
 	bid_spent, boq_factor, boq_quotes, last_purchase_rate, latest_by_supplier, lowest,
 )
@@ -43,6 +45,7 @@ def execute(filters=None):
 		{"fieldname": "margin_percent", "label": _("Margin %"), "fieldtype": "Percent", "width": 90},
 	]
 	rows, unquoted = [], 0
+	estimated = estimated_rates(bid)
 	for item in bid.get("items") or []:
 		factor = boq_factor(item.item_code, item.uom)
 		by_supplier = offers.get(item.item_code, {})
@@ -58,8 +61,9 @@ def execute(filters=None):
 			row.lowest_rate, row.lowest_supplier = best.stock_rate * factor, best.supplier
 		else:
 			unquoted += 1
-			row.lowest_rate = last_purchase_rate(item.item_code) * factor
-			row.lowest_supplier = _("Last purchase price") if row.lowest_rate else _("Not quoted")
+			estimate = estimated.get((item.item_code, item.get("muhick_stage")), 0)
+			row.lowest_rate = estimate or last_purchase_rate(item.item_code) * factor
+			row.lowest_supplier = _("Estimate") if estimate else _("Last purchase price") if row.lowest_rate else _("Not quoted")
 		row.cost = flt(item.qty) * flt(row.lowest_rate)
 		row.margin = flt(item.base_amount) - row.cost
 		row.margin_percent = calc.margin_percent(item.base_amount, row.cost)
@@ -80,5 +84,5 @@ def execute(filters=None):
 	if suppliers:
 		message = _("{0} of {1} BOQ lines quoted, by {2} supplier(s).").format(len(rows) - unquoted, len(rows), len(suppliers))
 	else:
-		message = _("No supplier has quoted for this bid yet: raise a request for quotation from the opportunity (Create > Request For Quotation).")
+		message = _("No supplier has quoted for this bid.")
 	return columns, rows, message, None, summary

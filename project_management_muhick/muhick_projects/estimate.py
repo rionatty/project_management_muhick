@@ -390,6 +390,16 @@ def get_supplier_prices(opportunity: str, items) -> dict:
 	return prices
 
 
+def estimated_rates(bid) -> dict:
+	"""{(item, stage): what the bid's estimate has one unit of a BOQ line costing}, in the company's currency without
+	VAT, with the tax computation's cost of an imported good. Lines the estimate has no cost for are left out."""
+	costs = [(line.item_code, line.stage, flt(line.amount)) for line in estimate_lines(bid) if line.item_code]
+	costs += [(good.item_code, good.stage, flt(good.cost)) for good in bid.get(TAX_TABLE) or [] if good.item_code]
+	boq = bid.get("items") or []
+	own = calc.boq_line_costs([(i.item_code, i.get("muhick_stage"), flt(i.qty), flt(i.base_amount)) for i in boq], costs)
+	return {(i.item_code, i.get("muhick_stage")): cost / flt(i.qty) for i, cost in zip(boq, own) if cost and flt(i.qty)}
+
+
 # ------------------------------------------------------------------ from the estimate to the budget
 def estimate_rows(opportunity) -> list:
 	"""The bid's cost estimate, sheet by sheet and line by line, ready to become budget lines."""

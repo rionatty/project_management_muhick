@@ -26,12 +26,18 @@ frappe.ui.form.on("Bid Outcome", {
 			frm.add_custom_button(__("Refresh Prices"), () => muhick.run(frm, "refresh_prices"));
 		}
 		const today = frappe.datetime.get_today();
-		const expired = (frm.doc.lines || []).filter((l) => l.supplier_quotation && l.valid_till && l.valid_till < today);
+		const lines = frm.doc.lines || [];
+		const expired = lines.filter((l) => l.supplier_quotation && l.valid_till && l.valid_till < today);
+		const no_cost = lines.filter((l) => !flt(l.cost_rate));
+		const notes = [];
 		if (expired.length) {
-			frm.dashboard.set_headline(
-				__("{0} line(s) are priced at a quotation that has expired. Confirm those prices with the supplier.", [expired.length]),
-				"orange"
-			);
+			notes.push(__("{0} line(s) are priced at a quotation that has expired. Confirm those prices with the supplier.", [expired.length]));
+		}
+		if (no_cost.length && !frm.is_new()) {
+			notes.push(__("{0} line(s) have no cost, so the margin counts them in full.", [no_cost.length]));
+		}
+		if (notes.length) {
+			frm.dashboard.set_headline(notes.join("<br>"), "orange");
 		}
 	},
 });
@@ -41,7 +47,8 @@ frappe.ui.form.on("Bid Outcome Line", {
 	supplier_quotation(frm, cdt, cdn) {
 		const line = locals[cdt][cdn];
 		if (!line.supplier_quotation) {
-			frappe.model.set_value(cdt, cdn, { supplier: "", valid_till: "" });
+			// saved, it goes back to what the estimate has it costing
+			frappe.model.set_value(cdt, cdn, { supplier: "", valid_till: "", cost_rate: 0, cost_source: "" });
 			return;
 		}
 		frappe

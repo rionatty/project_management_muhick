@@ -6,16 +6,17 @@ Sales, then the General Manager. Only the approved outcome marks the opportunity
 cancelling it reopens the bid.
 
 For a won bid the report reviews the margin: the BOQ priced at the suppliers' latest quotations for
-the bid (the lowest to begin with; a line can take another of them, and a line no supplier has quoted
-takes the last purchase price or an estimate), less what was spent winning the bid, which the project
-carries once it starts. For a lost bid it gives the reasons, the competitors and who won it, at what
-price."""
+the bid (the lowest to begin with; a line can take another of them), less what was spent winning the bid,
+which the project carries once it starts. Not everything on a BOQ comes from a supplier: a line with no
+quotation takes what the bid's estimate has it costing, else the last purchase price, or the cost entered on it.
+For a lost bid it gives the reasons, the competitors and who won it, at what price."""
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, strip_html_tags
 
+from project_management_muhick.muhick_projects.estimate import estimated_rates
 from project_management_muhick.muhick_projects.utils import draft_status, leaving_draft
 from project_management_muhick.muhick_sales.bids import (
 	bid_spent, boq_factor, boq_quotes, last_purchase_rate, latest_by_supplier, lowest,
@@ -53,12 +54,12 @@ class BidOutcome(Document):
 			frappe.throw(_("Outcome report {0} is already raised for this bid.").format(raised))
 
 	def prepare(self, bid):
-		"""The bid's figures and, for a won bid, its BOQ at the suppliers' prices (loaded the first time)."""
+		"""The bid's figures and, for a won bid, its BOQ at cost (loaded the first time)."""
 		self.take_from_bid(bid)
 		if self.outcome == "Won":
 			if not self.lines:
 				self.load_lines(bid)
-			self.price_lines()
+			self.price_lines(bid)
 		else:
 			self.set("lines", [])
 		self.set_totals()
@@ -73,7 +74,7 @@ class BidOutcome(Document):
 		self.bid_costs = bid_spent([bid.name]).get(bid.name, 0)
 
 	def load_lines(self, bid):
-		"""The bid's BOQ, each line at the lowest valid quotation, or else the last purchase price."""
+		"""The bid's BOQ, each line at the lowest valid quotation where a supplier has quoted it."""
 		quotes = boq_quotes(bid.name)
 		for item in bid.get("items") or []:
 			best = lowest(list(latest_by_supplier(quotes.get(item.item_code, [])).values()))
@@ -88,21 +89,22 @@ class BidOutcome(Document):
 					"bid_rate": item.base_rate,
 					"bid_amount": item.base_amount,
 					"supplier_quotation": best.supplier_quotation if best else None,
-					"cost_rate": 0 if best else last_purchase_rate(item.item_code) * boq_factor(item.item_code, item.uom),
 				},
 			)
 
 	@frappe.whitelist()
 	def refresh_prices(self):
-		"""The BOQ again, at today's lowest quotations."""
+		"""The BOQ again, at today's lowest quotations and the estimate."""
 		if self.docstatus != 0:
 			frappe.throw(_("Prices are refreshed only before the outcome is approved."))
 		self.set("lines", [])
 		self.save()
 
-	def price_lines(self):
-		"""Each line at its chosen quotation; a line without one keeps the cost rate entered."""
+	def price_lines(self, bid):
+		"""Each line at its chosen quotation; a line without one keeps the cost entered, or takes what the estimate has
+		it costing, or else the last purchase price."""
 		quotes = boq_quotes(self.opportunity)
+		estimated = estimated_rates(bid)
 		for line in self.lines:
 			offers = quotes.get(line.item_code, [])
 			line.quotes = len(latest_by_supplier(offers))
@@ -116,8 +118,13 @@ class BidOutcome(Document):
 					)
 				line.supplier, line.valid_till = quote.supplier, quote.valid_till
 				line.cost_rate = quote.stock_rate * boq_factor(line.item_code, line.uom)
+				line.cost_source = "Supplier Quotation"
 			else:
 				line.supplier = line.valid_till = None
+				estimate = estimated.get((line.item_code, line.stage), 0)
+				purchase = last_purchase_rate(line.item_code) * boq_factor(line.item_code, line.uom)
+				line.cost_rate = flt(line.cost_rate) or estimate or purchase
+				line.cost_source = _cost_source(line.cost_rate, estimate, purchase)
 			line.cost_amount = flt(line.qty) * flt(line.cost_rate)
 			line.margin = flt(line.bid_amount) - line.cost_amount
 			line.margin_percent = calc.margin_percent(line.bid_amount, line.cost_amount)
@@ -128,7 +135,6 @@ class BidOutcome(Document):
 		self.total_cost = self.cost_of_works + flt(self.bid_costs) if won else 0
 		self.gross_profit = flt(self.bid_price) - self.total_cost if won else 0
 		self.gross_margin = calc.margin_percent(self.bid_price, self.total_cost) if won else 0
-		self.lines_without_quotation = sum(1 for line in self.lines if not line.supplier_quotation)
 		self.price_gap = 0 if won else calc.price_gap_percent(self.bid_price, self.winning_price)
 
 	def check_complete(self):
@@ -142,11 +148,6 @@ class BidOutcome(Document):
 			frappe.throw(_("Attach the best evaluated bidder notice."))
 		if not self.lines:
 			frappe.throw(_("Opportunity {0} has no BOQ. Add its BOQ lines to review the margin.").format(self.opportunity))
-		unpriced = [str(line.idx) for line in self.lines if flt(line.cost_rate) <= 0]
-		if unpriced:
-			frappe.throw(
-				_("BOQ rows {0} have no cost. Choose a supplier quotation, or enter the estimated cost rate.").format(", ".join(unpriced))
-			)
 
 	def before_submit(self):
 		self.status = "Approved"
@@ -176,7 +177,7 @@ class BidOutcome(Document):
 		if self.outcome == "Won":
 			notify_roles(
 				[COO, FM],
-				_("Bid {0} ({1}) was won, at a gross profit margin of {2}% on today's supplier prices. The {3} spent winning it goes to the project's cost.").format(
+				_("Bid {0} ({1}) was won, at a gross profit margin of {2}% on today's costs. The {3} spent winning it goes to the project's cost.").format(
 					self.opportunity,
 					self.organisation,
 					flt(self.gross_margin, 1),
@@ -224,6 +225,15 @@ class BidOutcome(Document):
 			)
 
 
+def _cost_source(rate, estimate, purchase) -> str | None:
+	"""Where the cost of a line with no quotation comes from."""
+	if not flt(rate):
+		return None
+	if abs(flt(rate) - estimate) < 0.005:
+		return "Estimate"
+	return "Last Purchase" if abs(flt(rate) - purchase) < 0.005 else "Entered"
+
+
 @frappe.whitelist()
 def get_quote_price(opportunity: str, supplier_quotation: str, item_code: str, uom: str | None = None) -> dict:
 	"""A BOQ line's cost at one of the bid's quotations, for the form to show before it is saved."""
@@ -231,4 +241,9 @@ def get_quote_price(opportunity: str, supplier_quotation: str, item_code: str, u
 	quote = next((q for q in boq_quotes(opportunity).get(item_code, []) if q.supplier_quotation == supplier_quotation), None)
 	if not quote:
 		frappe.throw(_("Supplier quotation {0} is not one of this bid's quotations for {1}.").format(supplier_quotation, item_code))
-	return {"cost_rate": quote.stock_rate * boq_factor(item_code, uom), "supplier": quote.supplier, "valid_till": quote.valid_till}
+	return {
+		"cost_rate": quote.stock_rate * boq_factor(item_code, uom),
+		"cost_source": "Supplier Quotation",
+		"supplier": quote.supplier,
+		"valid_till": quote.valid_till,
+	}
