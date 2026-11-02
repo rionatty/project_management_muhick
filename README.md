@@ -144,7 +144,9 @@ and certificates, retention, payments and the controls around them.
   plan and what that leaves, in the account's own currency. A supplier on an
   approved requisition can be scheduled with Get > Approved Requisitions: the advance, or the whole amount on
   delivery. Raise Payments makes a draft Payment Entry from the line's account, against the approved order
-  or, until there is one, on account. Once submitted it is linked on the line and carried along: the
+  or, until there is one, on account, for no more than is still owed. A line whose document was paid by other
+  means is closed as not executed, and one that cannot be raised is reported without stopping the others; Get
+  leaves out payment requests whose invoice or order is paid. Once submitted the payment is linked on the line and carried along: the
   requisition shows what was paid, its order counts it, and the invoice takes it up as an advance.
 - Bank facilities and the guarantees, bonds and letters of credit drawn on them, with expiry and
   quarterly fee reminders; funds lent between projects with approval.

@@ -131,6 +131,23 @@ class PaymentPlan(Document):
 				currency, rate = quoted.pop()
 		return currency or home, flt(rate) or 1
 
+	def still_owed(self, doctype, source) -> float:
+		"""What an invoice or order still owes, in the company's currency. An order fully billed is owed on its invoices."""
+		if doctype == "Purchase Invoice":
+			return self.in_company_currency(source, source.outstanding_amount)
+		if flt(source.per_billed) >= 100:
+			return 0.0
+		total = flt(source.base_rounded_total) or flt(source.base_grand_total)
+		return total - self.in_company_currency(source, source.advance_paid) - flt(source.muhick_paid_on_requisition)
+
+	def left_on_request(self, line, source) -> float:
+		"""What a payment request asks for, as far as the invoice or order behind it still owes that."""
+		requested = flt(source.grand_total) * self.owed_in(line)[1]
+		if source.reference_doctype not in ("Purchase Invoice", "Purchase Order"):
+			return requested
+		behind = frappe.db.get_value(source.reference_doctype, source.reference_name, "*", as_dict=True)
+		return min(requested, self.still_owed(source.reference_doctype, behind)) if behind else requested
+
 	def in_company_currency(self, source, amount) -> float:
 		"""An amount a document holds in its supplier's account currency."""
 		foreign = source.party_account_currency and source.party_account_currency != self.home_currency()
@@ -174,15 +191,13 @@ class PaymentPlan(Document):
 		elif not source or source.docstatus != 1:
 			frappe.throw(_("Payment Lines row {0}: {1} {2} is not an approved document.").format(line.idx, _(dt), dn))
 		if dt == "Purchase Invoice":
-			details = (source.supplier_name, source.project, self.in_company_currency(source, source.outstanding_amount), source.due_date)
+			details = (source.supplier_name, source.project, self.still_owed(dt, source), source.due_date)
 		elif dt == "Purchase Order":
-			total = flt(source.base_rounded_total) or flt(source.base_grand_total)
-			outstanding = total - self.in_company_currency(source, source.advance_paid) - flt(source.muhick_paid_on_requisition)
-			details = (source.supplier_name, source.project, outstanding, source.schedule_date)
+			details = (source.supplier_name, source.project, self.still_owed(dt, source), source.schedule_date)
 		elif dt == "Procurement Requisition":
 			details = self.requisition_details(line, source)
 		elif dt == "Payment Request":
-			details = (source.party, source.project, flt(source.grand_total) * self.owed_in(line)[1], source.transaction_date)
+			details = (source.party, source.project, self.left_on_request(line, source), source.transaction_date)
 		elif dt == "Project Requisition":
 			outstanding = flt(source.total_amount) - flt(source.amount_issued)
 			details = (source.payee or source.requested_by, source.project, outstanding, source.required_by)
@@ -391,11 +406,41 @@ class PaymentPlan(Document):
 		return frappe.get_all("Bank Instrument Fee", filters=filters, fields=["name", "due_date", "amount"], order_by="due_date asc")
 
 	@frappe.whitelist()
-	def make_payment(self, line: str):
-		"""Raise the outgoing payment for one approved line, as a draft Payment Entry."""
+	def raise_payments(self) -> dict:
+		"""A draft payment for every approved line paid with one. A line that cannot be raised does not hold up the others:
+		it is reported, and one whose document has nothing left to pay is closed as not executed, saying why."""
 		require_roles(*FINANCE_ROLES)
 		if self.docstatus != 1 or self.status != "Approved":
 			frappe.throw(_("Payments can only be raised from an approved plan."))
+		# the form may be behind, and a payment raised since must not be raised twice
+		self.reload()
+		result = {"created": [], "closed": [], "failed": []}
+		muted = frappe.flags.mute_messages
+		# what stops a line goes in the summary, not in a message of its own
+		frappe.flags.mute_messages = True
+		try:
+			for row in self.lines:
+				if row.line_status != "Approved" or row.payment_entry or row.reference_doctype not in PAID_BY_PAYMENT_ENTRY:
+					continue
+				frappe.db.savepoint("plan_payment")
+				try:
+					entry = self.make_payment(row.name)
+				except frappe.ValidationError as e:
+					frappe.db.rollback(save_point="plan_payment")
+					result["failed"].append({"row": row.idx, "document": row.reference_name, "reason": str(e)})
+					continue
+				if entry:
+					result["created"].append(entry)
+				else:
+					result["closed"].append(row.reference_name)
+		finally:
+			frappe.flags.mute_messages = muted
+		update_progress(self.name)
+		return result
+
+	def make_payment(self, line: str):
+		"""The outgoing payment of one approved line, as a draft Payment Entry, for no more than is left to pay. With
+		nothing left, because it was paid by other means, the line is closed and there is no payment."""
 		row = next((l for l in self.lines if l.name == line), None)
 		if not row or row.line_status != "Approved":
 			frappe.throw(_("This line is not approved for payment."))
@@ -403,6 +448,12 @@ class PaymentPlan(Document):
 			return row.payment_entry
 		if row.reference_doctype not in PAID_BY_PAYMENT_ENTRY:
 			frappe.throw(_("{0} {1} is paid from its own form or with Issue Funds.").format(_(row.reference_doctype), row.reference_name))
+		self.set_line_details(row)
+		if flt(row.outstanding_amount) <= 0:
+			reason = _("Nothing is left to pay on {0}.").format(row.reference_name)
+			frappe.db.set_value("Payment Plan Line", row.name, {"line_status": "Not Executed", "hold_reason": reason}, update_modified=False)
+			return None
+		row.approved_amount = min(flt(row.approved_amount), flt(row.outstanding_amount))
 		if not row.paid_from:
 			frappe.throw(_("Payment Lines row {0}: choose the bank account to pay {1} from.").format(row.idx, row.reference_name))
 		self.check_account_currency(row, row.paid_from)

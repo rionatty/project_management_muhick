@@ -155,28 +155,23 @@ function issue_funds(frm, lines) {
 	);
 }
 
-// one draft Payment Entry per approved line that is paid with a payment entry
+// one draft Payment Entry per approved line that is paid with a payment entry; what happened to each is said once
 async function raise_payments(frm) {
-	const types = ["Purchase Invoice", "Purchase Order", "Payment Request", "Procurement Requisition"];
-	const lines = (frm.doc.lines || []).filter(
-		(l) => l.line_status === "Approved" && !l.payment_entry && types.includes(l.reference_doctype)
-	);
-	if (!lines.length) {
-		frappe.msgprint(__("Every approved line already has a payment, or is paid from its own form."));
-		return;
-	}
-	const created = [];
-	for (const line of lines) {
-		const r = await frm.call("make_payment", { line: line.name });
-		if (r && r.message) {
-			created.push(r.message);
-		}
-	}
+	const { created, closed, failed } = (await frm.call("raise_payments")).message;
 	await frm.reload_doc();
-	frappe.msgprint(
-		__("{0} draft payment(s) created: {1}. Enter the bank's reference and submit each one.", [
-			created.length,
-			created.join(", "),
-		])
-	);
+	const parts = [];
+	if (created.length) {
+		parts.push(__("{0} draft payment(s) created: {1}. Enter the bank's reference and submit each one.", [created.length, created.join(", ")]));
+	}
+	if (closed.length) {
+		parts.push(__("Nothing is left to pay on {0}, so the line is closed as Not Executed.", [closed.join(", ")]));
+	}
+	if (failed.length) {
+		parts.push(__("Not raised:") + "<br>" + failed.map((f) => __("Row {0}, {1}: {2}", [f.row, f.document, f.reason])).join("<br>"));
+	}
+	frappe.msgprint({
+		title: __("Raise Payments"),
+		indicator: failed.length ? "orange" : "green",
+		message: parts.join("<br><br>") || __("Every approved line already has a payment, or is paid from its own form."),
+	});
 }
