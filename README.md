@@ -138,7 +138,7 @@ and certificates, retention, payments and the controls around them.
   has a row for it, and so does anything over budget. Orders go to the Finance Manager, then the General
   Manager. A quotation in another currency is read in the company's for the budget and the limits.
 - Only the Finance Manager changes bank details, and the General Manager hears of each change. The
-  Procurement Manager holds the item list.
+  Procurement Manager holds the supplier and item lists.
 
 **Sales and bids**
 

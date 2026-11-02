@@ -20,8 +20,8 @@ ROLE_PROFILES = {
 	"Muhick Finance Manager": [FM, "Accounts Manager", "Accounts User"],
 	"Muhick Finance Officer": [FO, "Accounts User"],
 	"Muhick General Manager": [GM, "Projects User"],
-	# the item list is theirs: nobody else creates or changes an item
-	"Muhick Procurement Manager": [PRM, "Purchase Manager", "Purchase User", "Stock User", "Item Manager"],
+	# the supplier and item lists are theirs: nobody else creates a supplier or changes an item
+	"Muhick Procurement Manager": [PRM, "Purchase Manager", "Purchase Master Manager", "Purchase User", "Stock User", "Item Manager"],
 	"Muhick Procurement Officer": [PRO, "Purchase User", "Stock User"],
 	"Muhick Storekeeper": [SK, "Stock User"],
 	"Muhick Site Storekeeper": [SSK, "Stock User"],
