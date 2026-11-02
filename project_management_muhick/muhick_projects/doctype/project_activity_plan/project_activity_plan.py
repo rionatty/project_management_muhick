@@ -4,14 +4,15 @@
 """Activity plan: the project's schedule, its milestones and the items each milestone needs. Approved
 COO -> Finance -> General Manager.
 
-The schedule is one outline, laid out as the business's activity schedule: ID, task name, level, duration in
-working days, start, finish and predecessors (25,28 or 6SS or 25FS+2 days), worked out as a scheduling tool
-does (see calc.work_out_schedule). Its top rows are the milestones, past a lone row that only wraps them such
-as the project's name; a row with rows under it is a section, the others activities.
+The schedule is one outline, laid out as the business's activity schedule: ID, task name, duration in working
+days, start, finish and predecessors (25,28 or 6SS or 25FS+2 days), worked out as a scheduling tool does (see
+calc.work_out_schedule). A row is a subtask of the row whose ID it names as its Group Task ID, and a row with
+subtasks is a group task; Type on each row says which it is. Its top rows are the milestones, past a lone row
+that only wraps them such as the project's name.
 
-Milestones, sections and activities are standard ERPNext Tasks: a milestone is a top-level group task of the
-project, a section a group task under it and an activity a task under either, so the Task tree, the Gantt
-chart and timesheets work as usual. Milestone names come from the shared milestone list (ERPNext's Task Type),
+Milestones, group tasks and subtasks are standard ERPNext Tasks in the same tree: a milestone is a top-level group
+task of the project, so the Task tree, the Gantt chart and timesheets work as usual. Milestone names come from the
+shared milestone list (ERPNext's Task Type),
 and each project milestone task carries its milestone in the standard Type field. The Milestones table follows
 the schedule and holds what only a milestone has: its weight, valuation and claim. Standard sets of milestones
 and activities come from a Project Template. Approval creates or updates the tasks. A later change to dates,
@@ -47,17 +48,18 @@ PHASE_FIELDS = {
 ACTIVITY_FIELDS = {"start_date": "exp_start_date", "end_date": "exp_end_date"}
 # what a schedule row carries into a revision
 SCHEDULE_FIELDS = (
-	"row_id", "outline_level", "subject", "duration", "start_date", "end_date", "predecessors", "responsibility", "phase_name",
-	"is_summary", "task_weight", "description", "task",
+	"row_id", "parent_row", "outline_level", "row_type", "subject", "duration", "start_date", "end_date", "predecessors", "responsibility",
+	"phase_name", "is_summary", "task_weight", "description", "task",
 )
 RESPONSIBILITIES = ("Muhick", "Client", "Subcontractor", "Joint")
 EXCEL_COLUMNS = (
-	("row_id", "ID"), ("outline_level", "Level"), ("subject", "Task Name"), ("duration", "Duration"), ("start_date", "Start"),
+	("row_id", "ID"), ("parent_row", "Group Task ID"), ("subject", "Task Name"), ("duration", "Duration"), ("start_date", "Start"),
 	("end_date", "Finish"), ("predecessors", "Predecessors"), ("responsibility", "Responsibility"),
 )
 # the headings a schedule's columns go by, here and in a scheduling tool's export
 HEADINGS = {
-	"id": "row_id", "level": "outline_level", "outlinelevel": "outline_level", "wbs": "wbs", "taskname": "subject", "name": "subject",
+	"id": "row_id", "grouptaskid": "parent_row", "grouptask": "parent_row", "level": "outline_level", "outlinelevel": "outline_level",
+	"wbs": "wbs", "taskname": "subject", "name": "subject",
 	"task": "subject", "activity": "subject", "duration": "duration", "days": "duration", "start": "start_date", "startdate": "start_date",
 	"finish": "end_date", "finishdate": "end_date", "end": "end_date", "enddate": "end_date", "predecessors": "predecessors",
 	"dependson": "predecessors", "responsibility": "responsibility",
@@ -105,17 +107,18 @@ class ProjectActivityPlan(Document):
 		milestones typed in."""
 		if not self.activities:
 			return
-		self.activities.sort(key=lambda row: row.idx or 0)
-		for row in self.activities:
+		rows = sorted(self.activities, key=lambda row: row.idx or 0)
+		for row in rows:
 			row.subject = (row.subject or "").strip()
 			if not row.subject:
 				frappe.throw(_("Schedule row {0}: give the task name.").format(row.idx))
 			if row.task and frappe.db.get_value("Task", row.task, "project") != self.project:
 				frappe.throw(_("Schedule row {0}: task {1} belongs to another project.").format(row.idx, row.task))
 		try:
-			worked = calc.work_out_schedule(_schedule_inputs(self.activities), _first_day(self.project, self.plan_date))
+			order, worked = _work_out(rows, _first_day(self.project, self.plan_date))
 		except calc.ScheduleError as error:
 			frappe.throw(_schedule_message(error))
+		self.activities[:] = [rows[place] for place in order]
 		names, milestones = {}, []
 		for position, (row, out) in enumerate(zip(self.activities, worked)):
 			if out["milestone"] == position:
@@ -125,8 +128,8 @@ class ProjectActivityPlan(Document):
 				milestones.append((names[position], row))
 			row.update(
 				{
-					"idx": position + 1, "row_id": out["id"], "predecessors": out["predecessors"], "start_date": out["start"],
-					"end_date": out["end"], "duration": out["duration"], "is_summary": cint(out["summary"]),
+					"idx": position + 1, "row_id": out["id"], "parent_row": out["group"], "outline_level": out["level"], "row_type": out["kind"],
+					"predecessors": out["predecessors"], "start_date": out["start"], "end_date": out["end"], "duration": out["duration"], "is_summary": cint(out["summary"]),
 					"phase_name": names.get(out["milestone"]), "responsibility": row.responsibility or RESPONSIBILITIES[0],
 				}
 			)
@@ -267,9 +270,9 @@ class ProjectActivityPlan(Document):
 		return names
 
 	def apply_activities(self, phases):
-		"""The schedule's rows as tasks in the same tree: a milestone is the task apply_phases made for it, a row with
-		rows under it a group task, the others tasks; rows above the milestones only wrap them. A longer activity
-		counts for more in its section's progress unless it is given a weight. Finish-to-start predecessors become
+		"""The schedule's rows as tasks in the same tree: a milestone is the task apply_phases made for it, a group task a
+		group task under its own group task, a subtask a task; rows above the milestones only wrap them. A longer
+		subtask counts for more in its group's progress unless it is given a weight. Finish-to-start predecessors become
 		the task's dependencies, ERPNext reading those as "cannot be completed before"; any other kind only sets dates."""
 		rows = sorted(self.activities, key=lambda row: row.idx or 0)
 		levels = [cint(row.outline_level) for row in rows]
@@ -355,14 +358,17 @@ def cancel_tasks(tasks):
 
 
 # ------------------------------------------------------------------ working out a schedule
-def _schedule_inputs(rows) -> list:
-	return [
+def _work_out(rows, first_day) -> tuple:
+	"""Rows in the outline their Group Task IDs make, worked out: the places they come from, and what each comes to."""
+	inputs = [
 		{
-			"id": cint(row.get("row_id")), "level": cint(row.get("outline_level")), "duration": cint(row.get("duration")),
+			"id": cint(row.get("row_id")), "group": cint(row.get("parent_row")), "duration": cint(row.get("duration")),
 			"start": _date(row.get("start_date")), "end": _date(row.get("end_date")), "predecessors": row.get("predecessors"),
 		}
 		for row in rows
 	]
+	order, levels = calc.outline_from_groups(inputs)
+	return order, calc.work_out_schedule([{**inputs[place], "level": levels[place]} for place in order], first_day)
 
 
 def _first_day(project, plan_date=None):
@@ -375,24 +381,29 @@ def _schedule_message(error) -> str:
 		return _("Schedule row {0}: predecessor {1} should read like 25, 6SS or 25FS+2 days.").format(error.row, error.text)
 	if error.kind == "unknown":
 		return _("Schedule row {0}: predecessor {1} is not in the schedule.").format(error.row, error.text)
+	if error.kind == "group":
+		return _("Schedule row {0}: group task {1} is not in the schedule.").format(error.row, error.text)
+	if error.kind == "group-loop":
+		return _("Schedule row {0} ends up under itself through its group tasks.").format(error.row)
 	return _("Schedule row {0} ends up depending on itself through its predecessors.").format(error.row)
 
 
 @frappe.whitelist()
 def get_worked_schedule(rows, project: str | None = None, plan_date: str | None = None) -> dict:
-	"""The schedule's rows as they work out now, for the form to show before saving: {rows} or {error}."""
+	"""The schedule's rows as they work out now, for the form to show before saving: {rows} in their new order, each with
+	the place it comes from, or {error}."""
 	frappe.has_permission("Project Activity Plan", "read", throw=True)
 	try:
-		worked = calc.work_out_schedule(_schedule_inputs(frappe.parse_json(rows)), _first_day(project, plan_date))
+		order, worked = _work_out(frappe.parse_json(rows), _first_day(project, plan_date))
 	except calc.ScheduleError as error:
 		return {"error": _schedule_message(error)}
 	return {
 		"rows": [
 			{
-				"row_id": out["id"], "predecessors": out["predecessors"], "start_date": out["start"], "end_date": out["end"],
-				"duration": out["duration"], "is_summary": cint(out["summary"]),
+				"from": place, "row_id": out["id"], "parent_row": out["group"], "outline_level": out["level"], "row_type": out["kind"],
+				"predecessors": out["predecessors"], "start_date": out["start"], "end_date": out["end"], "duration": out["duration"], "is_summary": cint(out["summary"]),
 			}
-			for out in worked
+			for place, out in zip(order, worked)
 		]
 	}
 
@@ -500,9 +511,17 @@ def _schedule_rows(rows, columns) -> list:
 				"responsibility": next((r for r in RESPONSIBILITIES if r.lower() == str(cell(row, "responsibility") or "").strip().lower()), RESPONSIBILITIES[0]),
 			}
 		)
-	lowest = min((row["outline_level"] for row in out), default=0)
-	for row in out:
-		row["outline_level"] -= lowest
+	# an export says a row's level, not its group task: the row above it at a lesser level
+	for place, row in enumerate(out):
+		row["row_id"] = row["row_id"] or place + 1
+	if "parent_row" in columns:
+		for row, raw in zip(out, (r for r in rows if str(cell(r, "subject") or "").strip())):
+			row["parent_row"] = cint(_number_text(cell(raw, "parent_row")))
+	else:
+		lowest = min((row["outline_level"] for row in out), default=0)
+		for row, parent in zip(out, calc.outline_parents([row["outline_level"] for row in out])):
+			row["outline_level"] -= lowest
+			row["parent_row"] = out[parent]["row_id"] if parent is not None else 0
 	return out
 
 
@@ -562,7 +581,7 @@ def load_phases(project: str, project_template: str | None = None) -> dict:
 
 
 def _outline(tasks, depends) -> list:
-	"""Schedule rows for tasks ({name, parent, ...the row's fields}) in their tree, each at the level it sits; a
+	"""Schedule rows for tasks ({name, parent, ...the row's fields}) in their tree, each naming its group task; a
 	task's predecessors are those it depends on other than the tasks under it."""
 	by_name = {t["name"]: t for t in tasks}
 	under = {}
@@ -573,7 +592,7 @@ def _outline(tasks, depends) -> list:
 	def walk(parent, level):
 		for t in under.get(parent, []):
 			ids[t["name"]] = len(rows) + 1
-			rows.append({"row_id": ids[t["name"]], "outline_level": level, **{k: v for k, v in t.items() if k not in ("name", "parent")}})
+			rows.append({"row_id": ids[t["name"]], "parent_row": ids.get(parent, 0), "outline_level": level, **{k: v for k, v in t.items() if k not in ("name", "parent")}})
 			rows[-1]["_name"] = t["name"]
 			walk(t["name"], level + 1)
 
@@ -707,11 +726,11 @@ def make_revision(source_name: str):
 	for t in others:
 		name = milestones[t.parent_task]
 		last = max(i for i, row in enumerate(rows) if row["phase_name"] == name)
-		level = next(cint(row["outline_level"]) for row in rows if row["phase_name"] == name) + 1
+		group = next(row for row in rows if row["phase_name"] == name)
 		rows.insert(
 			last + 1,
 			{
-				"task": t.name, "subject": t.subject, "outline_level": level, "phase_name": name, "start_date": _date(t.exp_start_date),
+				"task": t.name, "subject": t.subject, "parent_row": group["row_id"], "phase_name": name, "start_date": _date(t.exp_start_date),
 				"end_date": _date(t.exp_end_date), "task_weight": t.task_weight, "responsibility": RESPONSIBILITIES[0],
 			},
 		)

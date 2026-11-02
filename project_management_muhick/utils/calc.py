@@ -398,14 +398,60 @@ def outline_milestones(levels) -> list:
 	return top
 
 
+def outline_from_groups(rows) -> tuple:
+	"""An outline from each row naming the ID of its group task: the positions of rows in outline order, each under its
+	group task in the order given, and each position's level. A row naming none is at the top. ScheduleError for a
+	group task that is not in the schedule, or a row that ends up under itself."""
+	positions = {row["id"]: place for place, row in enumerate(rows) if row.get("id")}
+	under = defaultdict(list)
+	for place, row in enumerate(rows):
+		group = row.get("group")
+		if group and group not in positions:
+			raise ScheduleError("group", row.get("id") or place + 1, str(group))
+		under[positions[group] if group else None].append(place)
+	order, levels = [], {}
+
+	def walk(parent, level):
+		for place in under[parent]:
+			order.append(place)
+			levels[place] = level
+			walk(place, level + 1)
+
+	walk(None, 0)
+	for place, row in enumerate(rows):
+		if place not in levels:
+			raise ScheduleError("group-loop", row.get("id") or place + 1)
+	return order, levels
+
+
+def outline_kinds(levels) -> list:
+	"""What each row of an outline is: Heading above the milestones, Milestone, Group Task with rows under it, Subtask."""
+	parents = outline_parents(levels)
+	with_rows = {parent for parent in parents if parent is not None}
+	top = set(outline_milestones(levels))
+	kinds = []
+	for position in range(len(levels)):
+		above = position
+		while above is not None and above not in top:
+			above = parents[above]
+		if above is None:
+			kinds.append("Heading")
+		elif position in top:
+			kinds.append("Milestone")
+		else:
+			kinds.append("Group Task" if position in with_rows else "Subtask")
+	return kinds
+
+
 def work_out_schedule(rows, first_day) -> list:
 	"""An outline schedule worked out as a scheduling tool does it, Monday to Friday. rows are {id, level, duration,
 	start, end, predecessors} in their order. A row's new ID is its place, its predecessors following (a row moved or
 	added keeps its links). A task lasts its duration, or the days from its start to its end, or a day. It starts when
 	its predecessors and those of the rows it sits under allow; with none, on its own start, else the nearest above
 	it, else first_day. A row with rows under it runs from the first of their starts to the last of their finishes.
-	Returns for each row {id, predecessors, start, end, duration, summary, milestone: the position of its milestone,
-	None above the milestones}. ScheduleError for a predecessor that reads wrongly, is not in the schedule, or loops."""
+	Returns for each row {id, group: the new ID of its group task or 0, level, kind, predecessors, start, end, duration,
+	summary, milestone: the position of its milestone, None above the milestones}. ScheduleError for a predecessor
+	that reads wrongly, is not in the schedule, or loops."""
 	new_ids = {row["id"]: place for place, row in enumerate(rows) if row.get("id")}
 	levels = [int(row.get("level") or 0) for row in rows]
 	parents = outline_parents(levels)
@@ -474,6 +520,7 @@ def work_out_schedule(rows, first_day) -> list:
 		return finished[i]
 
 	top = set(outline_milestones(levels))
+	kinds = outline_kinds(levels)
 	out = []
 	for i in range(len(rows)):
 		milestone = i
@@ -482,6 +529,9 @@ def work_out_schedule(rows, first_day) -> list:
 		out.append(
 			{
 				"id": i + 1,
+				"group": parents[i] + 1 if parents[i] is not None else 0,
+				"level": levels[i],
+				"kind": kinds[i],
 				"predecessors": write_predecessors([(other + 1, kind, lag) for other, kind, lag in links[i]]),
 				"start": start_of(i),
 				"end": finish_of(i),

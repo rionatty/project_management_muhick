@@ -334,9 +334,10 @@ paths |= {ns[h] for h in ("before_uninstall", "after_uninstall") if h in ns}
 for p in sorted(paths):
 	if not resolve(p):
 		err(f"hooks: {p} does not resolve to a function")
-for dt, js in ns["doctype_js"].items():
-	if not os.path.exists(os.path.join(APP, PKG, js)):
-		err(f"hooks: doctype_js file missing for {dt}: {js}")
+for dt, files in ns["doctype_js"].items():
+	for js in [files] if isinstance(files, str) else files:
+		if not os.path.exists(os.path.join(APP, PKG, js)):
+			err(f"hooks: doctype_js file missing for {dt}: {js}")
 wf_dts = set(wf_mod.get_workflows())
 TRACK = f"{PKG}.utils.approval.track"
 for event in ("on_update", "on_submit", "on_cancel"):

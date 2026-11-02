@@ -12,9 +12,7 @@ frappe.ui.form.on("Project Activity Plan", {
 	},
 
 	refresh(frm) {
-		set_phase_options(frm);
 		frm.__schedule_error = null;
-		show_schedule(frm);
 		const follows_schedule = Boolean((frm.doc.activities || []).length);
 		frm.set_df_property("phases", "cannot_add_rows", follows_schedule);
 		["phase_name", "planned_start", "planned_end"].forEach((field) =>
@@ -36,6 +34,8 @@ frappe.ui.form.on("Project Activity Plan", {
 				});
 			});
 		}
+		set_phase_options(frm);
+		show_schedule(frm);
 	},
 
 	project(frm) {
@@ -49,7 +49,7 @@ frappe.ui.form.on("Project Activity Plan Phase", {
 });
 
 frappe.ui.form.on(ROW, {
-	...Object.fromEntries(["outline_level", "duration", "start_date", "predecessors", "activities_add", "activities_remove", "activities_move"].map((event) => [event, work_out])),
+	...Object.fromEntries(["parent_row", "duration", "start_date", "predecessors", "activities_add", "activities_remove", "activities_move"].map((event) => [event, work_out])),
 	// a finish typed by hand sets the duration
 	end_date(frm, cdt, cdn) {
 		locals[cdt][cdn].duration = null;
@@ -85,8 +85,9 @@ function show_schedule(frm) {
 	);
 }
 
-// the schedule as it now works out: its IDs follow the rows' order and the predecessors follow the IDs, as in a
-// scheduling tool; a mistake shows above the schedule until it is put right
+// the schedule as it now works out: a subtask goes under its group task, the IDs follow the rows' order and the
+// predecessors and group tasks follow the IDs, as in a scheduling tool; a mistake shows above the schedule until it
+// is put right
 function work_out(frm) {
 	clearTimeout(frm.__schedule_timer);
 	frm.__schedule_timer = setTimeout(() => {
@@ -94,14 +95,14 @@ function work_out(frm) {
 		frappe
 			.xcall("project_management_muhick.muhick_projects.doctype.project_activity_plan.project_activity_plan.get_worked_schedule", {
 				rows: rows.map((r) => ({
-					row_id: r.row_id, outline_level: r.outline_level, duration: r.duration, start_date: r.start_date, end_date: r.end_date, predecessors: r.predecessors,
+					row_id: r.row_id, parent_row: r.parent_row, duration: r.duration, start_date: r.start_date, end_date: r.end_date, predecessors: r.predecessors,
 				})),
 				project: frm.doc.project,
 				plan_date: frm.doc.plan_date,
 			})
 			.then((result) => {
 				frm.__schedule_error = result.error || null;
-				(result.rows || []).forEach((values, i) => rows[i] && Object.assign(rows[i], values));
+				(result.rows || []).forEach(({ from, ...values }, position) => Object.assign(rows[from], values, { idx: position + 1 }));
 				frm.refresh_field("activities");
 				set_phase_options(frm);
 				show_schedule(frm);
@@ -109,10 +110,17 @@ function work_out(frm) {
 	}, 200);
 }
 
-function row_fields(values, summary) {
+// what a row is under: any row but itself and those under it, or nothing, which makes it a milestone
+function group_options(frm, row) {
+	const rows = ordered(frm);
+	const out = row ? [row, ...muhick.schedule.under(rows, row)] : [];
+	return [{ value: "", label: __("None: it is a milestone") }, ...rows.filter((r) => r.row_id && !out.includes(r)).map((r) => ({ value: String(r.row_id), label: `${r.row_id}: ${r.subject}` }))];
+}
+
+function row_fields(frm, values, row, summary) {
 	return [
 		{ fieldname: "subject", fieldtype: "Data", label: __("Task Name"), reqd: 1, default: values.subject },
-		{ fieldname: "outline_level", fieldtype: "Int", label: __("Level"), default: cint(values.outline_level) },
+		{ fieldname: "parent_row", fieldtype: "Select", label: __("Subtask Of (Group Task)"), options: group_options(frm, row), default: String(values.parent_row || "") },
 		{ fieldname: "column_break", fieldtype: "Column Break" },
 		{ fieldname: "duration", fieldtype: "Int", label: __("Duration (Days)"), default: values.duration, hidden: summary },
 		{ fieldname: "start_date", fieldtype: "Date", label: __("Start"), default: values.start_date, hidden: summary, read_only: Boolean(values.predecessors) },
@@ -123,46 +131,42 @@ function row_fields(values, summary) {
 	];
 }
 
-// a row moved to another level takes the rows under it along
+// a row moved under another group task takes its subtasks along; one removed takes them too, and the links to them
 function edit_row(frm, row) {
-	const rows = ordered(frm);
-	const at = rows.indexOf(row);
-	const level = cint(row.outline_level);
-	const end = rows.findIndex((r, i) => i > at && cint(r.outline_level) <= level);
-	const under = rows.slice(at + 1, end < 0 ? rows.length : end);
+	const under = muhick.schedule.under(ordered(frm), row);
 	const dialog = new frappe.ui.Dialog({
 		title: __("Row {0}", [row.row_id || row.idx]),
-		fields: row_fields(row, under.length > 0),
+		fields: row_fields(frm, row, row, under.length > 0),
 		primary_action_label: __("Done"),
 		primary_action(values) {
-			const moved = cint(values.outline_level) - level;
-			under.forEach((r) => (r.outline_level = Math.max(cint(r.outline_level) + moved, 0)));
 			// a field left empty does not come back with the values
-			Object.assign(row, { predecessors: "", description: "", duration: null, start_date: null }, values, { outline_level: Math.max(cint(values.outline_level), 0) });
+			Object.assign(row, { predecessors: "", description: "", duration: null, start_date: null }, values, { parent_row: cint(values.parent_row) });
 			finish_edit(frm, dialog);
 		},
 		secondary_action_label: __("Remove"),
 		secondary_action() {
-			[row, ...under].forEach((r) => frappe.model.clear_doc(ROW, r.name));
-			ordered(frm).forEach((r, i) => (r.idx = i + 1));
+			const gone = [row, ...under];
+			const ids = new Set(gone.map((r) => cint(r.row_id)));
+			gone.forEach((r) => frappe.model.clear_doc(ROW, r.name));
+			ordered(frm).forEach((r, i) => {
+				r.idx = i + 1;
+				r.predecessors = String(r.predecessors || "").split(",").filter((link) => link.trim() && !ids.has(parseInt(link))).join(",");
+			});
 			finish_edit(frm, dialog);
 		},
 	});
 	dialog.show();
 }
 
-// a new row goes at the end of what sits under the row it is added to, or at the end as a milestone
+// a new row goes at the end of the group task's subtasks, or at the end as a milestone
 function add_row(frm, under) {
-	const rows = ordered(frm);
-	const at = under ? rows.indexOf(under) : -1;
-	const level = under ? cint(under.outline_level) + 1 : muhick.schedule.milestone_level(rows);
-	const end = under ? rows.findIndex((r, i) => i > at && cint(r.outline_level) < level) : -1;
+	const group = under ? under.row_id : muhick.schedule.milestone_group(ordered(frm));
 	const dialog = new frappe.ui.Dialog({
-		title: under ? __("Add under {0}", [under.subject]) : __("Add Milestone"),
-		fields: row_fields({ outline_level: level, duration: 1 }, false),
+		title: under ? __("Add Subtask to {0}", [under.subject]) : __("Add Milestone"),
+		fields: row_fields(frm, { parent_row: group, duration: 1 }, null, false),
 		primary_action_label: __("Add"),
 		primary_action(values) {
-			Object.assign(frappe.model.add_child(frm.doc, ROW, "activities", end < 0 ? undefined : rows[end].idx), values);
+			Object.assign(frappe.model.add_child(frm.doc, ROW, "activities"), values, { parent_row: cint(values.parent_row), outline_level: under ? cint(under.outline_level) + 1 : 0 });
 			finish_edit(frm, dialog);
 		},
 	});

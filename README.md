@@ -87,15 +87,17 @@ and certificates, retention, payments and the controls around them.
 - Commitments: approved purchase orders, subcontracts, requisitions and labour reduce the available
   budget at once, before anything is paid. Original Budget, Approved Variations, Current Budget and
   Forecast Final Cost are kept separately; an approved budget is changed only by a revision.
-- Activity plan laid out as the business's activity schedule, in one outline: ID, task name, level,
+- Activity plan laid out as the business's activity schedule, in one outline: ID, task name, type,
   duration in working days (Monday to Friday), start, finish and predecessors written as scheduling
   tools write them (25,28 or 6SS or 25FS+2 days), with a bar for each row. Dates work themselves out from
   the durations and predecessors, and IDs and links follow when a row is moved or added; a start is typed
-  only where neither a row nor a section above it has predecessors. The top rows are the milestones,
-  past a row that only wraps them such as the project's name; a row with rows under it is a section,
-  the others activities. All are standard ERPNext Tasks in the same tree, loaded from a Project Template,
-  uploaded from Excel (also a scheduling tool's export) or entered on the plan. Milestones and sections
-  fold, and each activity has a responsibility to filter by. Once approved, each milestone shows its tasks
+  only where neither a row nor a group above it has predecessors. A row is a subtask of the row whose ID
+  it names as its Group Task ID, a row with subtasks is a group task, and Type on each row says which it
+  is. The top rows are the milestones, past a row that only wraps them such as the project's name. All
+  are standard ERPNext Tasks in the same tree, loaded from a Project Template, uploaded from Excel (also
+  a scheduling tool's export) or entered on the plan. Each milestone is a card, with + Add Subtask under
+  each group; milestones and group tasks fold, and each subtask has a responsibility to filter by. Once
+  approved, each milestone shows its tasks
   done and where it stands, on the plan and on the project, with the client's sign-off requested by email
   and its date recorded. The Milestones tab holds weights, valuations and claims, and Items Required what
   each milestone needs. The first approved dates stay as a baseline, and revisions state why the schedule

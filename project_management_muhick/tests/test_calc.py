@@ -345,6 +345,33 @@ class TestSchedule(unittest.TestCase):
 		worked = calc.work_out_schedule([dict(id=1, level=0, start=calc.date(2026, 3, 2), end=calc.date(2026, 3, 9))], calc.date(2026, 1, 5))
 		self.assertEqual((worked[0]["duration"], worked[0]["end"]), (6, calc.date(2026, 3, 9)))
 
+	def test_a_row_names_its_group_task_and_the_outline_follows(self):
+		rows = [dict(id=1), dict(id=2, group=3), dict(id=3), dict(id=4, group=1), dict(id=5, group=2), dict(id=6, group=3)]
+		order, levels = calc.outline_from_groups(rows)
+		self.assertEqual(order, [0, 3, 2, 1, 4, 5])
+		self.assertEqual([levels[place] for place in order], [0, 1, 0, 1, 2, 1])
+		# a subtask typed above its group task goes under it
+		order, levels = calc.outline_from_groups([dict(id=1, group=2), dict(id=2)])
+		self.assertEqual((order, levels), ([1, 0], {1: 0, 0: 1}))
+
+	def test_a_group_task_that_cannot_be_is_refused(self):
+		for rows, kind in (
+			([dict(id=1, group=9)], "group"),
+			([dict(id=1, group=1)], "group-loop"),
+			([dict(id=1, group=2), dict(id=2, group=1)], "group-loop"),
+		):
+			with self.assertRaises(calc.ScheduleError) as caught:
+				calc.outline_from_groups(rows)
+			self.assertEqual(caught.exception.kind, kind)
+
+	def test_each_row_says_what_it_is(self):
+		self.assertEqual(calc.outline_kinds([0, 1, 2, 3, 3, 2, 3, 4]), ["Heading", "Heading", "Milestone", "Subtask", "Subtask", "Milestone", "Group Task", "Subtask"])
+		self.assertEqual(calc.outline_kinds([0, 0]), ["Milestone", "Milestone"])
+		self.assertEqual(calc.outline_kinds([0, 1, 1]), ["Milestone", "Subtask", "Subtask"])
+		worked = self.worked()
+		self.assertEqual((worked[3]["group"], worked[3]["level"], worked[3]["kind"]), (3, 3, "Subtask"))
+		self.assertEqual((worked[0]["group"], worked[0]["kind"]), (0, "Heading"))
+
 	def test_a_schedule_that_cannot_work_is_refused(self):
 		for rows, kind, row in (
 			([dict(id=1, level=0, predecessors="what")], "format", 1),

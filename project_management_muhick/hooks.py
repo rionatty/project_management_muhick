@@ -36,7 +36,8 @@ app_include_js = "muhick_common.bundle.js"
 # scripts added to standard ERPNext forms
 
 doctype_js = {
-	"Project": "public/js/project.js",
+	"Project": ["public/js/activity_schedule.js", "public/js/project.js"],
+	"Project Activity Plan": "public/js/activity_schedule.js",
 	"Material Request": "public/js/material_request.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Purchase Order": "public/js/purchase_order.js",
