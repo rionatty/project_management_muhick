@@ -83,15 +83,19 @@ def quotation_bids(quotations) -> set:
 	return names
 
 
+def sales_order_quotation(sales_order) -> str | None:
+	"""The quotation a sales order was made from."""
+	return sales_order and frappe.db.get_value(
+		"Sales Order Item", {"parent": sales_order, "prevdoc_docname": ("is", "set")}, "prevdoc_docname"
+	)
+
+
 def project_bid(project) -> str | None:
 	"""The won bid a project came from: through its accepted handover, or its sales order's
 	quotation. A bid split into several projects is carried by the first of them."""
 	opportunity = frappe.db.get_value("Project Handover", {"project": project, "docstatus": 1}, "opportunity")
 	if not opportunity:
-		sales_order = frappe.db.get_value("Project", project, "sales_order")
-		quotation = sales_order and frappe.db.get_value(
-			"Sales Order Item", {"parent": sales_order, "prevdoc_docname": ("is", "set")}, "prevdoc_docname"
-		)
+		quotation = sales_order_quotation(frappe.db.get_value("Project", project, "sales_order"))
 		opportunity = min(quotation_bids([quotation]), default=None) if quotation else None
 	if not opportunity:
 		return None

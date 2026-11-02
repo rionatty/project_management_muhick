@@ -88,6 +88,7 @@ frappe.ui.form.on("Project", {
 		};
 		report(__("Project Cost Report"), "Project Cost Report");
 		report(__("Material Consumption"), "Project Material Consumption");
+		report(__("Accountability"), "Project Accountability");
 	},
 });
 

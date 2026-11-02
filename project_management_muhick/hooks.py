@@ -32,6 +32,8 @@ before_uninstall = "project_management_muhick.install.before_uninstall"
 # its file name changes with each version and browsers take the new one (a plain /assets file is cached
 # for a year)
 app_include_js = "muhick_common.bundle.js"
+# every table in the desk: a bar to scroll sideways by when it has more columns than the page has room for
+app_include_css = "muhick_common.bundle.css"
 
 # scripts added to standard ERPNext forms
 
@@ -106,7 +108,7 @@ doc_events = {
 		"validate": "project_management_muhick.overrides.supplier.validate",
 		"after_insert": "project_management_muhick.overrides.supplier.after_insert",
 	},
-	"Supplier Quotation": _approval_events,
+	"Supplier Quotation": {**_approval_events, "validate": "project_management_muhick.overrides.buying.validate_supplier_quotation"},
 	"Purchase Order": {
 		"validate": "project_management_muhick.overrides.buying.validate_purchase_order",
 		"before_submit": "project_management_muhick.overrides.buying.before_submit_purchase_order",

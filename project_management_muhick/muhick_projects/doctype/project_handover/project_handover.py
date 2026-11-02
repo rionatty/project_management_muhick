@@ -15,7 +15,7 @@ from frappe.utils import fmt_money, now_datetime
 
 from project_management_muhick.muhick_projects import budget_engine, estimate
 from project_management_muhick.muhick_projects.utils import validate_dates
-from project_management_muhick.muhick_sales.bids import bid_spent, quotation_bids
+from project_management_muhick.muhick_sales.bids import bid_spent, quotation_bids, sales_order_quotation
 from project_management_muhick.overrides.crm import refresh_bid_status, requirement_kinds
 from project_management_muhick.utils.common import get_settings
 
@@ -90,6 +90,8 @@ class ProjectHandover(Document):
 
 	def update_project(self, project):
 		project.muhick_handover = self.name
+		project.muhick_bid = self.opportunity
+		project.muhick_quotation = sales_order_quotation(self.sales_order or project.sales_order)
 		for source, target in PROJECT_FIELDS.items():
 			if self.get(source) not in (None, ""):
 				project.set(target, self.get(source))
@@ -106,7 +108,7 @@ class ProjectHandover(Document):
 		if self.project and frappe.db.get_value("Project", self.project, "muhick_handover") == self.name:
 			if frappe.db.get_value("Project", self.project, "muhick_stage") != "Planning":
 				frappe.throw(_("Project {0} is already in execution; its handover cannot be cancelled.").format(self.project))
-			frappe.db.set_value("Project", self.project, "muhick_handover", None)
+			frappe.db.set_value("Project", self.project, {"muhick_handover": None, "muhick_bid": None, "muhick_quotation": None})
 		refresh_bid_status(self.opportunity)
 
 

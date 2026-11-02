@@ -1,0 +1,67 @@
+/* Copyright (c) 2026, CyveTech and contributors
+   For license information, please see license.txt */
+
+/* Every table in the desk. One with more columns than the page has room for scrolls sideways from its own container,
+   with a bar that is always in sight (a bar styled here is one no browser hides until hovered), and each column is wide
+   enough to read: Frappe's 60px per unit cuts an amount down to "Sh 12,5". While a row is open, Frappe's own rules hold. */
+.form-grid-container.column-limit-reached:not(:has(.grid-row-open)) {
+	overflow-x: auto !important;
+	scrollbar-width: auto;
+	scrollbar-color: auto;
+}
+
+.form-grid-container.column-limit-reached::-webkit-scrollbar {
+	display: block;
+	height: 12px !important;
+}
+
+.form-grid-container.column-limit-reached::-webkit-scrollbar-track {
+	background: var(--scrollbar-track-color);
+}
+
+.form-grid-container.column-limit-reached::-webkit-scrollbar-thumb {
+	background: var(--scrollbar-thumb-color);
+	border-radius: 6px;
+}
+
+.form-grid-container.column-limit-reached > .form-grid {
+	overflow: visible !important;
+	width: max-content;
+	min-width: 100%;
+}
+
+/* a column frozen with the table's gear stays as Frappe sizes it, as it works out where to freeze the next from that */
+.form-grid-container.column-limit-reached .form-grid .grid-static-col[class*="col-xs-"]:not(.sticky-grid-col) {
+	max-width: none;
+}
+
+.form-grid-container.column-limit-reached .form-grid .grid-static-col.col-xs-1:not(.sticky-grid-col) {
+	flex: 1 0 100px;
+	width: 100px;
+}
+
+.form-grid-container.column-limit-reached .form-grid .grid-static-col.col-xs-2:not(.sticky-grid-col) {
+	flex: 1 0 150px;
+	width: 150px;
+}
+
+.form-grid-container.column-limit-reached .form-grid .grid-static-col.col-xs-3:not(.sticky-grid-col) {
+	flex: 1 0 200px;
+	width: 200px;
+}
+
+/* by what a one-unit column holds; a filter cell has the type on its input, and goes by it to stay above its column */
+.form-grid-container.column-limit-reached .form-grid .grid-static-col.col-xs-1:not(.sticky-grid-col):is([data-fieldtype="Currency"], :has(> input[data-fieldtype="Currency"])) {
+	flex: 1 0 140px;
+	width: 140px;
+}
+
+.form-grid-container.column-limit-reached .form-grid .grid-static-col.col-xs-1:not(.sticky-grid-col):is([data-fieldtype="Int"], [data-fieldtype="Float"], [data-fieldtype="Percent"], :has(> input[data-fieldtype="Int"]), :has(> input[data-fieldtype="Float"]), :has(> input[data-fieldtype="Percent"])) {
+	flex: 1 0 80px;
+	width: 80px;
+}
+
+.form-grid-container.column-limit-reached .form-grid .grid-static-col.col-xs-1:not(.sticky-grid-col):is([data-fieldtype="Check"], :has(> input[data-fieldtype="Check"])) {
+	flex: 1 0 60px;
+	width: 60px;
+}

@@ -69,6 +69,8 @@ PROJECT = _chain(
 		dict(fieldname="muhick_project_manager", label="Project Manager", fieldtype="Link", options="User", in_standard_filter=1),
 		dict(fieldname="muhick_sales_engineer", label="Sales Engineer (Result Support)", fieldtype="Link", options="User"),
 		_col("muhick_lifecycle_column"),
+		_ro("muhick_bid", "Won Bid", "Link", options="Opportunity"),
+		_ro("muhick_quotation", "Quotation", "Link", options="Quotation"),
 		_ro("muhick_handover", "Sales Handover", "Link", options="Project Handover"),
 		_ro("muhick_boq", "Bill of Quantities", "Link", options="Project BOQ"),
 		_ro("muhick_budget", "Approved Budget", "Link", options="Project Budget"),

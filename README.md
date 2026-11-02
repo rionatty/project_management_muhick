@@ -278,11 +278,17 @@ and certificates, retention, payments and the controls around them.
 
 **Reports, dashboard and printing**
 
-- Twenty-four reports: budget position, budget cash plan, portfolio, material consumption, procurement status, phase
+- Twenty-five reports: budget position, budget cash plan, project accountability, portfolio, material consumption, procurement status, phase
   plan, proposed against certified valuations, retention, pending approvals, price trends,
   equipment history, subcontractor and freight forwarder performance, bid register, bid margin comparison, bank facility
   utilisation, resource envelope, payment plan execution, withholding tax register, fuel
   consumption and vehicle maintenance.
+- Project Accountability takes one project requisition by requisition: what was budgeted and requisitioned, given and
+  spent, the balance and who owes it, a purchase's LPO, delivery and invoice side by side, and where each stands.
+- A project's Connections tab lists every document of the project in the order the work goes, from the bid to
+  completion, and its Lifecycle section links the bid, quotation, handover, BOQ, budget and activity plan.
+- Every table in the desk with more columns than the page has room for scrolls sideways, with a bar always in sight
+  and each column wide enough to read an amount in full.
 - A workspace with six number cards and two charts.
 - An "Approval Form" print format for each of the 23 documents that are submitted: the document,
   the record of who approved it and when, and signature boxes. Pick it in the print view, or make

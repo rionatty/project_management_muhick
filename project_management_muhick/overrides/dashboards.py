@@ -5,16 +5,35 @@ from frappe import _
 
 
 def get_project_dashboard(data):
-	"""Show the Muhick project documents on the Project form's Connections tab."""
-	data.setdefault("transactions", []).extend(
-		[
-			{"label": _("Handover and Planning"), "items": ["Project Handover", "Project BOQ", "Project Activity Plan"]},
-			{"label": _("Budget"), "items": ["Project Budget", "Project Budget Revision", "Project Requisition"]},
-			{"label": _("Labour and Subcontracts"), "items": ["Labour Schedule", "Casual Sheet", "Subcontract RFQ", "Subcontract Agreement", "Service Receipt Note"]},
-			{"label": _("Claims and Completion"), "items": ["Project Claim", "Project Variation Order", "Retention Release", "Project Completion Certificate", "Project Defect"]},
-			{"label": _("Site Records"), "items": ["Site Report", "Site Meeting", "Project Document", "Project Equipment Allocation", "Project Warranty"]},
-		]
-	)
+	"""Every document of a project on its form's Connections tab, in the order the work goes. The bid, its quotation and
+	the sales order are the project's own links, as they name no project; with none, the list opens empty rather than
+	showing every bid. A request for quotation names the project on its lines as project_name. What ERPNext lists here
+	and the work has no use for keeps its own heading, at the end."""
+	groups = [
+		{"label": _("Sales"), "items": ["Opportunity", "Quotation", "Sales Order", "Delivery Note", "Sales Invoice"]},
+		{"label": _("Handover and Planning"), "items": ["Project Handover", "Project BOQ", "Project Activity Plan", "Task", "Project Update"]},
+		{"label": _("Budget"), "items": ["Project Budget", "Project Budget Revision", "Project Requisition"]},
+		{
+			"label": _("Procurement"),
+			"items": [
+				"Material Request", "Request for Quotation", "Supplier Quotation", "Procurement Requisition", "Purchase Order",
+				"Purchase Receipt", "Purchase Invoice", "Import Shipment", "Specification Change Request",
+			],
+		},
+		{"label": _("Stores and Equipment"), "items": ["Stock Entry", "Project Equipment Allocation", "Equipment Log", "Fuel Requisition"]},
+		{"label": _("Payments"), "items": ["Payment Plan", "Payment Entry", "Journal Entry", "Reimbursement Claim", "Bank Instrument"]},
+		{"label": _("Labour and Subcontracts"), "items": ["Labour Schedule", "Casual Sheet", "Subcontract RFQ", "Subcontract Agreement", "Service Receipt Note"]},
+		{"label": _("Claims and Completion"), "items": ["Project Claim", "Project Variation Order", "Retention Release", "Project Completion Certificate", "Project Defect", "Project Warranty"]},
+		{"label": _("Site Records"), "items": ["Site Report", "Site Meeting", "Project Document"]},
+	]
+	placed = {item for group in groups for item in group["items"]}
+	for group in data.get("transactions", []):
+		rest = [item for item in group["items"] if item not in placed]
+		if rest:
+			groups.append({"label": group["label"], "items": rest})
+	data["transactions"] = groups
+	data.setdefault("internal_links", {}).update({"Opportunity": "muhick_bid", "Quotation": "muhick_quotation", "Sales Order": "sales_order"})
+	data.setdefault("non_standard_fieldnames", {}).update({"Request for Quotation": "project_name", "Opportunity": "name", "Quotation": "name"})
 	return data
 
 

@@ -97,6 +97,13 @@ def _check_budget(doc, enforce=False) -> bool:
 
 
 # ------------------------------------------------------------------ Purchase Order
+def validate_supplier_quotation(doc, method=None):
+	"""A quotation for one project carries it on its header, where the project's connections read it."""
+	projects = _projects(doc)
+	if not doc.get("project") and len(projects) == 1:
+		doc.project = projects.pop()
+
+
 def validate_purchase_order(doc, method=None):
 	_fill_cost_codes(doc, "Material Request Item", "material_request_item")
 	# checks only stop the order once it is sent for approval, so a draft can always be saved
