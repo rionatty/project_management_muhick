@@ -34,6 +34,9 @@ frappe.ui.form.on("Project Budget", {
 		if (draft) {
 			frm.add_custom_button(__("Get Imported Goods"), () => muhick.sheets.get_imported_goods(frm), group);
 		}
+		if (!frm.is_new() && frm.doc.docstatus < 2) {
+			offer_stage_links(frm, group);
+		}
 		if (!frm.is_new()) {
 			frm.add_custom_button(
 				__("Cash Plan by Month"),
@@ -147,4 +150,51 @@ function add_lines(frm, result) {
 				indicator: added.length || goods.length ? "green" : "orange",
 			});
 		});
+}
+
+// the budget's stages need not be named as the schedule's milestones: each is linked to the one it falls under
+function offer_stage_links(frm, group) {
+	frappe.xcall("project_management_muhick.muhick_projects.doctype.project_budget.project_budget.get_stage_links", { budget: frm.doc.name }).then((result) => {
+		if (!result.milestones.length) {
+			return; // the activity plan has not created them yet
+		}
+		if (frappe.user.has_role(["Project Manager", "Chief Operating Officer", "System Manager"])) {
+			frm.add_custom_button(__("Link Stages to Milestones"), () => link_stages(frm, result), group);
+		}
+		const open = result.stages.filter((s) => s.goods && !s.milestone).map((s) => s.stage || __("No Stage"));
+		if (open.length) {
+			frm.set_intro(
+				__("These stages have no milestone, so a request per milestone will not load their items: {0}. Use Budget Lines > Link Stages to Milestones.", [
+					open.map((name) => frappe.utils.escape_html(name)).join(", "),
+				]),
+				"orange"
+			);
+		}
+	});
+}
+
+function link_stages(frm, result) {
+	const options = [{ value: "", label: "" }, ...result.milestones.map((m) => ({ value: m.name, label: m.subject }))];
+	const dialog = new frappe.ui.Dialog({
+		title: __("Link Stages to Milestones"),
+		fields: result.stages.map((s, i) => ({
+			fieldname: `stage_${i}`,
+			fieldtype: "Select",
+			label: `${s.stage || __("No Stage")} (${__("{0} lines", [s.lines])})`,
+			options,
+			default: s.milestone || "",
+		})),
+		primary_action_label: __("Save"),
+		primary_action(values) {
+			const links = {};
+			result.stages.forEach((s, i) => {
+				links[s.stage] = values[`stage_${i}`] || "";
+			});
+			frappe.xcall("project_management_muhick.muhick_projects.doctype.project_budget.project_budget.link_stages", { budget: frm.doc.name, links }).then(() => {
+				dialog.hide();
+				frm.reload_doc();
+			});
+		},
+	});
+	dialog.show();
 }

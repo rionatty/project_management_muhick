@@ -82,8 +82,10 @@ and certificates, retention, payments and the controls around them.
   the project's milestone of its stage once the activity plan creates it. The budget also has the
   Budget Summary print (sections against the stages and their months, contract value, margin, cost
   codes and signatures) and a cash plan by month. A purchase request is checked against its milestone's
-  budgeted quantities, and one for items the budget places only under another stage needs a
-  justification. Quantity counts like money: an item past its budgeted quantity is over budget however
+  budgeted quantities, and one for items the budget places only in another milestone needs a
+  justification. A budget's stages need not be named as the schedule's milestones: a stage named as one joins it
+  by itself, and any other is linked with Budget Lines > Link Stages to Milestones, even on an approved budget,
+  which changes no figure. Until then its lines count for every milestone, and the budget and the plan name it. Quantity counts like money: an item past its budgeted quantity is over budget however
   much its cost code has left, on the request, the procurement requisition, an order or an invoice with
   no request or order behind it. What an approved request covers is not asked again. Quantities are
   compared in the item's stock unit, and a budget revision can change one (also in the stock unit)
@@ -115,7 +117,8 @@ and certificates, retention, payments and the controls around them.
 
 **Procurement and stores**
 
-- Material Request raised per milestone ("Get Items from Milestone" loads what the plan still needs for it),
+- Material Request raised per milestone ("Get Items from Milestone" loads what the plan lists for it and what
+  the budget places in it, less what other requests ask for),
   routed by budget status and by type of request, with a stock check.
 - Supplier selection approval, Procurement Requisition, Purchase Order and goods received note
   approvals, supplier onboarding, specification change requests, consignment tracking for imports.

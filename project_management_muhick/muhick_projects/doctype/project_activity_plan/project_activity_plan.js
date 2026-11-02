@@ -39,6 +39,7 @@ frappe.ui.form.on("Project Activity Plan", {
 		}
 		set_phase_options(frm);
 		show_schedule(frm);
+		show_unplaced_stages(frm);
 	},
 
 	project(frm) {
@@ -67,6 +68,27 @@ function set_phase_options(frm) {
 	const rows = ordered(frm);
 	const names = rows.length ? muhick.schedule.milestones(rows) : (frm.doc.phases || []).map((r) => r.phase_name);
 	frm.fields_dict.items.grid.update_docfield_property("phase_name", "options", ["", ...names.filter(Boolean)]);
+}
+
+function show_unplaced_stages(frm) {
+	if (!frm.doc.project || frm.doc.docstatus === 2 || !(frm.doc.phases || []).length) {
+		return;
+	}
+	frappe
+		.xcall("project_management_muhick.muhick_projects.doctype.project_activity_plan.project_activity_plan.unplaced_budget_stages", {
+			project: frm.doc.project,
+			milestones: frm.doc.phases.map((row) => row.phase_name),
+		})
+		.then((stages) => {
+			if (stages.length) {
+				frm.set_intro(
+					__("These budget stages have no milestone in this plan, so a request per milestone will not load their items: {0}. Name a milestone after them, or link them on the budget: Budget Lines > Link Stages to Milestones.", [
+						stages.map((stage) => frappe.utils.escape_html(stage || __("No Stage"))).join(", "),
+					]),
+					"orange"
+				);
+			}
+		});
 }
 
 function show_schedule(frm) {

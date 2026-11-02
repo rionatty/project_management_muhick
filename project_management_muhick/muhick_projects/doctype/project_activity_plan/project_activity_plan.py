@@ -31,7 +31,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, cint, flt, getdate, nowdate, strip_html, today, validate_email_address
 
-from project_management_muhick.muhick_projects import estimate
+from project_management_muhick.muhick_projects import budget_engine, estimate
 from project_management_muhick.muhick_projects.utils import ensure_milestone
 from project_management_muhick.overrides import project as project_api
 from project_management_muhick.utils import calc
@@ -646,13 +646,25 @@ def _schedule_date(value):
 @frappe.whitelist()
 def load_phases(project: str, project_template: str | None = None) -> dict:
 	"""A schedule for a new plan: from a Project Template, or from the project's own tasks (for example those ERPNext
-	created from the project's template), or else from the stages in the project's BOQ, with the items each stage needs."""
+	created from the project's template), or else from the stages in the project's BOQ, with the items each stage needs,
+	or in its budget."""
 	frappe.has_permission("Project Activity Plan", "create", throw=True)
 	frappe.get_doc("Project", project).check_permission("read")
 	if project_template:
 		return _from_template(project, project_template)
-	loaded = _from_project(project)
-	return loaded if loaded["phases"] else _from_boq(project)
+	for source in (_from_project, _from_boq, _from_budget):
+		loaded = source(project)
+		if loaded["phases"]:
+			break
+	return loaded
+
+
+@frappe.whitelist()
+def unplaced_budget_stages(project: str, milestones=None) -> list:
+	"""The budget stages a request per milestone would not reach, given this plan's milestones."""
+	frappe.has_permission("Project Activity Plan", "read", throw=True)
+	frappe.get_doc("Project", project).check_permission("read")
+	return budget_engine.unplaced_stages(project, set(frappe.parse_json(milestones) or []))
 
 
 def _outline(tasks, depends) -> list:
@@ -751,6 +763,23 @@ def _from_boq(project):
 	_fit_phases(phases, activities)
 	items = [{"phase_name": stage, "item_code": item, "qty": qty} for (stage, item), qty in needs.items()]
 	return {"phases": phases, "activities": activities, "items": items}
+
+
+def _from_budget(project):
+	"""One milestone per stage in the project's budget, in the order its lines have them."""
+	budget = frappe.db.get_value("Project Budget", {"project": project, "docstatus": ("<", 2)}, "name")
+	stages = dict.fromkeys(
+		frappe.get_all(
+			"Project Budget Line",
+			filters={"parent": budget or "", "parenttype": "Project Budget", "stage": ("is", "set")},
+			pluck="stage",
+			order_by="idx asc",
+		)
+	)
+	phases = [{"phase_name": stage} for stage in stages]
+	activities = [{"row_id": i, "outline_level": 0, "subject": stage} for i, stage in enumerate(stages, 1)]
+	_fit_phases(phases, activities)
+	return {"phases": phases, "activities": activities}
 
 
 def _fit_phases(phases, activities):

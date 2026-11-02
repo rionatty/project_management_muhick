@@ -12,12 +12,14 @@ frappe.ui.form.on("Task", {
 		frm.add_custom_button(
 			__("Material Request"),
 			() =>
-				frappe.new_doc("Material Request", {
-					material_request_type: "Purchase",
-					muhick_request_origin: "Project",
-					muhick_project: frm.doc.project,
-					muhick_phase: frm.doc.name,
-				}),
+				frappe.xcall("project_management_muhick.overrides.task.get_milestone", { task: frm.doc.name }).then((milestone) =>
+					frappe.new_doc("Material Request", {
+						material_request_type: "Purchase",
+						muhick_request_origin: "Project",
+						muhick_project: frm.doc.project,
+						muhick_phase: milestone,
+					})
+				),
 			__("Create")
 		);
 		const done = frm.doc.status === "Completed" || flt(frm.doc.progress) >= 100;

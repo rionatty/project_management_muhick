@@ -14,9 +14,7 @@ frappe.ui.form.on("Material Request", {
 		if (frm.doc.docstatus === 0) {
 			frm.add_custom_button(__("Frequent Items"), () => pick_frequent_items(frm));
 		}
-		if (frm.doc.docstatus === 0 && frm.doc.muhick_project && frm.doc.muhick_phase) {
-			frm.add_custom_button(__("Get Items from Milestone"), () => get_phase_items(frm));
-		}
+		offer_phase_items(frm);
 		const status = frm.doc.muhick_budget_status;
 		if (status === "Exceeds Budget" || status === "Not Budgeted") {
 			// this request follows the longer approval route: COO, Finance Manager, General Manager
@@ -43,9 +41,21 @@ frappe.ui.form.on("Material Request", {
 		});
 		frm.set_value("muhick_phase", null);
 	},
+
+	muhick_phase(frm) {
+		offer_phase_items(frm);
+	},
 });
 
-// what the approved activity plan needs for this milestone, less what other requests already ask for
+// as soon as the milestone is picked: a new request cannot be saved until it has items
+function offer_phase_items(frm) {
+	frm.remove_custom_button(__("Get Items from Milestone"));
+	if (frm.doc.docstatus === 0 && frm.doc.muhick_project && frm.doc.muhick_phase) {
+		frm.add_custom_button(__("Get Items from Milestone"), () => get_phase_items(frm));
+	}
+}
+
+// what the approved activity plan and the budget have for this milestone, less what other requests already ask for
 function get_phase_items(frm) {
 	frappe
 		.xcall("project_management_muhick.overrides.material_request.get_phase_items", {
@@ -53,19 +63,18 @@ function get_phase_items(frm) {
 			phase: frm.doc.muhick_phase,
 			material_request: frm.is_new() ? null : frm.doc.name,
 		})
-		.then((rows) => {
+		.then((result) => {
 			// a new request starts with an empty row
 			(frm.doc.items || []).filter((r) => !r.item_code).forEach((r) => frappe.model.clear_doc(r.doctype, r.name));
 			const present = new Set((frm.doc.items || []).map((r) => r.item_code));
-			const added = rows.filter((row) => !present.has(row.item_code));
+			const added = result.rows.filter((row) => !present.has(row.item_code));
 			added.forEach((row) => frm.add_child("items", { ...row, warehouse: row.warehouse || frm.doc.set_warehouse }));
 			frm.refresh_field("items");
-			frappe.show_alert({
-				message: added.length
-					? __("{0} item(s) added from the milestone's plan.", [added.length])
-					: __("Nothing left to request for this milestone."),
-				indicator: added.length ? "green" : "orange",
-			});
+			if (added.length) {
+				frappe.show_alert({ message: __("{0} item(s) added for this milestone.", [added.length]), indicator: "green" });
+			} else {
+				frappe.msgprint(result.note || __("Nothing left to request for this milestone."));
+			}
 		});
 }
 

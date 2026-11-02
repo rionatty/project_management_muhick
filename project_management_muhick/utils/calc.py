@@ -583,7 +583,8 @@ def allocate_to_lines(lines, totals) -> dict:
 	totals: {(item_code, milestone or None): quantity}.
 	A total goes to the lines of the same item and milestone, in order, each line taking up to its
 	own quantity and the last one any excess. A total with no milestone, or whose milestone has no
-	line for the item, goes to the item's lines without a milestone. Returns {line name: quantity}.
+	line for the item, goes to the item's lines without a milestone, else to all its lines, since a BOQ's
+	stages need not be the schedule's milestones. Returns {line name: quantity}.
 	"""
 	groups = {}
 	for line in lines:
@@ -597,8 +598,9 @@ def allocate_to_lines(lines, totals) -> dict:
 		else:
 			unplaced[item] = unplaced.get(item, 0.0) + _f(qty)
 	for item, qty in unplaced.items():
-		if (item, None) in groups:
-			_spread(groups[(item, None)], qty, result)
+		target = groups.get((item, None)) or [line for line in lines if line["item_code"] == item]
+		if target:
+			_spread(target, qty, result)
 	return result
 
 

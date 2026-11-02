@@ -213,8 +213,8 @@ def tax_cost_lines(rows) -> list:
 
 
 def resolve_stages(project, lines):
-	"""A budget line's stage and milestone agree: a line placed in a milestone takes its stage from it,
-	and a line with only a stage takes the project's milestone of that name once it exists."""
+	"""A line with only a milestone takes its stage from it, and a line with only a stage takes the project's milestone
+	of that name once it exists. A line with both keeps them: the budget's stages need not be the schedule's milestones."""
 	if not project:
 		return
 	phases = {}
@@ -223,7 +223,7 @@ def resolve_stages(project, lines):
 			phases.setdefault(phase.type, phase.name)
 	for line in lines:
 		if line.phase:
-			line.stage = frappe.get_cached_value("Task", line.phase, "type") or line.stage
+			line.stage = line.stage or frappe.get_cached_value("Task", line.phase, "type")
 		elif line.stage:
 			line.phase = phases.get(line.stage)
 

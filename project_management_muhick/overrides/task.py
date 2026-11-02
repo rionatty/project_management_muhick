@@ -13,7 +13,7 @@ from frappe import _
 from frappe.utils import cstr, flt, getdate
 
 from project_management_muhick.muhick_projects import budget_engine
-from project_management_muhick.muhick_projects.utils import ensure_milestone, phase_done
+from project_management_muhick.muhick_projects.utils import ensure_milestone, milestone_of, phase_done
 from project_management_muhick.overrides import project as project_api
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import notify, project_manager_of
@@ -126,6 +126,13 @@ def _announce_completion(task, before):
 			_("Milestone {0} is complete. Raise the Service Delivery Note / Claim.").format(task.subject),
 			doc=frappe._dict(doctype="Task", name=task.name),
 		)
+
+
+@frappe.whitelist()
+def get_milestone(task: str) -> str:
+	"""The milestone a group task sits under: a request is raised per milestone."""
+	frappe.get_doc("Task", task).check_permission("read")
+	return milestone_of(task)
 
 
 @frappe.whitelist()

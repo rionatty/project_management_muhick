@@ -29,8 +29,9 @@ from frappe.model.document import Document
 from frappe.utils import flt
 
 from project_management_muhick.muhick_projects import budget_engine, estimate
-from project_management_muhick.muhick_projects.utils import check_phase, milestone_of
+from project_management_muhick.muhick_projects.utils import check_phase, get_phases, milestone_of
 from project_management_muhick.utils import calc
+from project_management_muhick.utils.common import COO, PM, require_roles
 
 KEEP = ("opening_actual", "opening_paid", "etc_is_manual", "estimate_to_complete")
 
@@ -156,6 +157,48 @@ class ProjectBudget(Document):
 			)
 		if frappe.db.get_value("Project", self.project, "muhick_budget") == self.name:
 			frappe.db.set_value("Project", self.project, "muhick_budget", None)
+
+
+@frappe.whitelist()
+def get_stage_links(budget: str) -> dict:
+	"""The budget's stages, each with its lines, its goods and the milestone it sits in, and the project's milestones."""
+	doc = frappe.get_doc("Project Budget", budget)
+	doc.check_permission("read")
+	place_of = budget_engine.line_places(doc.project)
+	stages = {}
+	for line in frappe.get_all(
+		"Project Budget Line",
+		filters={"parent": budget, "parenttype": "Project Budget", "activity": ("is", "not set")},
+		fields=["stage", "phase", "section", "item_code"],
+		order_by="idx asc",
+	):
+		row = stages.setdefault(line.stage or "", {"stage": line.stage or "", "lines": 0, "goods": 0, "milestone": place_of(line)})
+		row["lines"] += 1
+		row["goods"] += 1 if line.item_code and line.section in budget_engine.GOODS_SECTIONS else 0
+	return {
+		"stages": sorted(stages.values(), key=lambda row: (not row["stage"], row["stage"])),
+		"milestones": get_phases(doc.project, ("name", "subject")),
+	}
+
+
+@frappe.whitelist()
+def link_stages(budget: str, links):
+	"""Place each stage's lines in a milestone of the project. No figure changes, so an approved budget can do it too."""
+	require_roles(PM, COO)
+	doc = frappe.get_doc("Project Budget", budget)
+	doc.check_permission("read")
+	if doc.docstatus == 2:
+		frappe.throw(_("Budget {0} is cancelled.").format(budget))
+	for stage, milestone in frappe.parse_json(links).items():
+		if milestone:
+			check_phase(doc.project, milestone)
+		names = frappe.get_all(
+			"Project Budget Line",
+			filters={"parent": budget, "parenttype": "Project Budget", "stage": stage or ("is", "not set"), "activity": ("is", "not set")},
+			pluck="name",
+		)
+		if names:
+			frappe.db.set_value("Project Budget Line", {"name": ("in", names)}, "phase", milestone or None, update_modified=False)
 
 
 @frappe.whitelist()

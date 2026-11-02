@@ -34,10 +34,9 @@ def validate(doc, method=None):
 	if not doc.get("muhick_request_origin"):
 		doc.muhick_request_origin = "Project"
 	_set_cost_codes(doc, project)
-	stage = frappe.db.get_value("Task", doc.muhick_phase, "type") if doc.get("muhick_phase") else None
-	_check_budget(doc, project, stage)
+	_check_budget(doc, project)
 	_check_brands(doc, project)
-	_check_phase(doc, project, stage)
+	_check_phase(doc, project)
 	_note_stock_on_hand(doc)
 
 	needs_reason = doc.muhick_budget_status in ("Exceeds Budget", "Not Budgeted") or doc.get("muhick_out_of_phase")
@@ -66,7 +65,7 @@ def _resolve_project(doc):
 def _set_cost_codes(doc, project):
 	for row in doc.items:
 		if not row.get("muhick_cost_code") and row.item_code:
-			row.muhick_cost_code = budget_engine.get_budget_cost_code(row.project or project, row.item_code)
+			row.muhick_cost_code = budget_engine.get_budget_cost_code(row.project or project, row.item_code, doc.get("muhick_phase"))
 
 
 def _row_amount(row, project) -> float:
@@ -76,7 +75,7 @@ def _row_amount(row, project) -> float:
 	return flt(row.qty) * rate
 
 
-def _check_budget(doc, project, stage=None):
+def _check_budget(doc, project):
 	if doc.material_request_type != "Purchase":
 		# issues and transfers move stock that is already paid for or already committed
 		doc.muhick_budget_status = "Not Applicable"
@@ -94,7 +93,7 @@ def _check_budget(doc, project, stage=None):
 		if row.item_code and (row.project or project) == project:
 			quantities[row.item_code] += budget_engine.row_stock_qty(row)
 	doc.muhick_budget_status, doc.muhick_budget_remarks = budget_engine.with_quantities(
-		project, status, remarks, quantities, stage, doc.name
+		project, status, remarks, quantities, doc.get("muhick_phase"), doc.name
 	)
 
 
@@ -122,9 +121,9 @@ def _check_brands(doc, project):
 	doc.muhick_spec_exception = "\n".join(exceptions)
 
 
-def _check_phase(doc, project, stage=None):
+def _check_phase(doc, project):
 	"""Requests are raised per phase. A request for a later phase, or for items the budget places only
-	under other stages, needs an explanation."""
+	in other milestones, needs an explanation."""
 	doc.muhick_out_of_phase = 0
 	phase = doc.get("muhick_phase")
 	if not phase:
@@ -136,27 +135,34 @@ def _check_phase(doc, project, stage=None):
 	if current and selected and selected.name != current.name and selected.exp_start_date and current.exp_end_date:
 		if getdate(selected.exp_start_date) > getdate(current.exp_end_date):
 			doc.muhick_out_of_phase = 1
-	elsewhere = _budgeted_elsewhere(doc, project, stage)
+	elsewhere = _budgeted_elsewhere(doc, project)
 	if elsewhere:
 		doc.muhick_out_of_phase = 1
-		note = _("Budgeted under another stage: {0}").format("; ".join(elsewhere))
+		note = _("Budgeted under another milestone: {0}").format("; ".join(elsewhere))
 		doc.muhick_budget_remarks = "\n".join(filter(None, [doc.get("muhick_budget_remarks"), note]))
 
 
-def _budgeted_elsewhere(doc, project, stage) -> list[str]:
-	"""The request's items that the approved budget places only under stages other than the request's."""
+def _budgeted_elsewhere(doc, project) -> list[str]:
+	"""The request's items that the approved budget places only in other milestones. A line in no milestone leaves
+	its item free to be requested in any."""
 	budget = budget_engine.get_approved_budget(project)
 	items = {row.item_code for row in doc.items if row.item_code}
-	if not stage or not budget or not items:
+	if not doc.get("muhick_phase") or not budget or not items:
 		return []
-	stages = defaultdict(set)
+	place_of = budget_engine.line_places(project)
+	places = defaultdict(set)
 	for line in frappe.get_all(
 		"Project Budget Line",
 		filters={"parent": budget, "parenttype": "Project Budget", "item_code": ("in", list(items))},
-		fields=["item_code", "stage"],
+		fields=["item_code", "stage", "phase"],
 	):
-		stages[line.item_code].add(line.stage or "")
-	return [f"{item} ({', '.join(sorted(found))})" for item, found in stages.items() if stage not in found and "" not in found]
+		places[line.item_code].add(place_of(line))
+	found = []
+	for item, where in places.items():
+		if doc.muhick_phase not in where and None not in where:
+			subjects = sorted(frappe.db.get_value("Task", name, "subject") or name for name in where)
+			found.append(f"{item} ({', '.join(subjects)})")
+	return found
 
 
 def _note_stock_on_hand(doc):
@@ -254,19 +260,16 @@ def make_purchase_request(source_name: str):
 
 
 @frappe.whitelist()
-def get_phase_items(project: str, phase: str, material_request: str | None = None) -> list:
-	"""What the approved activity plan needs for one phase, less what other requests for that
-	phase already ask for. Quantities are in each item's stock unit."""
+def get_phase_items(project: str, phase: str, material_request: str | None = None) -> dict:
+	"""What a milestone still needs: what the approved activity plan lists for it and what the approved budget places in
+	it, less what other requests for it already ask for. Quantities are in each item's stock unit. With nothing to
+	load, a note says why."""
 	frappe.has_permission("Material Request", "create", throw=True)
 	frappe.get_doc("Project", project).check_permission("read")
 	check_phase(project, phase)
-	plan_name = frappe.db.get_value("Project Activity Plan", {"project": project, "docstatus": 1, "is_current": 1}, "name")
-	if not plan_name:
-		frappe.throw(_("Project {0} has no approved activity plan.").format(project))
-	plan = frappe.get_doc("Project Activity Plan", plan_name)
-	phase_row = next((r for r in plan.phases if r.phase == phase), None)
-	if not phase_row:
-		frappe.throw(_("{0} is not a milestone of the approved activity plan {1}.").format(phase, plan_name))
+	needs = _plan_needs(project, phase)
+	planned = {need["item_code"] for need in needs}
+	needs += [need for need in budget_engine.milestone_needs(project, phase) if need["item_code"] not in planned]
 	requested = defaultdict(float)
 	for r in frappe.db.sql(
 		"""
@@ -281,20 +284,21 @@ def get_phase_items(project: str, phase: str, material_request: str | None = Non
 	):
 		requested[r.item_code] = flt(r.qty)
 	today = getdate(nowdate())
+	starts = frappe.db.get_value("Task", phase, "exp_start_date")
 	warehouse = frappe.db.get_value("Project", project, "muhick_site_warehouse")
 	rows = []
-	for item in plan.items:
-		if item.phase_name != phase_row.phase_name:
-			continue
-		remaining = flt(item.qty) - requested[item.item_code]
+	for need in needs:
+		item_code = need["item_code"]
+		remaining = flt(need["qty"]) - requested[item_code]
 		if remaining <= 1e-9:
 			continue
-		requested[item.item_code] = max(requested[item.item_code] - flt(item.qty), 0)
-		info = frappe.get_cached_value("Item", item.item_code, ["item_name", "stock_uom", "muhick_cost_code"], as_dict=True)
-		needed_on = getdate(item.required_by or phase_row.planned_start)
+		requested[item_code] = max(requested[item_code] - flt(need["qty"]), 0)
+		info = frappe.get_cached_value("Item", item_code, ["item_name", "stock_uom", "muhick_cost_code"], as_dict=True)
+		needed_on = need.get("required_by") or starts
+		rate = flt(need.get("rate"))
 		rows.append(
 			{
-				"item_code": item.item_code,
+				"item_code": item_code,
 				"item_name": info.item_name,
 				"description": info.item_name,
 				"qty": remaining,
@@ -302,13 +306,44 @@ def get_phase_items(project: str, phase: str, material_request: str | None = Non
 				"stock_uom": info.stock_uom,
 				"conversion_factor": 1,
 				"stock_qty": remaining,
-				"schedule_date": max(needed_on, today),
+				"rate": rate,
+				"amount": rate * remaining,
+				"schedule_date": max(getdate(needed_on), today) if needed_on else today,
 				"warehouse": warehouse,
 				"project": project,
-				"muhick_cost_code": budget_engine.get_budget_cost_code(project, item.item_code) or info.muhick_cost_code,
+				"muhick_cost_code": need.get("cost_code") or budget_engine.get_budget_cost_code(project, item_code, phase) or info.muhick_cost_code,
 			}
 		)
-	return rows
+	return {"rows": rows, "note": None if rows else _nothing_to_load(project, needs)}
+
+
+def _plan_needs(project, phase) -> list:
+	"""What the approved activity plan's Items Required list for a milestone."""
+	plan_name = frappe.db.get_value("Project Activity Plan", {"project": project, "docstatus": 1, "is_current": 1}, "name")
+	if not plan_name:
+		return []
+	plan = frappe.get_doc("Project Activity Plan", plan_name)
+	row = next((r for r in plan.phases if r.phase == phase), None)
+	if not row:
+		return []
+	return [
+		{"item_code": item.item_code, "qty": item.qty, "required_by": item.required_by or row.planned_start}
+		for item in plan.items
+		if item.phase_name == row.phase_name
+	]
+
+
+def _nothing_to_load(project, needs) -> str:
+	if needs:
+		return _("Nothing left to request for this milestone.")
+	if not budget_engine.get_approved_budget(project):
+		return _("The activity plan lists no items for this milestone, and the project has no approved budget yet.")
+	stages = budget_engine.unplaced_stages(project)
+	if stages:
+		return _("The budget places nothing in this milestone. These budget stages have no milestone yet: {0}. Link them on the budget: Budget Lines > Link Stages to Milestones.").format(
+			", ".join(stage or _("No Stage") for stage in stages)
+		)
+	return _("Neither the activity plan nor the budget has items for this milestone.")
 
 
 @frappe.whitelist()

@@ -26,6 +26,8 @@ from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import setting, user_has_any_role
 
 UNALLOCATED = ""
+# the budget's sections that hold what is requested from procurement
+GOODS_SECTIONS = ("Equipment", "Installation Materials", "Tools and Equipment")
 
 
 # ------------------------------------------------------------------ lookups
@@ -68,21 +70,39 @@ def get_budget_rate(project, item_code) -> float:
 	return flt(line.amount) / flt(line.qty) if line and flt(line.qty) else 0.0
 
 
-def get_budget_cost_code(project, item_code) -> str | None:
-	"""Cost code an item is budgeted under when it is budgeted under exactly one; for an item
-	not in the budget, the item's own Default Cost Code."""
+def line_places(project):
+	"""What tells the milestone a budget line sits in: the one it was linked to, else the one named after its stage. A
+	line in neither, whose stage is none of the project's milestones, belongs to no milestone in particular."""
+	milestones = frappe.get_all(
+		"Task",
+		filters={"project": project, "is_group": 1, "parent_task": ("is", "not set"), "status": ("!=", "Cancelled")},
+		fields=["name", "type"],
+	)
+	names = {m.name for m in milestones}
+	by_stage = {}
+	for m in milestones:
+		if m.type:
+			by_stage.setdefault(m.type, m.name)
+	return lambda line: line.phase if line.phase in names else by_stage.get(line.stage)
+
+
+def get_budget_cost_code(project, item_code, milestone=None) -> str | None:
+	"""Cost code an item is budgeted under when it is budgeted under exactly one, looking first at a milestone if one
+	is given; for an item not in the budget, the item's own Default Cost Code."""
 	if not item_code:
 		return None
 	budget = get_approved_budget(project)
-	codes = (
-		frappe.get_all(
-			"Project Budget Line", filters={"parent": budget, "item_code": item_code}, pluck="cost_code", distinct=True
-		)
+	lines = (
+		frappe.get_all("Project Budget Line", filters={"parent": budget, "item_code": item_code}, fields=["cost_code", "stage", "phase"])
 		if budget
 		else []
 	)
+	codes = {line.cost_code for line in lines}
+	if len(codes) > 1 and milestone:
+		place_of = line_places(project)
+		codes = {line.cost_code for line in lines if place_of(line) == milestone} or codes
 	if len(codes) == 1:
-		return codes[0]
+		return codes.pop()
 	# under several cost codes the user chooses
 	return None if codes else frappe.get_cached_value("Item", item_code, "muhick_cost_code")
 
@@ -484,23 +504,25 @@ def row_stock_qty(row) -> float:
 	return flt(row.get("stock_qty")) or flt(row.qty) * flt(row.get("conversion_factor") or 1)
 
 
-def budgeted_quantities(project, items=None, stage=None) -> tuple[dict, set]:
-	"""({item: budgeted quantity in its stock unit}, {items the budget places in stages}). An approved
-	revision adds to the budget's lines and leaves them as they are. With a stage, a line of another stage
-	does not count; a line with no stage, and a revision, count for every stage. All items unless some are named."""
+def budgeted_quantities(project, items=None, milestone=None) -> tuple[dict, set]:
+	"""({item: budgeted quantity in its stock unit}, {items the budget places in milestones}). An approved
+	revision adds to the budget's lines and leaves them as they are. With a milestone, a line in another does not
+	count; a line in none, and a revision, count for every milestone. All items unless some are named."""
 	budget = get_approved_budget(project)
-	budgeted, staged, revised = defaultdict(float), set(), set()
+	budgeted, placed, revised = defaultdict(float), set(), set()
 	if not budget or (items is not None and not items):
-		return {}, staged
+		return {}, placed
+	place_of = line_places(project) if milestone else None
 	named = ("in", list(items)) if items is not None else ("is", "set")
 	for line in frappe.get_all(
 		"Project Budget Line",
 		filters={"parent": budget, "parenttype": "Project Budget", "item_code": named},
-		fields=["item_code", "qty", "people", "uom", "stage", "contract_percent"],
+		fields=["item_code", "qty", "people", "uom", "stage", "phase", "contract_percent"],
 	):
-		if stage and line.stage:
-			staged.add(line.item_code)
-		if not (stage and line.stage) or line.stage == stage:
+		place = place_of(line) if milestone else None
+		if place:
+			placed.add(line.item_code)
+		if not place or place == milestone:
 			qty = calc.budget_line_quantity(line.qty, line.people, line.contract_percent)
 			budgeted[line.item_code] += in_stock_unit(line.item_code, qty, line.uom)
 	revisions = frappe.get_all("Project Budget Revision", filters={"project_budget": budget, "docstatus": 1}, pluck="name")
@@ -513,16 +535,16 @@ def budgeted_quantities(project, items=None, stage=None) -> tuple[dict, set]:
 			if flt(line.change_qty):
 				budgeted[line.item_code] += flt(line.change_qty)
 				revised.add(line.item_code)
-	return {item: max(qty, 0.0) for item, qty in budgeted.items() if qty > 0 or item in revised}, staged
+	return {item: max(qty, 0.0) for item, qty in budgeted.items() if qty > 0 or item in revised}, placed
 
 
-def quantity_to_date(project, items, exclude_request=None, stage=None) -> dict:
+def quantity_to_date(project, items, exclude_request=None, milestone=None) -> dict:
 	"""{item: stock quantity} asked for or bought on the project: approved purchase requests (a stopped one
 	for what was ordered from it), and orders and invoices raised without a request or order behind them.
-	With a stage, only the requests raised for a milestone of that stage: nothing else names one."""
+	With a milestone, only the requests raised for it: nothing else names one."""
 	if not items:
 		return {}
-	by_stage = "inner join `tabTask` phase on phase.name = mr.muhick_phase and phase.type = %(stage)s" if stage else ""
+	by_milestone = "and mr.muhick_phase = %(milestone)s" if milestone else ""
 	queries = [
 		f"""
 		select mri.item_code,
@@ -530,13 +552,12 @@ def quantity_to_date(project, items, exclude_request=None, stage=None) -> dict:
 				else greatest(ifnull(mri.stock_qty, 0), ifnull(mri.ordered_qty, 0)) end) as qty
 		from `tabMaterial Request Item` mri
 		inner join `tabMaterial Request` mr on mr.name = mri.parent
-		{by_stage}
-		where mr.docstatus = 1 and mr.material_request_type = 'Purchase'
+		where mr.docstatus = 1 and mr.material_request_type = 'Purchase' {by_milestone}
 			and mri.project = %(project)s and mri.item_code in %(items)s and mr.name != %(name)s
 		group by mri.item_code
 		"""
 	]
-	if not stage:
+	if not milestone:
 		queries += [
 			# a closed order only for what was received, as in its commitment
 			"""
@@ -558,7 +579,7 @@ def quantity_to_date(project, items, exclude_request=None, stage=None) -> dict:
 			group by pii.item_code
 			""",
 		]
-	params = {"project": project, "items": tuple(items), "name": exclude_request or "", "stage": stage}
+	params = {"project": project, "items": tuple(items), "name": exclude_request or "", "milestone": milestone}
 	total = defaultdict(float)
 	for query in queries:
 		for r in frappe.db.sql(query, params, as_dict=True):
@@ -566,19 +587,20 @@ def quantity_to_date(project, items, exclude_request=None, stage=None) -> dict:
 	return total
 
 
-def quantity_overruns(project, quantities, stage=None, exclude_request=None) -> list[str]:
+def quantity_overruns(project, quantities, milestone=None, exclude_request=None) -> list[str]:
 	"""Each budgeted item a document takes over its budgeted quantity; quantities: {item: stock quantity
-	it adds}. An item the budget places in stages is counted within the document's stage; any other over
-	the whole project. An item budgeted only under other stages is left to the request's phase check."""
-	budgeted, staged = budgeted_quantities(project, set(quantities), stage)
+	it adds}. An item the budget places in milestones is counted within the document's milestone; any other over
+	the whole project. An item placed only in other milestones is left to the request's phase check."""
+	budgeted, placed = budgeted_quantities(project, set(quantities), milestone)
 	counted = set(quantities) & set(budgeted)
-	to_date = dict(quantity_to_date(project, counted - staged, exclude_request))
-	to_date.update(quantity_to_date(project, counted & staged, exclude_request, stage))
+	to_date = dict(quantity_to_date(project, counted - placed, exclude_request))
+	to_date.update(quantity_to_date(project, counted & placed, exclude_request, milestone))
 	over = []
 	for item, total in calc.quantity_excess(budgeted, to_date, quantities).items():
-		if item in staged:
+		if item in placed:
+			subject = frappe.db.get_value("Task", milestone, "subject")
 			over.append(
-				_("{0}: {1} requested to date for {2} against {3} budgeted for it").format(item, f"{total:g}", stage, f"{budgeted[item]:g}")
+				_("{0}: {1} requested to date for {2} against {3} budgeted for it").format(item, f"{total:g}", subject, f"{budgeted[item]:g}")
 			)
 		else:
 			over.append(_("{0}: {1} requested or ordered to date against {2} budgeted").format(item, f"{total:g}", f"{budgeted[item]:g}"))
@@ -605,10 +627,54 @@ def beyond_requests(rows) -> dict:
 	return calc.beyond_requests(rows, open_qty)
 
 
-def with_quantities(project, status, remarks, quantities, stage=None, exclude_request=None) -> tuple[str, str]:
+def milestone_needs(project, milestone) -> list:
+	"""What the approved budget places in a milestone to request: one row per item and cost code, in the item's
+	stock unit, with what a unit is budgeted at and when it is needed."""
+	budget = get_approved_budget(project)
+	if not budget:
+		return []
+	place_of = line_places(project)
+	needs = {}
+	for line in frappe.get_all(
+		"Project Budget Line",
+		filters={"parent": budget, "parenttype": "Project Budget", "item_code": ("is", "set"), "section": ("in", GOODS_SECTIONS)},
+		fields=["item_code", "qty", "people", "uom", "stage", "phase", "contract_percent", "amount", "cost_code", "required_by_date", "procurement_type"],
+		order_by="parentfield asc, idx asc",
+	):
+		qty = in_stock_unit(line.item_code, calc.budget_line_quantity(line.qty, line.people, line.contract_percent), line.uom)
+		if qty <= 0 or line.procurement_type == "Not Applicable" or place_of(line) != milestone:
+			continue
+		need = needs.setdefault(
+			(line.item_code, line.cost_code),
+			{"item_code": line.item_code, "cost_code": line.cost_code, "qty": 0.0, "amount": 0.0, "required_by": line.required_by_date},
+		)
+		need["qty"] += qty
+		need["amount"] += flt(line.amount)
+	return [{**need, "rate": need["amount"] / need["qty"]} for need in needs.values()]
+
+
+def unplaced_stages(project, names=()) -> list:
+	"""The stages of the project's budget whose goods sit in no milestone, so that no request per milestone reaches them.
+	names: milestones not created yet, of a plan still being prepared, that a stage's name may match."""
+	budget = frappe.db.get_value("Project Budget", {"project": project, "docstatus": ("<", 2)}, "name")
+	if not budget:
+		return []
+	place_of = line_places(project)
+	stages = set()
+	for line in frappe.get_all(
+		"Project Budget Line",
+		filters={"parent": budget, "parenttype": "Project Budget", "item_code": ("is", "set"), "section": ("in", GOODS_SECTIONS)},
+		fields=["stage", "phase"],
+	):
+		if not place_of(line) and (line.stage or "") not in names:
+			stages.add(line.stage or "")
+	return sorted(stages)
+
+
+def with_quantities(project, status, remarks, quantities, milestone=None, exclude_request=None) -> tuple[str, str]:
 	"""A value check's result with the quantities checked too: an item over its budgeted quantity is over
 	budget however much its cost code has left."""
-	over = quantity_overruns(project, quantities, stage, exclude_request)
+	over = quantity_overruns(project, quantities, milestone, exclude_request)
 	if not over:
 		return status, remarks
 	return (status if status == "Not Budgeted" else "Exceeds Budget"), "; ".join(filter(None, [remarks, *over]))
