@@ -30,3 +30,4 @@ project_management_muhick.patches.schedule_groups
 project_management_muhick.patches.approval_limits
 project_management_muhick.patches.supplier_owner
 project_management_muhick.patches.requisition_lines
+project_management_muhick.patches.advance_in_party_account
