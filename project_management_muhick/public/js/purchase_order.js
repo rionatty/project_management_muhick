@@ -17,7 +17,7 @@ frappe.ui.form.on("Purchase Order", {
 			},
 			__("Create")
 		);
-		if (frm.doc.muhick_payment_type === "Advance" && flt(frm.doc.advance_paid) === 0) {
+		if (frm.doc.muhick_payment_type === "Advance" && flt(frm.doc.advance_paid) + flt(frm.doc.muhick_paid_on_requisition) === 0) {
 			frm.set_intro(
 				__("The payment terms need an advance of {0}%. Raise the Payment Request from Create.", [
 					flt(frm.doc.muhick_advance_percent),

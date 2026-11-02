@@ -704,6 +704,18 @@ for path, d in _load("workspace_sidebar/*.json"):
 		if item["type"] == "Link" and item["link_type"] in ("DocType", "Report") and not _target_ok(item["link_type"], item["link_to"]):
 			err(f"sidebar {d['name']}: '{item['label']}' points to unknown {item['link_type']} {item['link_to']}")
 PRINT_FORMATS = _load("**/print_format/*/*.json")
+# the frappe.utils a print template can reach are a fixed list; anything else fails only when it is printed
+_safe = ast.parse(open(os.path.join(SRC, "frappe", "frappe", "utils", "safe_exec.py"), encoding="utf-8").read())
+VALID_UTILS = {
+	item.value
+	for node in _safe.body
+	if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "VALID_UTILS"
+	for item in node.value.elts
+}
+for _path in glob.glob(os.path.join(APP, PKG, "templates", "**", "*.html"), recursive=True):
+	for _name in re.findall(r"frappe\.utils\.(\w+)", open(_path, encoding="utf-8").read()):
+		if _name not in VALID_UTILS:
+			err(f"{os.path.basename(_path)}: frappe.utils.{_name} is not available in print templates")
 for path, d in PRINT_FORMATS:
 	if d.get("doc_type") not in ALL:
 		err(f"print format {d['name']}: unknown doctype {d.get('doc_type')}")

@@ -6,20 +6,22 @@ against the cash and bank position. It is approved by the Finance Manager and th
 Manager, who may reduce an amount or hold a line. Payments are then raised from the approved
 lines, so every supplier payment traces back to an approved plan. The money for a bid (its sales
 requisitions and bid security requests) and the bank fees of guarantees and bonds falling due are
-issued from the plan only."""
+issued from the plan only. Each line says which bank account pays it; the position shows what that
+leaves in each account. A supplier may go on the plan as soon as its requisition is approved: the
+payment is then linked to the line and the requisition, and carried to the order and the invoice."""
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, getdate, nowdate
+from frappe.utils import flt, formatdate, getdate, nowdate
 
-from project_management_muhick.muhick_projects.utils import draft_status, validate_dates
+from project_management_muhick.muhick_projects.utils import draft_status, leaving_draft, validate_dates
 from project_management_muhick.utils.common import FINANCE_ROLES, require_roles
 
 DONE = ("Paid", "Held", "Not Executed")
 OPEN_PLAN = ("Draft", "Pending Approval", "Approved")
 # documents paid with a Payment Entry; the others are paid from their own form
-PAID_BY_PAYMENT_ENTRY = ("Purchase Invoice", "Purchase Order", "Payment Request")
+PAID_BY_PAYMENT_ENTRY = ("Purchase Invoice", "Purchase Order", "Payment Request", "Procurement Requisition")
 # documents whose funds can also be issued from the plan: the method that records them on the document
 ISSUED_FROM_PLAN = {"Sales Requisition": "mark_paid", "Bid Security Request": "issue_funds", "Bank Instrument": "pay_fees"}
 # a guarantee or bond whose bank fees are still charged
@@ -29,17 +31,23 @@ FEES_RUNNING = ("Requested", "Active", "Cancellation Requested")
 class PaymentPlan(Document):
 	def validate(self):
 		validate_dates(self.period_from, self.period_to, _("Period From"), _("Period To"))
+		# the plan names itself from its period
+		self.title = _("{0} Payment Plan: {1} to {2}").format(_(self.plan_type), formatdate(self.period_from), formatdate(self.period_to))
 		if not self.prepared_by:
 			self.prepared_by = frappe.session.user
 		seen = set()
 		self.total_proposed = self.total_approved = 0
 		for line in self.lines:
-			key = (line.reference_doctype, line.reference_name)
+			self.set_line_details(line)
+			key = (line.reference_doctype, line.reference_name, line.supplier or None)
 			if key in seen:
 				frappe.throw(_("Payment Lines row {0}: {1} is listed twice.").format(line.idx, line.reference_name))
 			seen.add(key)
-			self.set_line_details(line)
 			self.check_not_on_another_plan(line)
+			if not line.paid_from:
+				line.paid_from = self.pay_from
+			if not line.paid_from and leaving_draft(self) and line.line_status != "Held":
+				frappe.throw(_("Payment Lines row {0}: choose the bank account to pay {1} from.").format(line.idx, line.reference_name))
 			if flt(line.proposed_amount) <= 0:
 				frappe.throw(_("Payment Lines row {0}: enter the amount proposed.").format(line.idx))
 			if flt(line.proposed_amount) > flt(line.outstanding_amount) + 0.5:
@@ -58,8 +66,27 @@ class PaymentPlan(Document):
 				line.approved_amount = line.proposed_amount
 			self.total_proposed += flt(line.proposed_amount)
 			self.total_approved += flt(line.approved_amount)
-		self.total_available = sum(flt(a.balance) for a in self.accounts)
+		self.set_position()
 		self.status = draft_status(self)
+
+	def set_position(self):
+		"""What each account pays out under this plan, and what that leaves in it."""
+		allocated = {}
+		for line in self.lines:
+			if line.paid_from and line.line_status not in ("Held", "Not Executed"):
+				allocated[line.paid_from] = allocated.get(line.paid_from, 0) + flt(line.approved_amount)
+		for account in self.accounts:
+			account.allocated = allocated.pop(account.account, 0)
+			account.balance_after = flt(account.balance) - flt(account.allocated)
+		for name, amount in allocated.items():
+			balance = _company_balance(name)
+			self.append("accounts", {"account": name, "balance": balance, "allocated": amount, "balance_after": balance - amount})
+		self.total_available = sum(flt(a.balance) for a in self.accounts)
+		short = [a.account for a in self.accounts if flt(a.allocated) and flt(a.balance_after) < 0]
+		if short and self.docstatus == 0:
+			frappe.msgprint(
+				_("This plan pays more than these accounts hold: {0}.").format(", ".join(short)), indicator="orange", alert=True
+			)
 
 	def set_line_details(self, line):
 		"""Who is paid, for which project, how much is outstanding and when it falls due."""
@@ -74,7 +101,10 @@ class PaymentPlan(Document):
 		if dt == "Purchase Invoice":
 			details = (source.supplier_name, source.project, source.outstanding_amount, source.due_date)
 		elif dt == "Purchase Order":
-			details = (source.supplier_name, source.project, flt(source.grand_total) - flt(source.advance_paid), source.schedule_date)
+			outstanding = flt(source.grand_total) - flt(source.advance_paid) - flt(source.muhick_paid_on_requisition)
+			details = (source.supplier_name, source.project, outstanding, source.schedule_date)
+		elif dt == "Procurement Requisition":
+			details = self.requisition_details(line, source)
 		elif dt == "Payment Request":
 			details = (source.party, source.project, source.grand_total, source.transaction_date)
 		elif dt == "Project Requisition":
@@ -100,18 +130,47 @@ class PaymentPlan(Document):
 		if line.line_status != "Paid":
 			line.outstanding_amount = flt(outstanding)
 
-	def check_not_on_another_plan(self, line):
+	def requisition_details(self, line, source):
+		"""One supplier's share of an approved requisition, less what plans have paid on it so far."""
+		rows = frappe.get_all(
+			"Procurement Requisition Item",
+			filters={"parent": source.name, "parenttype": "Procurement Requisition"},
+			fields=["supplier", "supplier_name", "base_amount", "project", "schedule_date"],
+		)
+		suppliers = {row.supplier for row in rows}
+		if not line.supplier and len(suppliers) == 1:
+			line.supplier = rows[0].supplier
+		if line.supplier not in suppliers:
+			frappe.throw(_("Payment Lines row {0}: select which supplier on {1} is paid.").format(line.idx, source.name))
+		if not line.mode_of_payment:
+			line.mode_of_payment = source.mode_of_payment
+		share = [row for row in rows if row.supplier == line.supplier]
+		projects = {row.project for row in share}
+		due_dates = [getdate(row.schedule_date) for row in share if row.schedule_date]
+		return (
+			share[0].supplier_name or line.supplier,
+			projects.pop() if len(projects) == 1 else None,
+			sum(flt(row.base_amount) for row in share) - paid_on_requisition(source.name, line.supplier),
+			min(due_dates) if due_dates else source.requisition_date,
+		)
+
+	def other_plan(self, doctype, name, supplier=None) -> str | None:
+		"""The other open plan a document is waiting on, for the supplier when it is a requisition."""
 		other = frappe.db.sql(
 			"""
 			select p.name from `tabPayment Plan Line` l inner join `tabPayment Plan` p on p.name = l.parent
-			where l.reference_doctype = %s and l.reference_name = %s and p.name != %s
+			where l.reference_doctype = %s and l.reference_name = %s and ifnull(l.supplier, '') = %s and p.name != %s
 				and p.docstatus < 2 and p.status in %s and l.line_status not in ('Paid', 'Not Executed')
 			limit 1
 			""",
-			(line.reference_doctype, line.reference_name, self.name or "", OPEN_PLAN),
+			(doctype, name, supplier or "", self.name or "", OPEN_PLAN),
 		)
+		return other[0][0] if other else None
+
+	def check_not_on_another_plan(self, line):
+		other = self.other_plan(line.reference_doctype, line.reference_name, line.supplier)
 		if other:
-			frappe.throw(_("Payment Lines row {0}: {1} is already on payment plan {2}.").format(line.idx, line.reference_name, other[0][0]))
+			frappe.throw(_("Payment Lines row {0}: {1} is already on payment plan {2}.").format(line.idx, line.reference_name, other))
 
 	def before_submit(self):
 		for line in self.lines:
@@ -125,6 +184,7 @@ class PaymentPlan(Document):
 				frappe.throw(_("Payment Lines row {0}: give the reason this payment was not made.").format(line.idx))
 		self.total_approved = sum(flt(l.approved_amount) for l in self.lines if l.line_status != "Held")
 		self.total_paid = sum(flt(l.paid_amount) for l in self.lines)
+		self.set_position()
 		if self.status in ("Approved", "Closed"):
 			self.status = "Closed" if all(l.line_status in DONE for l in self.lines) else "Approved"
 
@@ -134,20 +194,27 @@ class PaymentPlan(Document):
 		self.db_set("status", "Cancelled")
 
 	def existing_keys(self) -> set:
-		return {(l.reference_doctype, l.reference_name) for l in self.lines}
+		return {(l.reference_doctype, l.reference_name, l.supplier or None) for l in self.lines}
 
-	def add_line(self, doctype, name, amount, description=None):
-		if (doctype, name) not in self.existing_keys() and flt(amount) > 0:
+	def add_line(self, doctype, name, amount, description=None, **values):
+		supplier = values.get("supplier")
+		if flt(amount) > 0 and (doctype, name, supplier) not in self.existing_keys() and not self.other_plan(doctype, name, supplier):
 			self.append(
 				"lines",
-				{"reference_doctype": doctype, "reference_name": name, "proposed_amount": amount, "description": description},
+				{
+					"reference_doctype": doctype,
+					"reference_name": name,
+					"proposed_amount": amount,
+					"approved_amount": amount,
+					"description": description,
+					"paid_from": self.pay_from,
+					**values,
+				},
 			)
 
 	@frappe.whitelist()
 	def get_balances(self):
 		"""Cash and bank balances, to set the plan against what is actually available."""
-		from erpnext.accounts.utils import get_balance_on
-
 		self.set("accounts", [])
 		for account in frappe.get_all(
 			"Account",
@@ -155,8 +222,8 @@ class PaymentPlan(Document):
 			pluck="name",
 			order_by="name asc",
 		):
-			self.append("accounts", {"account": account, "balance": get_balance_on(account, date=nowdate())})
-		self.total_available = sum(flt(a.balance) for a in self.accounts)
+			self.append("accounts", {"account": account, "balance": _company_balance(account)})
+		self.set_position()
 
 	@frappe.whitelist()
 	def get_due_invoices(self):
@@ -208,6 +275,29 @@ class PaymentPlan(Document):
 				self.add_line(doctype, doc.name, doc.amount, doc.title)
 
 	@frappe.whitelist()
+	def get_approved_requisitions(self):
+		"""Suppliers on approved requisitions, for what their terms call for now: the advance, or the whole amount on
+		delivery. Credit waits for the invoice, though a line can still be added by hand."""
+		for requisition in frappe.get_all(
+			"Procurement Requisition",
+			filters={"company": self.company, "docstatus": 1, "payment_terms_type": ("in", ("Advance", "On Delivery"))},
+			fields=["name", "payment_terms_type", "advance_percent", "mode_of_payment"],
+		):
+			shares = {}
+			for row in frappe.get_all(
+				"Procurement Requisition Item",
+				filters={"parent": requisition.name, "parenttype": "Procurement Requisition"},
+				fields=["supplier", "supplier_name", "base_amount"],
+			):
+				shares.setdefault(row.supplier, [row.supplier_name, 0])[1] += flt(row.base_amount)
+			for supplier, (supplier_name, amount) in shares.items():
+				part = flt(requisition.advance_percent) / 100 if requisition.payment_terms_type == "Advance" else 1
+				due = amount * part - paid_on_requisition(requisition.name, supplier)
+				self.add_line(
+					"Procurement Requisition", requisition.name, due, supplier_name, supplier=supplier, mode_of_payment=requisition.mode_of_payment
+				)
+
+	@frappe.whitelist()
 	def get_bank_fees(self):
 		"""The bank fees of guarantees and bonds falling due by the end of the period."""
 		for instrument in frappe.get_all(
@@ -239,26 +329,43 @@ class PaymentPlan(Document):
 			return row.payment_entry
 		if row.reference_doctype not in PAID_BY_PAYMENT_ENTRY:
 			frappe.throw(_("{0} {1} is paid from its own form or with Issue Funds.").format(_(row.reference_doctype), row.reference_name))
+		if not row.paid_from:
+			frappe.throw(_("Payment Lines row {0}: choose the bank account to pay {1} from.").format(row.idx, row.reference_name))
 		doctype, name = row.reference_doctype, row.reference_name
-		if doctype == "Payment Request":
-			doctype, name = frappe.db.get_value("Payment Request", name, ["reference_doctype", "reference_name"])
-		entry = get_payment_entry(doctype, name, party_amount=flt(row.approved_amount))
+		if doctype == "Procurement Requisition":
+			# against the order once it is approved; until then on account. The invoice takes up either as an advance
+			order = frappe.db.get_value("Purchase Order", {"muhick_procurement_requisition": name, "supplier": row.supplier, "docstatus": 1}, "name")
+			if order:
+				entry = get_payment_entry("Purchase Order", order, party_amount=flt(row.approved_amount), bank_account=row.paid_from)
+			else:
+				entry = _payment_on_account(self.company, row)
+			entry.muhick_procurement_requisition = name
+		else:
+			if doctype == "Payment Request":
+				doctype, name = frappe.db.get_value("Payment Request", name, ["reference_doctype", "reference_name"])
+			entry = get_payment_entry(doctype, name, party_amount=flt(row.approved_amount), bank_account=row.paid_from)
 		entry.muhick_payment_plan = self.name
 		entry.muhick_payment_plan_line = row.name
 		if row.mode_of_payment:
 			entry.mode_of_payment = row.mode_of_payment
-		if row.paid_from:
-			entry.paid_from = row.paid_from
+		# ERPNext will not save a bank payment without these; the bank's own reference replaces this when it has paid
+		entry.reference_no = entry.reference_no or self.name
+		entry.reference_date = entry.reference_date or nowdate()
 		entry.insert()
 		frappe.db.set_value("Payment Plan Line", row.name, "payment_entry", entry.name, update_modified=False)
 		return entry.name
 
 	@frappe.whitelist()
 	def issue_funds(
-		self, line: str, issued_on: str | None = None, payment_reference: str | None = None, accountability_due_date: str | None = None
+		self,
+		line: str,
+		issued_on: str | None = None,
+		payment_reference: str | None = None,
+		accountability_due_date: str | None = None,
+		paid_from: str | None = None,
 	):
 		"""Pay an approved sales requisition, bid security request or bank fee line: the document records
-		the funds issued (or the fees paid), and its line here is marked paid."""
+		the funds issued (or the fees paid), and its line here is marked paid, from which account and when."""
 		require_roles(*FINANCE_ROLES)
 		if self.docstatus != 1 or self.status != "Approved":
 			frappe.throw(_("Funds can only be issued from an approved plan."))
@@ -268,10 +375,19 @@ class PaymentPlan(Document):
 		method = ISSUED_FROM_PLAN.get(row.reference_doctype)
 		if not method:
 			frappe.throw(_("Funds for {0} {1} are not issued from the plan.").format(_(row.reference_doctype), row.reference_name))
+		paid_from = paid_from or row.paid_from
+		if not paid_from:
+			frappe.throw(_("Payment Lines row {0}: choose the bank account to pay {1} from.").format(row.idx, row.reference_name))
 		doc = frappe.get_doc(row.reference_doctype, row.reference_name)
 		# a requisition is accounted for by a date; a bid security request is not
 		extra = {"accountability_due_date": accountability_due_date} if method == "mark_paid" else {}
 		getattr(doc, method)(flt(row.approved_amount), issued_on or nowdate(), payment_reference, **extra)
+		frappe.db.set_value(
+			"Payment Plan Line",
+			row.name,
+			{"paid_from": paid_from, "paid_on": issued_on or nowdate(), "payment_reference": payment_reference},
+			update_modified=False,
+		)
 
 	@frappe.whitelist()
 	def refresh_lines(self):
@@ -290,6 +406,84 @@ class PaymentPlan(Document):
 					update_modified=False,
 				)
 		update_progress(self.name)
+
+
+def _company_balance(account) -> float:
+	"""In the company's currency, like the plan's amounts, whichever currency the account is in."""
+	from erpnext.accounts.utils import get_balance_on
+
+	return flt(get_balance_on(account, date=nowdate(), in_account_currency=False))
+
+
+def _payment_on_account(company, row):
+	"""A supplier's payment before there is an order to set it against, built as ERPNext builds its own, with nothing
+	allocated yet."""
+	from erpnext.accounts.party import get_party_account
+
+	entry = frappe.new_doc("Payment Entry")
+	entry.update(
+		{
+			"payment_type": "Pay",
+			"company": company,
+			"posting_date": nowdate(),
+			"reference_date": nowdate(),
+			"party_type": "Supplier",
+			"party": row.supplier,
+			"project": row.project,
+			"paid_from": row.paid_from,
+			"paid_to": get_party_account("Supplier", row.supplier, company),
+		}
+	)
+	entry.setup_party_account_field()
+	entry.set_missing_values()
+	entry.set_exchange_rate()
+	# the line is in the company's currency; each side of the entry in its account's
+	entry.paid_amount = flt(row.approved_amount) / (flt(entry.source_exchange_rate) or 1)
+	entry.received_amount = flt(row.approved_amount) / (flt(entry.target_exchange_rate) or 1)
+	entry.set_amounts()
+	return entry
+
+
+def paid_on_requisition(requisition, supplier) -> float:
+	"""What payment plans have paid a supplier on a requisition, in the company's currency."""
+	lines = frappe.get_all(
+		"Payment Plan Line",
+		filters={"reference_doctype": "Procurement Requisition", "reference_name": requisition, "supplier": supplier, "line_status": "Paid"},
+		pluck="paid_amount",
+	)
+	return sum(flt(amount) for amount in lines)
+
+
+def paid_on_account(requisition, supplier) -> float:
+	"""The part of that paid before the order was approved, which the order therefore does not count as its advance."""
+	rows = frappe.db.sql(
+		"""
+		select sum(pe.base_paid_amount) from `tabPayment Entry` pe
+		where pe.docstatus = 1 and pe.muhick_procurement_requisition = %s and pe.party = %s and not exists (
+			select 1 from `tabPayment Entry Reference` ref
+			where ref.parent = pe.name and ref.reference_doctype = 'Purchase Order'
+		)
+		""",
+		(requisition, supplier),
+	)
+	return flt(rows[0][0]) if rows else 0.0
+
+
+def carry_to_requisition(requisition, supplier):
+	"""A payment on a requisition goes with it: the total on the requisition, the supplier's part on its order."""
+	lines = frappe.get_all(
+		"Payment Plan Line",
+		filters={"reference_doctype": "Procurement Requisition", "reference_name": requisition, "line_status": "Paid"},
+		pluck="paid_amount",
+	)
+	frappe.db.set_value("Procurement Requisition", requisition, "total_paid", sum(flt(amount) for amount in lines), update_modified=False)
+	frappe.db.set_value(
+		"Purchase Order",
+		{"muhick_procurement_requisition": requisition, "supplier": supplier, "docstatus": ("<", 2)},
+		"muhick_paid_on_requisition",
+		paid_on_account(requisition, supplier),
+		update_modified=False,
+	)
 
 
 def update_progress(plan):
@@ -341,11 +535,20 @@ def on_payment(entry, cancelled=False):
 	if not line or not frappe.db.exists("Payment Plan Line", line):
 		return
 	if cancelled:
-		values = {"line_status": "Approved", "paid_amount": 0, "payment_entry": None}
+		values = {"line_status": "Approved", "paid_amount": 0, "payment_entry": None, "paid_on": None, "payment_reference": None}
 	else:
-		values = {"line_status": "Paid", "paid_amount": entry.paid_amount, "payment_entry": entry.name}
+		values = {
+			"line_status": "Paid",
+			"paid_amount": flt(entry.base_paid_amount) or flt(entry.paid_amount),
+			"payment_entry": entry.name,
+			"paid_from": entry.paid_from,
+			"paid_on": entry.posting_date,
+			"payment_reference": entry.get("reference_no"),
+		}
 	frappe.db.set_value("Payment Plan Line", line, values, update_modified=False)
 	update_progress(frappe.db.get_value("Payment Plan Line", line, "parent"))
+	if entry.get("muhick_procurement_requisition"):
+		carry_to_requisition(entry.muhick_procurement_requisition, entry.party)
 
 
 def approved_amount_for(entry) -> float | None:

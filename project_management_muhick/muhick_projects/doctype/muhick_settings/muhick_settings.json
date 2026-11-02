@@ -540,7 +540,7 @@
    "label": "Procurement"
   },
   {
-   "default": "Warn",
+   "default": "Block",
    "fieldname": "require_procurement_requisition",
    "fieldtype": "Select",
    "label": "Purchase Order Without an Approved Procurement Requisition",
@@ -677,7 +677,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-02 12:00:00.000000",
+ "modified": "2026-11-02 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Settings",

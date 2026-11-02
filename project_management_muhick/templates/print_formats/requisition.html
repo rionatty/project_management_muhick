@@ -1,0 +1,125 @@
+{#- The business's requisition form: its table with the source and the way of paying on every line, and its four
+    signatures, with the names and dates of those who approved it in the system. -#}
+{%- from "templates/print_formats/standard_macros.html" import add_header with context -%}
+{%- macro number(value) -%}{{ ("%.3f" | format(value or 0)).rstrip("0").rstrip(".") }}{%- endmacro -%}
+{%- macro money(value, currency=None) -%}
+	{%- set whole = (value or 0) == ((value or 0) | int) -%}
+	{{ frappe.utils.fmt_money(value or 0, precision=0 if whole else 2, currency=currency) if currency else frappe.utils.fmt_money(value or 0, precision=0 if whole else 2) }}
+{%- endmacro -%}
+{%- macro tick(on) -%}{% if on %}<span class="tick"></span>{% endif %}{%- endmacro -%}
+{%- set day = frappe.utils.format_date(doc.requisition_date, "d") | int -%}
+{%- set day_suffix = "th" if day in (11, 12, 13) else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th") -%}
+{%- set home_currency = frappe.db.get_value("Company", doc.company, "default_currency") -%}
+{%- set mode_type = frappe.db.get_value("Mode of Payment", doc.mode_of_payment, "type") if doc.mode_of_payment else None -%}
+{%- set by_cash = mode_type == "Cash" -%}
+{%- set by_other = doc.mode_of_payment and not by_cash -%}
+{%- set project_names = [] -%}
+{%- for project in doc.items | map(attribute="project") | select | unique -%}
+	{%- set _named = project_names.append(frappe.db.get_value("Project", project, "project_name") or project) -%}
+{%- endfor -%}
+{%- set steps = frappe.get_all("Approval Turnaround Log", filters={"reference_doctype": doc.doctype, "reference_name": doc.name, "is_open": 0}, fields=["workflow_state", "next_state", "actioned_by", "exited_on"], order_by="entered_on asc") -%}
+{%- set signed = {} -%}
+{%- for step in steps -%}
+	{%- if step.next_state and step.next_state != "Rejected" -%}{%- set _done = signed.update({step.workflow_state: step}) -%}{%- endif -%}
+{%- endfor -%}
+{%- macro signature(role, user, on) -%}
+<td>
+	<div class="sign-role">{{ role }}</div>
+	<div class="sign-name">{{ frappe.get_fullname(user) if user else "" }}</div>
+	<div class="sign-line">{{ _("Signature") }}</div>
+	<div class="sign-line">{{ _("Date") }}: {{ frappe.utils.format_date(on) if on else "" }}</div>
+</td>
+{%- endmacro -%}
+
+<style>
+	.muhick-requisition h3.form-title { margin: 6px 0 2px; text-align: center; font-weight: bold; letter-spacing: 1px; }
+	.muhick-requisition .form-date { margin-bottom: 8px; text-align: right; font-size: 12px; }
+	.muhick-requisition h4.form-heading { margin: 8px 0 10px; text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; }
+	.muhick-requisition table.grid { width: 100%; border-collapse: collapse; font-size: 11px; }
+	.muhick-requisition table.grid th,
+	.muhick-requisition table.grid td { border: 1px solid #333; padding: 4px 5px; vertical-align: top; }
+	.muhick-requisition table.grid th { text-align: center; font-weight: bold; text-transform: uppercase; }
+	.muhick-requisition .num { text-align: right; white-space: nowrap; }
+	.muhick-requisition .mid { text-align: center; }
+	.muhick-requisition tr.total td { font-weight: bold; }
+	.muhick-requisition .tick { display: inline-block; width: 6px; height: 11px; border: solid #000; border-width: 0 2px 2px 0; -webkit-transform: rotate(45deg); transform: rotate(45deg); }
+	.muhick-requisition .terms { margin-top: 10px; font-size: 11px; }
+	.muhick-requisition table.signatures { width: 100%; margin-top: 26px; font-size: 12px; page-break-inside: avoid; }
+	.muhick-requisition table.signatures td { width: 25%; padding: 0 10px 0 0; vertical-align: top; }
+	.muhick-requisition .sign-role { font-weight: bold; }
+	.muhick-requisition .sign-name { min-height: 18px; }
+	.muhick-requisition .sign-line { margin-top: 16px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+</style>
+
+<div class="muhick-requisition">
+	{{ add_header(1, 1, doc, letter_head, no_letterhead, footer, print_settings, "<span></span>") }}
+	<h3 class="form-title">{{ _("REQUISITION FORM") }}</h3>
+	<div class="form-date">
+		{{ doc.name }}<br>
+		{{ day }}{{ day_suffix }} {{ frappe.utils.format_date(doc.requisition_date, "MMM, yyyy") }}
+	</div>
+	<h4 class="form-heading">
+		{%- if project_names -%}
+		{{ _("Requisition for {0} project in the month of {1}").format(project_names | join(", "), frappe.utils.format_date(doc.requisition_date, "MMMM yyyy")) }}
+		{%- else -%}
+		{{ _("Requisition in the month of {0}").format(frappe.utils.format_date(doc.requisition_date, "MMMM yyyy")) }}
+		{%- endif -%}
+	</h4>
+
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="width: 5%">{{ _("Item No.") }}</th>
+				<th>{{ _("Description") }}</th>
+				<th style="width: 6%">{{ _("Qty") }}</th>
+				<th style="width: 6%">{{ _("Units") }}</th>
+				<th style="width: 11%">{{ _("Rate") }}</th>
+				<th style="width: 13%">{{ _("Amount in ({0})").format(home_currency) }}</th>
+				<th style="width: 15%">{{ _("Source") }}</th>
+				<th style="width: 7%">{{ _("Pay in Cash") }}</th>
+				<th style="width: 7%">{{ _("Pay by {0}").format(doc.mode_of_payment if by_other else _("Cheque")) }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{%- for row in doc.items %}
+			<tr>
+				<td class="mid">{{ loop.index }}</td>
+				{%- set about = frappe.utils.strip_html(row.description or "").strip() %}
+				<td>{{ row.item_name or row.item_code }}{% if about and about != row.item_name %}<br>{{ about }}{% endif %}</td>
+				<td class="num">{{ number(row.qty) }}</td>
+				<td class="mid">{{ row.uom or "" }}</td>
+				<td class="num">{{ money(row.rate, row.currency if row.currency != home_currency else None) }}</td>
+				<td class="num">{{ money(row.base_amount) }}</td>
+				<td>{{ row.supplier_name or row.supplier or "" }}</td>
+				<td class="mid">{{ tick(by_cash) }}</td>
+				<td class="mid">{{ tick(by_other) }}</td>
+			</tr>
+			{%- endfor %}
+			<tr class="total">
+				<td colspan="5">{{ _("Total Amount") }}</td>
+				<td class="num">{{ money(doc.total_amount) }}</td>
+				<td colspan="3"></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<div class="terms">
+		<b>{{ _("Payment Terms") }}:</b> {{ _(doc.payment_terms_type) if doc.payment_terms_type else "" }}
+		{%- if doc.payment_terms_type == "Advance" and doc.advance_percent %} ({{ number(doc.advance_percent) }}%){% endif -%}
+		{%- if doc.payment_terms_type == "Credit" and doc.credit_days %} ({{ _("{0} days").format(doc.credit_days) }}){% endif %}
+		{% if doc.delivery_period %}&nbsp;&nbsp;<b>{{ _("Delivery Period") }}:</b> {{ doc.delivery_period }}{% endif %}
+		{% if doc.delivery_location %}&nbsp;&nbsp;<b>{{ _("Delivery Location") }}:</b> {{ doc.delivery_location }}{% endif %}
+	</div>
+
+	<table class="signatures">
+		<tr>
+			{%- set requested = signed.get("Pending COO") -%}
+			{%- set checked = signed.get("Pending Finance Manager") -%}
+			{%- set authorized = signed.get("Pending General Manager") -%}
+			{{ signature(_("Requested by"), requested.actioned_by if requested else None, requested.exited_on if requested else None) }}
+			{{ signature(_("Prepared by"), doc.owner, doc.creation) }}
+			{{ signature(_("Checked by"), checked.actioned_by if checked else None, checked.exited_on if checked else None) }}
+			{{ signature(_("Authorized by"), authorized.actioned_by if authorized else None, authorized.exited_on if authorized else None) }}
+		</tr>
+	</table>
+</div>

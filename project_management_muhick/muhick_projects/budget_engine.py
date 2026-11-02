@@ -607,6 +607,13 @@ def quantity_overruns(project, quantities, milestone=None, exclude_request=None)
 	return over
 
 
+def quantities_over_budget(project, quantities) -> dict:
+	"""{item: how far it goes over its budgeted quantity} with these quantities added; for the Cost Control Sheet."""
+	budgeted = budgeted_quantities(project, set(quantities))[0]
+	to_date = quantity_to_date(project, set(quantities) & set(budgeted))
+	return {item: total - budgeted[item] for item, total in calc.quantity_excess(budgeted, to_date, quantities).items()}
+
+
 def beyond_requests(rows) -> dict:
 	"""{item: stock quantity} on the (item, stock quantity, request row) rows of a requisition or order
 	that no approved request covers."""

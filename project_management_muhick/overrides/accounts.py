@@ -131,10 +131,12 @@ def _check_payment_plan(doc):
 		if doc.docstatus == 0:
 			frappe.msgprint(message, indicator="orange", alert=True)
 		return
-	if flt(doc.paid_amount) > approved + 0.5:
+	# the plan is in the company's currency, whichever account pays
+	paid = flt(doc.base_paid_amount) or flt(doc.paid_amount)
+	if paid > approved + 0.5:
 		frappe.throw(
 			_("The payment ({0}) is more than the amount approved on the payment plan ({1}).").format(
-				frappe.format_value(doc.paid_amount, "Currency"), frappe.format_value(approved, "Currency")
+				frappe.format_value(paid, "Currency"), frappe.format_value(approved, "Currency")
 			)
 		)
 

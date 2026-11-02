@@ -3,8 +3,7 @@
 
 """What the client's review asked of approvals and master data. The limits now reach the procurement
 requisition and the purchase order, and the order goes to the Finance Manager before the General Manager;
-a requisition's prices are read in the company's currency; only the Finance Manager changes bank details;
-the Procurement Manager holds the item list."""
+only the Finance Manager changes bank details; the Procurement Manager holds the item list."""
 
 import frappe
 from frappe.permissions import add_permission, update_permission_property
@@ -19,14 +18,6 @@ ITEM_OWNER = "Muhick Procurement Manager"
 
 def execute():
 	setup_custom_fields()
-	for requisition in frappe.get_all("Procurement Requisition", fields=["name", "supplier_quotation", "total_amount"]):
-		currency, rate = frappe.db.get_value("Supplier Quotation", requisition.supplier_quotation, ["currency", "conversion_rate"]) or (None, 1)
-		frappe.db.set_value(
-			"Procurement Requisition",
-			requisition.name,
-			{"currency": currency, "conversion_rate": rate or 1, "base_total_amount": (requisition.total_amount or 0) * (rate or 1)},
-			update_modified=False,
-		)
 	frappe.db.set_single_value(
 		"Muhick Settings", {"high_risk_single_quotation": 1, "high_risk_advance_payment": 1, "high_risk_international": 1}
 	)

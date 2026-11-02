@@ -122,6 +122,15 @@ and certificates, retention, payments and the controls around them.
   routed by budget status and by type of request, with a stock check.
 - Supplier selection approval, Procurement Requisition, Purchase Order and goods received note
   approvals, supplier onboarding, specification change requests, consignment tracking for imports.
+- A Procurement Requisition is raised from one approved supplier quotation or several: Create on the
+  quotation, Actions on the ticked quotations of the list, or Get Items From on the requisition. Each line
+  keeps its source, its currency and, where it has one, its material request; a quotation's line goes on one
+  open requisition only. The payment terms and one required mode of payment are the requisition's, and it
+  prints on the business's requisition form with the way of paying ticked on every line. It shows each line
+  against what was requested and budgeted. Create > Purchase Order raises one order per supplier, carrying
+  the terms. An order with no approved requisition cannot go for approval (Muhick Settings can relax this).
+  Create > Cost Control Sheet opens the budget revision already filled with the project, items, cost codes
+  and shortfall; approving the sheet raises the budget, and the requisition then passes its check.
 - A site store per project; approvals for returns from site, disposals, deliveries and customer returns.
 
 **Finance and controls**
@@ -129,6 +138,12 @@ and certificates, retention, payments and the controls around them.
 - Weekly or monthly payment plan from which supplier payments are raised; the money for a bid (sales
   requisitions and bid security requests) and the bank fees of guarantees and bonds falling due are
   issued from it only; expense claims refunded by journal entry.
+- The plan names itself from its type and period, and has a bank account to pay from, which each line can
+  change. The position shows what each account pays under the plan and what that leaves. A supplier on an
+  approved requisition can be scheduled with Get > Approved Requisitions: the advance, or the whole amount on
+  delivery. Raise Payments makes a draft Payment Entry from the line's account, against the approved order
+  or, until there is one, on account. Once submitted it is linked on the line and carried along: the
+  requisition shows what was paid, its order counts it, and the invoice takes it up as an advance.
 - Bank facilities and the guarantees, bonds and letters of credit drawn on them, with expiry and
   quarterly fee reminders; funds lent between projects with approval.
 - Three-way match (order, what was accepted on the receipt, supplier invoice; rejected goods are not

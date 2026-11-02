@@ -9,6 +9,7 @@
   "title",
   "plan_type",
   "company",
+  "pay_from",
   "column_break_1",
   "period_from",
   "period_to",
@@ -45,7 +46,8 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Plan",
-   "reqd": 1
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "default": "Weekly",
@@ -64,6 +66,13 @@
    "options": "Company",
    "remember_last_selected_value": 1,
    "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "pay_from",
+   "fieldtype": "Link",
+   "label": "Bank Account to Pay From",
+   "options": "Account"
   },
   {
    "fieldname": "column_break_1",
@@ -121,6 +130,7 @@
    "label": "Cash and Bank Position"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "accounts",
    "fieldtype": "Table",
    "label": "Cash and Bank Balances",
@@ -195,7 +205,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "modified": "2026-11-02 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Finance",
  "name": "Payment Plan",

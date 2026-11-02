@@ -21,7 +21,8 @@ APPROVE_ACTIONS = ("Approve", "Accept")
 NOTIFY_ON_APPROVAL = {
 	"Material Request": [PRM, PRO, SK],
 	"Supplier Quotation": [PRO],
-	"Procurement Requisition": [PRO, PRM],
+	# Finance may now schedule the supplier on the week's payment plan
+	"Procurement Requisition": [PRO, PRM, FO],
 	"Purchase Order": [PRO, PRM],
 	"Purchase Receipt": [FM, FO, PRM, PRO],
 	"Delivery Note": [FM, FO, PRO],

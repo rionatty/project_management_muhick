@@ -50,8 +50,11 @@ doctype_js = {
 	"Quotation": "public/js/quotation.js",
 }
 
-# the opportunity list shows each bid's status
-doctype_list_js = {"Opportunity": "public/js/opportunity_list.js"}
+# the opportunity list shows each bid's status; several approved supplier quotations make one requisition
+doctype_list_js = {
+	"Opportunity": "public/js/opportunity_list.js",
+	"Supplier Quotation": "public/js/supplier_quotation_list.js",
+}
 
 # for the Budget Summary print of a project budget and the Bid Budget print of an opportunity
 jinja = {
@@ -127,6 +130,7 @@ doc_events = {
 		"on_cancel": "project_management_muhick.overrides.accounts.on_cancel_journal_entry",
 	},
 	"Purchase Invoice": {
+		"before_validate": "project_management_muhick.overrides.buying.before_validate_purchase_invoice",
 		"validate": "project_management_muhick.overrides.buying.validate_purchase_invoice",
 		"before_submit": "project_management_muhick.overrides.buying.before_submit_purchase_invoice",
 		"on_submit": "project_management_muhick.overrides.buying.on_submit_purchase_invoice",

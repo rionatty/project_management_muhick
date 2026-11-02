@@ -14,6 +14,7 @@ from frappe import _
 from frappe.utils import flt
 
 from project_management_muhick.muhick_controls import matching, sod
+from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import paid_on_account
 from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.overrides import stock as stock_api
 from project_management_muhick.overrides import supplier as supplier_api
@@ -104,6 +105,8 @@ def validate_purchase_order(doc, method=None):
 		_set_route(doc, _check_budget(doc))
 	_check_requisition(doc, enforce)
 	supplier_api.check_purchase_order(doc, enforce)
+	if doc.docstatus == 0 and doc.get("muhick_procurement_requisition"):
+		doc.muhick_paid_on_requisition = paid_on_account(doc.muhick_procurement_requisition, doc.supplier)
 
 
 def _set_route(doc, over_budget):
@@ -118,29 +121,35 @@ def _set_route(doc, over_budget):
 
 
 def _check_requisition(doc, enforce):
-	"""An order is raised from an approved Procurement Requisition for the same supplier."""
-	action = get_settings().require_procurement_requisition or "Warn"
-	if action == "Off":
+	"""An order is raised from an approved Procurement Requisition: for a supplier on it, and for no more than was
+	approved for that supplier and not yet ordered. Orders loaded at go-live have been through approval already."""
+	action = get_settings().require_procurement_requisition or "Block"
+	if action == "Off" or frappe.flags.in_import:
 		return
 	requisition = doc.get("muhick_procurement_requisition")
 	if requisition:
-		approved = frappe.db.get_value(
-			"Procurement Requisition",
-			requisition,
-			["docstatus", "supplier", "purchase_order", "currency", "total_amount", "base_total_amount"],
-			as_dict=True,
-		)
-		if not approved or approved.docstatus != 1:
+		if frappe.db.get_value("Procurement Requisition", requisition, "docstatus") != 1:
 			frappe.throw(_("Procurement Requisition {0} is not approved.").format(requisition))
-		if approved.supplier != doc.supplier:
-			frappe.throw(_("Procurement Requisition {0} was approved for supplier {1}.").format(requisition, approved.supplier))
-		if approved.purchase_order and approved.purchase_order != doc.name:
-			frappe.throw(_("Procurement Requisition {0} is already ordered on {1}.").format(requisition, approved.purchase_order))
-		# in the requisition's own currency, so a change in the exchange rate does not trip it
-		same_currency = doc.currency == approved.currency
+		lines = frappe.get_all(
+			"Procurement Requisition Item",
+			filters={"parent": requisition, "parenttype": "Procurement Requisition", "supplier": doc.supplier},
+			fields=["currency", "amount", "base_amount", "purchase_order"],
+		)
+		if not lines:
+			frappe.throw(_("Procurement Requisition {0} has nothing approved for supplier {1}.").format(requisition, doc.supplier))
+		# in the quotation's own currency, so a change in the exchange rate does not trip it
+		same_currency = [line for line in lines if line.currency == doc.currency]
+		considered = same_currency or lines
+		still_open = [line for line in considered if not line.purchase_order or line.purchase_order == doc.name]
+		if not still_open:
+			frappe.throw(
+				_("Procurement Requisition {0} is already ordered from {1} on {2}.").format(
+					requisition, doc.supplier, ", ".join(sorted({line.purchase_order for line in considered}))
+				)
+			)
 		ordered = doc.net_total if same_currency else doc.base_net_total
-		limit = approved.total_amount if same_currency else approved.base_total_amount
-		if flt(ordered) > flt(limit) + 0.5:
+		limit = sum(flt(line.amount if same_currency else line.base_amount) for line in still_open)
+		if flt(ordered) > limit + 0.5:
 			frappe.throw(
 				_("The order ({0}) is more than the approved requisition ({1}). Amend the requisition first.").format(
 					frappe.format_value(ordered, "Currency"), frappe.format_value(limit, "Currency")
@@ -158,11 +167,30 @@ def before_submit_purchase_order(doc, method=None):
 	_check_budget(doc, enforce=True)
 
 
-def on_submit_purchase_order(doc, method=None):
+def _mark_requisition(doc, cancelled=False):
+	"""The requisition's lines on this order are ordered, or no longer once it is cancelled; its status follows."""
 	requisition = doc.get("muhick_procurement_requisition")
-	if requisition:
-		frappe.db.set_value("Procurement Requisition", requisition, {"purchase_order": doc.name, "status": "Ordered"})
-	if doc.get("muhick_payment_type") == "Advance":
+	if not requisition:
+		return
+	table = {"parent": requisition, "parenttype": "Procurement Requisition"}
+	on_order = {row.get("supplier_quotation_item") for row in doc.items}
+	for line in frappe.get_all(
+		"Procurement Requisition Item",
+		filters={**table, "supplier": doc.supplier},
+		fields=["name", "supplier_quotation_item", "purchase_order"],
+	):
+		if cancelled and line.purchase_order == doc.name:
+			frappe.db.set_value("Procurement Requisition Item", line.name, "purchase_order", None)
+		elif not cancelled and not line.purchase_order and line.supplier_quotation_item in on_order:
+			frappe.db.set_value("Procurement Requisition Item", line.name, "purchase_order", doc.name)
+	orders = frappe.get_all("Procurement Requisition Item", filters=table, pluck="purchase_order")
+	status = "Ordered" if all(orders) else "Partly Ordered" if any(orders) else "Approved"
+	frappe.db.set_value("Procurement Requisition", requisition, "status", status)
+
+
+def on_submit_purchase_order(doc, method=None):
+	_mark_requisition(doc)
+	if doc.get("muhick_payment_type") == "Advance" and not flt(doc.get("muhick_paid_on_requisition")):
 		# the payment terms call for an advance: the officer raises the payment request
 		notify_roles(
 			PRO,
@@ -176,9 +204,7 @@ def on_submit_purchase_order(doc, method=None):
 
 
 def on_cancel_purchase_order(doc, method=None):
-	requisition = doc.get("muhick_procurement_requisition")
-	if requisition and frappe.db.get_value("Procurement Requisition", requisition, "purchase_order") == doc.name:
-		frappe.db.set_value("Procurement Requisition", requisition, {"purchase_order": None, "status": "Approved"})
+	_mark_requisition(doc, cancelled=True)
 	refresh_budgets(doc)
 
 
@@ -194,6 +220,17 @@ def validate_purchase_receipt(doc, method=None):
 
 
 # ------------------------------------------------------------------ Purchase Invoice
+def before_validate_purchase_invoice(doc, method=None):
+	"""What was paid ahead of a new invoice, on its order or on the requisition behind it, comes off what it owes:
+	ERPNext takes the advances up when this is ticked, and it can still be unticked."""
+	orders = {row.get("purchase_order") for row in doc.items if row.get("purchase_order")}
+	if not doc.is_new() or doc.get("is_return") or not orders:
+		return
+	paid = frappe.get_all("Purchase Order", filters={"name": ("in", list(orders))}, fields=["advance_paid", "muhick_paid_on_requisition"])
+	if any(flt(order.advance_paid) or flt(order.muhick_paid_on_requisition) for order in paid):
+		doc.allocate_advances_automatically = 1
+
+
 def validate_purchase_invoice(doc, method=None):
 	_fill_cost_codes(doc, "Purchase Order Item", "po_detail")
 	_validate_subcontract_invoice(doc)
