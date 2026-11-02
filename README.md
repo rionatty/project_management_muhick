@@ -99,7 +99,8 @@ and certificates, retention, payments and the controls around them.
   it names as its Group Task ID, a row with subtasks is a group task, and Type on each row says which it
   is. The top rows are the milestones, past a row that only wraps them such as the project's name. All
   are standard ERPNext Tasks in the same tree, loaded from a Project Template, uploaded from Excel (also
-  a scheduling tool's export) or entered on the plan. Each milestone is a card, with + Add Subtask under
+  a scheduling tool's export; Schedule > Download Template gives an empty sheet, with an example and how
+  to fill it in) or entered on the plan. Each milestone is a card, with + Add Subtask under
   each group; milestones and group tasks fold, and each subtask has a responsibility to filter by. Once
   approved, each milestone shows its tasks
   done and where it stands, on the plan and on the project, with the client's sign-off requested by email

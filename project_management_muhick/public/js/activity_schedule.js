@@ -78,7 +78,7 @@ muhick.schedule = (() => {
 
 	function record_signoff(row, options) {
 		frappe.prompt(
-			{ fieldname: "signed_on", fieldtype: "Date", label: __("Signed Off On"), reqd: 1, default: frappe.datetime.get_today() },
+			{ fieldname: "signed_on", fieldtype: "Date", label: __("Signed Off On"), reqd: 1, max_date: frappe.datetime.str_to_obj(frappe.datetime.get_today()), default: frappe.datetime.get_today() },
 			(values) =>
 				frappe
 					.xcall("project_management_muhick.muhick_projects.doctype.project_activity_plan.project_activity_plan.record_signoff", { task: row.task, signed_on: values.signed_on })

@@ -22,7 +22,10 @@ frappe.ui.form.on("Project Activity Plan", {
 		if (frm.doc.docstatus === 0 && frm.perm[0].write) {
 			frm.add_custom_button(__("Upload from Excel"), () => upload_schedule(frm), group);
 		}
-		frm.add_custom_button(__("Download Excel"), () => download_schedule(frm), group);
+		frm.add_custom_button(__("Download Template"), download_template, group);
+		if (!frm.is_new()) {
+			frm.add_custom_button(__("Download Excel"), () => download_schedule(frm), group);
+		}
 		if (frm.doc.docstatus === 0 && frm.doc.project && !frm.doc.revision_of) {
 			frm.add_custom_button(__("Get Milestones"), () => get_phases(frm), group);
 		}
@@ -210,12 +213,16 @@ function take_schedule(frm, result) {
 }
 
 function download_schedule(frm) {
-	if (frm.is_dirty() && !frm.is_new()) {
+	if (frm.is_dirty()) {
 		frappe.msgprint(__("Save first, so the Excel file has the latest rows."));
 		return;
 	}
-	const args = new URLSearchParams({ name: frm.is_new() ? "" : frm.doc.name });
+	const args = new URLSearchParams({ name: frm.doc.name });
 	window.open(`/api/method/project_management_muhick.muhick_projects.doctype.project_activity_plan.project_activity_plan.download_schedule?${args}`);
+}
+
+function download_template() {
+	window.open("/api/method/project_management_muhick.muhick_projects.doctype.project_activity_plan.project_activity_plan.download_schedule");
 }
 
 // load the milestones and their activities from a Project Template, or from the project's own tasks

@@ -4,6 +4,7 @@
 // A milestone (phase) is a group task of the project; its activities are the tasks under it.
 frappe.ui.form.on("Task", {
 	refresh(frm) {
+		stop_completed_on_at_today(frm);
 		if (!frm.doc.is_group || frm.is_new() || !frm.doc.project) {
 			return;
 		}
@@ -26,7 +27,22 @@ frappe.ui.form.on("Task", {
 			}).addClass("btn-primary");
 		}
 	},
+
+	// a date typed by hand; the calendar already stops at today
+	completed_on(frm) {
+		if (frm.doc.completed_on > frappe.datetime.get_today()) {
+			frm.set_value("completed_on", null);
+			frappe.msgprint(__("Completed On cannot be after today."));
+		}
+	},
 });
+
+// the field shows only once the task is Completed, so its calendar may not exist yet: it then takes the limit from the field
+function stop_completed_on_at_today(frm) {
+	const today = frappe.datetime.str_to_obj(frappe.datetime.get_today());
+	frm.set_df_property("completed_on", "max_date", today);
+	frm.fields_dict.completed_on.datepicker?.update({ maxDate: today });
+}
 
 // the milestone's activities, the items the approved plan needs for it, and its budget
 function show_milestone_overview(frm) {

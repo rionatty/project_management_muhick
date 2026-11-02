@@ -56,6 +56,17 @@ EXCEL_COLUMNS = (
 	("row_id", "ID"), ("parent_row", "Group Task ID"), ("subject", "Task Name"), ("duration", "Duration"), ("start_date", "Start"),
 	("end_date", "Finish"), ("predecessors", "Predecessors"), ("responsibility", "Responsibility"),
 )
+# what the template shows, and what each row becomes
+EXAMPLE_ROWS = (
+	(1, None, "Mobilisation", None, date(2027, 1, 4), None, None, "Muhick", "Milestone"),
+	(2, 1, "Contract signing", 7, None, None, None, "Muhick", "Subtask"),
+	(3, 1, "Site set-up", None, None, None, 2, "Muhick", "Group Task"),
+	(4, 3, "Site possession", 5, None, None, None, "Client", "Subtask"),
+	(5, 3, "Site offices", 7, None, None, "4SS", "Muhick", "Subtask"),
+	(6, None, "Substructure", None, None, None, 5, "Muhick", "Milestone"),
+	(7, 6, "Excavation", 10, None, None, None, "Subcontractor", "Subtask"),
+	(8, 6, "Foundations", 14, None, None, "7FS+2 days", "Muhick", "Subtask"),
+)
 # the headings a schedule's columns go by, here and in a scheduling tool's export
 HEADINGS = {
 	"id": "row_id", "grouptaskid": "parent_row", "grouptask": "parent_row", "level": "outline_level", "outlinelevel": "outline_level",
@@ -444,36 +455,100 @@ def record_signoff(task: str, signed_on: str):
 	"""The date the client confirmed a milestone."""
 	doc = frappe.get_doc("Task", task)
 	doc.check_permission("write")
+	if getdate(signed_on) > getdate(today()):
+		frappe.throw(_("The sign-off date cannot be after today."))
 	doc.db_set("muhick_client_signed_off_on", getdate(signed_on))
 
 
 # ------------------------------------------------------------------ to and from Excel
 @frappe.whitelist()
 def download_schedule(name: str | None = None):
-	"""A workbook of the saved schedule, or an empty one, to prepare in Excel and upload."""
+	"""A workbook of the saved schedule or, with no plan named, the template to prepare one in Excel and upload: an empty
+	sheet, with an example and how to fill it in on sheets of their own, which an upload does not read."""
 	from openpyxl import Workbook
-	from openpyxl.styles import Font
 
 	frappe.has_permission("Project Activity Plan", "read", throw=True)
 	doc = frappe.get_doc("Project Activity Plan", name) if name else None
 	if doc:
 		doc.check_permission("read")
 	book = Workbook()
-	sheet = book.active
-	sheet.title = "Activity Schedule"
-	sheet.append([heading for _field, heading in EXCEL_COLUMNS])
-	for cell in sheet[1]:
-		cell.font = Font(bold=True)
-	for row in sorted(doc.activities, key=lambda r: r.idx) if doc else []:
-		sheet.append([row.get(field) for field, _heading in EXCEL_COLUMNS])
-	for column, width in zip("ABCDEFGH", (6, 7, 60, 10, 12, 12, 24, 16)):
-		sheet.column_dimensions[column].width = width
-	sheet.freeze_panes = "A2"
+	rows = sorted(doc.activities, key=lambda r: r.idx) if doc else []
+	_schedule_sheet(book.active, [[row.get(field) for field, _heading in EXCEL_COLUMNS] for row in rows])
+	if not doc:
+		_example_sheet(book)
+		_how_to_sheet(book)
 	out = io.BytesIO()
 	book.save(out)
-	frappe.response["filename"] = f"{name or _('Activity Schedule')}.xlsx"
+	frappe.response["filename"] = f"{name or _('Activity Schedule Template')}.xlsx"
 	frappe.response["filecontent"] = out.getvalue()
 	frappe.response["type"] = "binary"
+
+
+def _schedule_sheet(sheet, rows):
+	from openpyxl.styles import Font
+	from openpyxl.worksheet.datavalidation import DataValidation
+
+	sheet.title = "Activity Schedule"
+	sheet.append([heading for _field, heading in EXCEL_COLUMNS])
+	for row in rows:
+		sheet.append(row)
+	for cell in sheet[1]:
+		cell.font = Font(bold=True)
+	for column, width in zip("ABCDEFGH", (6, 14, 60, 10, 12, 12, 24, 16)):
+		sheet.column_dimensions[column].width = width
+	sheet.freeze_panes = "A2"
+	last = len(rows) + 500
+	for at in range(2, last + 1):
+		sheet[f"E{at}"].number_format = sheet[f"F{at}"].number_format = "DD/MM/YYYY"
+	rule = DataValidation(type="list", formula1='"' + ",".join(RESPONSIBILITIES) + '"', allow_blank=True)
+	rule.add(f"H2:H{last}")
+	sheet.add_data_validation(rule)
+
+
+def _example_sheet(book):
+	from openpyxl.styles import Font
+
+	sheet = book.create_sheet("Example")
+	sheet.append([*[heading for _field, heading in EXCEL_COLUMNS], "Becomes"])
+	for row in EXAMPLE_ROWS:
+		sheet.append(row)
+	for cell in sheet[1]:
+		cell.font = Font(bold=True)
+	for at in range(2, len(EXAMPLE_ROWS) + 2):
+		sheet[f"E{at}"].number_format = "DD/MM/YYYY"
+	for column, width in zip("ABCDEFGHI", (6, 14, 34, 10, 12, 12, 24, 16, 14)):
+		sheet.column_dimensions[column].width = width
+	sheet.freeze_panes = "A2"
+
+
+def _how_to_sheet(book):
+	from openpyxl.styles import Alignment, Font
+
+	sheet = book.create_sheet("How to Fill")
+	rows = (
+		(_("Column"), _("What to enter")),
+		("ID", _("A unique whole number for each row: 1, 2, 3.")),
+		("Group Task ID", _("The ID of the row this one sits under. Leave it blank for a milestone.")),
+		("Task Name", _("The name of the milestone, group task or subtask. A row without a name is left out.")),
+		("Duration", _("Working days, Monday to Friday: 7, 7 days or 2 wks. Leave it blank on a row with others under it.")),
+		("Start", _("A date, only where a row has no predecessor, usually just the first row. Without one, a row starts with the group above it, or on the project's Expected Start Date.")),
+		("Finish", _("Leave it blank. The system works it out.")),
+		("Predecessors", _("IDs: 6 (after 6 finishes), 6SS (starts with 6), 7FS+2 days (2 working days after 7 finishes), 25,28 (after both).")),
+		("Responsibility", _("{0}. Blank or anything else becomes {1}.").format(", ".join(RESPONSIBILITIES), RESPONSIBILITIES[0])),
+		(None, None),
+		(_("Dates"), _("Day first, such as 21/03/2027, or real Excel dates.")),
+		(_("What each row becomes"), _("A row with no Group Task ID is a milestone, a row with others under it is a group task, and the rest are subtasks. If the whole plan sits under one top row, that row is a heading and the rows under it are the milestones.")),
+		(_("Uploading"), _("On a draft Activity Plan: Schedule > Upload from Excel, then Save. It replaces the plan's whole schedule. Only the Activity Schedule sheet is read.")),
+	)
+	for row in rows:
+		sheet.append(row)
+	for cell in sheet[1]:
+		cell.font = Font(bold=True)
+	for line in sheet.iter_rows():
+		line[0].alignment = Alignment(vertical="top")
+		line[1].alignment = Alignment(wrap_text=True, vertical="top")
+	sheet.column_dimensions["A"].width = 24
+	sheet.column_dimensions["B"].width = 100
 
 
 @frappe.whitelist()
