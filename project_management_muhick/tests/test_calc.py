@@ -77,6 +77,9 @@ class TestCostLines(unittest.TestCase):
 		boq = [("PUMP", "Water", 2, 0), ("PIPE", "Water", 30, 0)]
 		costs = [("PUMP", "Water", 100), ("PIPE", "Water", 300)]
 		self.assertEqual(calc.boq_line_costs(boq, costs), [100, 300])
+		self.assertEqual(calc.share_out([300, 200], 250), [150.0, 100.0])
+		self.assertEqual(calc.share_out([1, 1, 1], 100), [33.33, 33.33, 33.34])
+		self.assertEqual(calc.share_out([0, 0], 100), [0.0, 0.0])
 		amounts = calc.price_boq(boq, costs, 625)
 		self.assertAlmostEqual(amounts[0], 156.25)
 		self.assertAlmostEqual(amounts[1], 468.75)

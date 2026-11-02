@@ -12,7 +12,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, flt, now_datetime, nowdate
 
-from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import settle_plan_line
+from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import check_expense_accounts, settle_plan_line
 from project_management_muhick.muhick_projects.utils import check_overdue_accountability, draft_status, leaving_draft, validate_dates
 from project_management_muhick.overrides.crm import refresh_bid_status
 from project_management_muhick.utils import calc
@@ -32,6 +32,7 @@ class SalesRequisition(Document):
 		self.status = draft_status(self)
 		if self.docstatus == 0 and leaving_draft(self):
 			self.check_pending_accountability()
+			check_expense_accounts(self, self.items)
 
 	def check_pending_accountability(self):
 		check_overdue_accountability(self)
@@ -92,6 +93,11 @@ class SalesRequisition(Document):
 		settle_plan_line(self.doctype, self.name, amount_issued)
 		refresh_bid_status(self.opportunity)
 		notify([self.requested_by], _("{0} has been paid. Account for it by {1}.").format(self.name, self.accountability_due_date), doc=self)
+
+	def expense_lines(self) -> list:
+		"""What its payment posts: [(expense account, amount, remark)]."""
+		check_expense_accounts(self, self.items)
+		return [(row.expense_account, flt(row.amount), row.description or row.expense_type) for row in self.items if flt(row.amount)]
 
 	def reverse_funds(self, reference=None):
 		"""Its payment was cancelled, so the money is not out after all: not once it is being accounted for."""

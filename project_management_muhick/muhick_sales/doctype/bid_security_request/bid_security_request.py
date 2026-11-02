@@ -16,8 +16,8 @@ from frappe.model.document import Document
 from frappe.utils import flt, nowdate, today
 
 from project_management_muhick.muhick_finance.doctype.bank_facility.bank_facility import get_utilised
-from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import settle_plan_line
-from project_management_muhick.muhick_projects.utils import draft_status, validate_dates
+from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import check_expense_accounts, settle_plan_line
+from project_management_muhick.muhick_projects.utils import draft_status, leaving_draft, validate_dates
 from project_management_muhick.overrides.crm import refresh_bid_status
 from project_management_muhick.utils.common import FINANCE_ROLES, notify, require_roles
 
@@ -38,6 +38,8 @@ class BidSecurityRequest(Document):
 		self.status = draft_status(self)
 		if self.has_value_changed("workflow_state") and self.workflow_state == "Rejected" and not (self.rejection_reason or "").strip():
 			frappe.throw(_("Give the reason for the rejection, and say whether the request can be amended and sent again."))
+		if self.docstatus == 0 and leaving_draft(self):
+			check_expense_accounts(self, self.expenses)
 
 	def after_insert(self):
 		# the bid security asked for: the bid's preparation has started
@@ -90,6 +92,11 @@ class BidSecurityRequest(Document):
 		)
 		settle_plan_line(self.doctype, self.name, amount_issued)
 		notify([self.requested_by], _("Funds for bid security request {0} have been issued.").format(self.name), doc=self)
+
+	def expense_lines(self) -> list:
+		"""What its funds post: [(expense account, amount, remark)]."""
+		check_expense_accounts(self, self.expenses)
+		return [(row.expense_account, flt(row.amount), row.description or row.expense_type) for row in self.expenses if flt(row.amount)]
 
 	def reverse_funds(self, reference=None):
 		"""Its payment was cancelled, so the funds are not out after all: not once a security has been recorded from them."""
@@ -158,6 +165,7 @@ def make_bank_instrument(source_name: str):
 			"issue_date": today(),
 			"expiry_date": line.valid_until,
 			"quarterly_fee": per_quarter * share,
+			"fee_expense_account": next((r.expense_account for r in request.expenses if r.recurring and r.expense_account), None),
 		}
 	)
 	return doc

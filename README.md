@@ -137,8 +137,9 @@ and certificates, retention, payments and the controls around them.
 
 - Weekly or monthly payment plan from which supplier payments are raised; the money for a bid (sales
   requisitions and bid security requests) and the bank fees of guarantees and bonds falling due are
-  paid from it only, with a draft journal entry from the line's account to the account Muhick Settings names
-  for each, which marks the document paid when it is submitted; expense claims refunded by journal entry.
+  paid from it only, with a draft journal entry from the line's account to the expense account on each of the
+  document's own lines, which marks the document paid when it is submitted. A line's account fills in from its
+  Financial Requirement Type; a bank fee's is on its instrument. Expense claims are refunded by journal entry.
 - The plan names itself from its type and period, and has a bank account to pay from, which each line can
   change. Its amounts are in the company's currency; an account in that currency can pay anything, and one in
   another currency only what is owed in that currency. The position shows what each account pays under the

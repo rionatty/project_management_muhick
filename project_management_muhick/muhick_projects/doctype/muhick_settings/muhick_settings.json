@@ -93,9 +93,6 @@
   "payment_plan_control",
   "column_break_11",
   "payables_alert_days",
-  "sales_requisition_account",
-  "bid_security_account",
-  "bank_charges_account",
   "reminders_tab",
   "site_reports_section",
   "send_report_reminders",
@@ -605,24 +602,6 @@
    "label": "Alert Finance of Invoices Falling Due Within (Days)"
   },
   {
-   "fieldname": "sales_requisition_account",
-   "fieldtype": "Link",
-   "label": "Sales Requisition Funds Account",
-   "options": "Account"
-  },
-  {
-   "fieldname": "bid_security_account",
-   "fieldtype": "Link",
-   "label": "Bid Security Funds Account",
-   "options": "Account"
-  },
-  {
-   "fieldname": "bank_charges_account",
-   "fieldtype": "Link",
-   "label": "Bank Charges Account",
-   "options": "Account"
-  },
-  {
    "fieldname": "reminders_tab",
    "fieldtype": "Tab Break",
    "label": "Reminders"
@@ -698,7 +677,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-03 18:00:00.000000",
+ "modified": "2026-11-03 21:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Settings",

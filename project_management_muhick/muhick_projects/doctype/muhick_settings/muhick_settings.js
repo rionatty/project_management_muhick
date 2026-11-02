@@ -12,10 +12,6 @@ frappe.ui.form.on("Muhick Settings", {
 		["import_vat_account", "import_duty_account", "import_levy_account"].forEach((field) => {
 			frm.set_query(field, () => ({ filters: { is_group: 0 } }));
 		});
-		// what a payment to no supplier is charged to: not a bank, and not an account that needs a party
-		["sales_requisition_account", "bid_security_account", "bank_charges_account"].forEach((field) => {
-			frm.set_query(field, () => ({ filters: { is_group: 0, account_type: ["not in", ["Bank", "Cash", "Receivable", "Payable"]] } }));
-		});
 		["central_store_warehouse", "goods_in_transit_warehouse"].forEach((field) => {
 			frm.set_query(field, () => ({ filters: { is_group: 0 } }));
 		});

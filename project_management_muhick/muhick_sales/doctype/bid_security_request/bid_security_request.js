@@ -5,6 +5,9 @@ frappe.ui.form.on("Bid Security Request", {
 	setup(frm) {
 		frm.set_query("security_type", "securities", () => ({ filters: { kind: "Bid Security" } }));
 		frm.set_query("expense_type", "expenses", () => ({ filters: { kind: "Bid Security Expense" } }));
+		frm.set_query("expense_account", "expenses", () => ({
+			filters: { company: frm.doc.company, is_group: 0, root_type: "Expense" },
+		}));
 		frm.set_query("bank_facility", () => ({
 			filters: { company: frm.doc.company, disabled: 0, facility_type: ["in", ["Guarantees and Bonds", "Combined"]] },
 		}));

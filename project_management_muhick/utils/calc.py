@@ -585,6 +585,16 @@ def work_out_schedule(rows, first_day) -> list:
 
 
 # ------------------------------------------------------------------ BOQ progress
+def share_out(amounts, total) -> list:
+	"""A total shared among amounts in proportion, to the cent, the last taking what rounding leaves."""
+	whole = sum(_f(amount) for amount in amounts)
+	if not whole:
+		return [0.0] * len(amounts)
+	shares = [round(_f(total) * _f(amount) / whole, 2) for amount in amounts]
+	shares[-1] = round(_f(total) - sum(shares[:-1]), 2)
+	return shares
+
+
 def allocate_to_lines(lines, totals) -> dict:
 	"""Spread document quantities over BOQ lines.
 

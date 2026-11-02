@@ -29,6 +29,7 @@
   "bank_fees_section",
   "fee_percent_per_quarter",
   "quarterly_fee",
+  "fee_expense_account",
   "column_break_4",
   "total_fees",
   "fees_charged",
@@ -194,6 +195,12 @@
    "label": "Fee per Quarter"
   },
   {
+   "fieldname": "fee_expense_account",
+   "fieldtype": "Link",
+   "label": "Fee Expense Account",
+   "options": "Account"
+  },
+  {
    "fieldname": "column_break_4",
    "fieldtype": "Column Break"
   },
@@ -258,7 +265,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-03 21:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Finance",
  "name": "Bank Instrument",

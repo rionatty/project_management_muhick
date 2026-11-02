@@ -4,6 +4,9 @@
 frappe.ui.form.on("Bank Instrument", {
 	setup(frm) {
 		frm.set_query("bank_facility", () => ({ filters: { disabled: 0 } }));
+		frm.set_query("fee_expense_account", () => ({
+			filters: { company: frm.doc.company, is_group: 0, root_type: "Expense" },
+		}));
 	},
 
 	refresh(frm) {

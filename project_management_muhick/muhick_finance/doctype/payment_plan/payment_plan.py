@@ -19,19 +19,16 @@ from frappe.model.document import Document
 from frappe.utils import flt, formatdate, getdate, nowdate
 
 from project_management_muhick.muhick_projects.utils import draft_status, leaving_draft, validate_dates
-from project_management_muhick.utils.common import FINANCE_ROLES, get_settings, require_roles
+from project_management_muhick.utils import calc
+from project_management_muhick.utils.common import FINANCE_ROLES, require_roles
 
 DONE = ("Paid", "Held", "Not Executed")
 OPEN_PLAN = ("Draft", "Pending Approval", "Approved")
 # documents paid with a Payment Entry; the others are paid from their own form
 PAID_BY_PAYMENT_ENTRY = ("Purchase Invoice", "Purchase Order", "Payment Request", "Procurement Requisition")
-# documents with no supplier, paid with a Journal Entry: the setting naming the account it charges, and the method
-# that records the money on the document when the entry is submitted
-PAID_BY_JOURNAL_ENTRY = {
-	"Sales Requisition": ("sales_requisition_account", "mark_paid"),
-	"Bid Security Request": ("bid_security_account", "issue_funds"),
-	"Bank Instrument": ("bank_charges_account", "pay_fees"),
-}
+# documents with no supplier, paid with a Journal Entry to the expense accounts on their own lines: the method that
+# records the money on the document when the entry is submitted
+PAID_BY_JOURNAL_ENTRY = {"Sales Requisition": "mark_paid", "Bid Security Request": "issue_funds", "Bank Instrument": "pay_fees"}
 RAISED_FROM_PLAN = (*PAID_BY_PAYMENT_ENTRY, *PAID_BY_JOURNAL_ENTRY)
 # a guarantee or bond whose bank fees are still charged
 FEES_RUNNING = ("Requested", "Active", "Cancellation Requested")
@@ -537,12 +534,12 @@ def _account_position(account) -> dict:
 
 
 def _journal_entry(plan, row):
-	"""The draft that pays a line with no supplier: from the line's account to the one Muhick Settings names for it. The
-	bank's reference is entered before it is submitted, and submitting it marks the document paid."""
-	account = get_settings().get(PAID_BY_JOURNAL_ENTRY[row.reference_doctype][0])
-	if not account:
-		frappe.throw(_("Muhick Settings has no account for paying a {0}.").format(_(row.reference_doctype)))
+	"""The draft that pays a line with no supplier: from the line's account to the expense accounts on the document's own
+	lines, shared out if the plan approved less than they ask for. The bank's reference is entered before it is submitted,
+	and submitting it marks the document paid."""
+	expenses = frappe.get_doc(row.reference_doctype, row.reference_name).expense_lines()
 	amount = flt(row.approved_amount)
+	cost_center = frappe.get_cached_value("Company", plan.company, "cost_center")
 	entry = frappe.new_doc("Journal Entry")
 	entry.update(
 		{
@@ -555,15 +552,11 @@ def _journal_entry(plan, row):
 			"muhick_payment_plan_line": row.name,
 		}
 	)
-	entry.append(
-		"accounts",
-		{
-			"account": account,
-			"debit_in_account_currency": amount,
-			"project": row.project,
-			"cost_center": frappe.get_cached_value("Company", plan.company, "cost_center"),
-		},
-	)
+	for (account, _amount, remark), share in zip(expenses, calc.share_out([e[1] for e in expenses], amount)):
+		entry.append(
+			"accounts",
+			{"account": account, "debit_in_account_currency": share, "project": row.project, "cost_center": cost_center, "user_remark": remark},
+		)
 	entry.append("accounts", {"account": row.paid_from, "credit_in_account_currency": amount})
 	return entry
 
@@ -736,6 +729,15 @@ def on_payment(entry, cancelled=False):
 		carry_to_requisition(entry.muhick_procurement_requisition, entry.party)
 
 
+def check_expense_accounts(doc, rows):
+	"""Every line a document pays for posts to an expense account: its own, or else the one its type has."""
+	for row in rows:
+		row.expense_account = row.expense_account or frappe.db.get_value("Financial Requirement Type", row.expense_type, "expense_account")
+	missing = [str(row.idx) for row in rows if flt(row.amount) and not row.expense_account]
+	if missing:
+		frappe.throw(_("Choose the Expense Account on line {0} of {1}.").format(", ".join(missing), doc.name))
+
+
 def on_journal_entry(entry, cancelled=False):
 	"""A Journal Entry raised from a line, submitted or cancelled: the document it pays and the line follow."""
 	line = entry.get("muhick_payment_plan_line")
@@ -760,7 +762,7 @@ def on_journal_entry(entry, cancelled=False):
 				)
 			)
 		# the document settles the line, for what it takes
-		getattr(doc, PAID_BY_JOURNAL_ENTRY[row.reference_doctype][1])(amount, entry.posting_date, entry.name)
+		getattr(doc, PAID_BY_JOURNAL_ENTRY[row.reference_doctype])(amount, entry.posting_date, entry.name)
 		values = {
 			"journal_entry": entry.name,
 			"paid_from": paying[0].account if paying else None,

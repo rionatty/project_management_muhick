@@ -5,6 +5,9 @@ frappe.ui.form.on("Sales Requisition", {
 	setup(frm) {
 		// a requisition pays for costs; the securities are bank guarantees
 		frm.set_query("expense_type", "items", () => ({ filters: { kind: "Cost" } }));
+		frm.set_query("expense_account", "items", () => ({
+			filters: { company: frm.doc.company, is_group: 0, root_type: "Expense" },
+		}));
 	},
 
 	// the lines and the date come from the opportunity's financial requirements

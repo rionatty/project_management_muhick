@@ -86,6 +86,12 @@ class BankInstrument(Document):
 		self.save()
 		settle_plan_line(self.doctype, self.name, flt(amount) - left)
 
+	def expense_lines(self) -> list:
+		"""What paying its fees posts: all of it to the fee's expense account; the plan says how much falls due."""
+		if not self.fee_expense_account:
+			frappe.throw(_("Choose the Fee Expense Account on {0}.").format(self.name))
+		return [(self.fee_expense_account, 1.0, _("Bank fee: {0}").format(self.title))]
+
 	def reverse_funds(self, reference):
 		"""Its payment was cancelled: the fees it paid are owed again."""
 		for fee in self.fees:
