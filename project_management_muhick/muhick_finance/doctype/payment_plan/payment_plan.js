@@ -107,11 +107,15 @@ function show_allocation(frm) {
 
 // one draft payment per approved line paid from the plan; what happened to each is said once
 async function raise_payments(frm) {
-	const { created, closed, failed } = (await frm.call("raise_payments")).message;
+	const { created, waiting, closed, failed } = (await frm.call("raise_payments")).message;
 	await frm.reload_doc();
+	const links = (payments) => payments.map((p) => frappe.utils.get_form_link(p.doctype, p.name, true)).join(", ");
 	const parts = [];
 	if (created.length) {
-		parts.push(__("{0} draft payment(s) created: {1}. Enter the bank's reference and submit each one.", [created.length, created.join(", ")]));
+		parts.push(__("{0} draft payment(s) created: {1}. Enter the bank's reference and submit each one.", [created.length, links(created)]));
+	}
+	if (waiting.length) {
+		parts.push(__("Raised before and waiting to be submitted: {0}.", [links(waiting)]));
 	}
 	if (closed.length) {
 		parts.push(__("Nothing is left to pay on {0}, so the line is closed as Not Executed.", [closed.join(", ")]));
@@ -122,6 +126,6 @@ async function raise_payments(frm) {
 	frappe.msgprint({
 		title: __("Raise Payments"),
 		indicator: failed.length ? "orange" : "green",
-		message: parts.join("<br><br>") || __("Every approved line already has a payment, or is paid from its own form."),
+		message: parts.join("<br><br>") || __("No approved line is waiting to be paid from here."),
 	});
 }

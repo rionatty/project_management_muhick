@@ -429,13 +429,18 @@ class PaymentPlan(Document):
 			frappe.throw(_("Payments can only be raised from an approved plan."))
 		# the form may be behind, and a payment raised since must not be raised twice
 		self.reload()
-		result = {"created": [], "closed": [], "failed": []}
+		result = {"created": [], "waiting": [], "closed": [], "failed": []}
 		muted = frappe.flags.mute_messages
 		# what stops a line goes in the summary, not in a message of its own
 		frappe.flags.mute_messages = True
 		try:
 			for row in self.lines:
-				if row.line_status != "Approved" or row.payment_entry or row.journal_entry or row.reference_doctype not in RAISED_FROM_PLAN:
+				if row.line_status != "Approved" or row.reference_doctype not in RAISED_FROM_PLAN:
+					continue
+				journal = row.reference_doctype in PAID_BY_JOURNAL_ENTRY
+				doctype = "Journal Entry" if journal else "Payment Entry"
+				if row.payment_entry or row.journal_entry:
+					result["waiting"].append({"doctype": doctype, "name": row.payment_entry or row.journal_entry})
 					continue
 				frappe.db.savepoint("plan_payment")
 				try:
@@ -445,7 +450,7 @@ class PaymentPlan(Document):
 					result["failed"].append({"row": row.idx, "document": row.reference_name, "reason": str(e)})
 					continue
 				if entry:
-					result["created"].append(entry)
+					result["created"].append({"doctype": doctype, "name": entry})
 				else:
 					result["closed"].append(row.reference_name)
 		finally:
