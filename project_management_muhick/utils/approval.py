@@ -42,6 +42,8 @@ NOTIFY_ON_APPROVAL = {
 	"Casual Sheet": [FM, FO],
 	"Subcontract RFQ": [PRM, FM],
 	"Subcontract Agreement": [FM, FO, PM],
+	# Finance may now schedule it on the week's payment plan
+	"Subcontract Advance": [FM, FO, PM],
 	"Project Variation Order": [FM, SE],
 	"Project Handover": [COO],
 }

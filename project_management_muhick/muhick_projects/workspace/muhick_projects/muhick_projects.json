@@ -353,7 +353,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Labour and Subcontracts",
-   "link_count": 5,
+   "link_count": 6,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -397,6 +397,17 @@
    "label": "Subcontract Agreement",
    "link_count": 0,
    "link_to": "Subcontract Agreement",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Subcontract Advance",
+   "link_count": 0,
+   "link_to": "Subcontract Advance",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -1222,7 +1233,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-03 04:00:00.000000",
+ "modified": "2026-11-03 06:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",

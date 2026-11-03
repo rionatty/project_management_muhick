@@ -429,6 +429,8 @@ def get_workflows():
 		"Subcontract RFQ": _subcontract_rfq(),
 		# subcontract agreement: COO, then General Manager
 		"Subcontract Agreement": _chain([PRO, PM], [(P_COO, COO), (P_GM, GM)], post_approval_editors=[PM, COO]),
+		# its advance: Operations asks, Finance and the General Manager sign it off
+		"Subcontract Advance": _chain([PM, COO], [(P_FM, FM), (P_GM, GM)], post_approval_editors=[FO, FM]),
 		"Project Variation Order": _chain([PM, SE], [(P_COO, COO), (P_GM, GM)]),
 		"Project Handover": _handover(),
 		"Material Request": _material_request(),

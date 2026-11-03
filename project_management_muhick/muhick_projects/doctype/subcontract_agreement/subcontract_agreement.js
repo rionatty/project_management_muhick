@@ -11,6 +11,13 @@ frappe.ui.form.on("Subcontract Agreement", {
 		if (frm.doc.docstatus !== 1 || frm.doc.status !== "Active") {
 			return;
 		}
+		if (flt(frm.doc.advance_amount) > flt(frm.doc.advance_paid)) {
+			frm.add_custom_button(
+				__("Advance Requisition"),
+				() => frappe.new_doc("Subcontract Advance", { subcontract_agreement: frm.doc.name }),
+				__("Create")
+			);
+		}
 		frm.add_custom_button(
 			__("Service Receipt Note"),
 			() => frappe.new_doc("Service Receipt Note", { subcontract_agreement: frm.doc.name }),

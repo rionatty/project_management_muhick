@@ -24,7 +24,7 @@ def get_project_dashboard(data):
 		},
 		{"label": _("Stores and Equipment"), "items": ["Stock Entry", "Project Equipment Allocation", "Equipment Log", "Fuel Requisition"]},
 		{"label": _("Payments"), "items": ["Payment Plan", "Payment Entry", "Journal Entry", "Reimbursement Claim", "Resource Allocation", "Bank Instrument"]},
-		{"label": _("Labour and Subcontracts"), "items": ["Labour Schedule", "Casual Sheet", "Subcontract RFQ", "Subcontract Agreement", "Service Receipt Note"]},
+		{"label": _("Labour and Subcontracts"), "items": ["Labour Schedule", "Casual Sheet", "Subcontract RFQ", "Subcontract Agreement", "Subcontract Advance", "Service Receipt Note"]},
 		{"label": _("Claims and Completion"), "items": ["Project Claim", "Project Variation Order", "Retention Release", "Project Completion Certificate", "Project Defect", "Project Warranty"]},
 		{"label": _("Site Records"), "items": ["Site Report", "Site Meeting", "Project Document"]},
 	]

@@ -181,6 +181,7 @@ doc_events = {
 	"Casual Sheet": _approval_events,
 	"Subcontract RFQ": _approval_events,
 	"Subcontract Agreement": _approval_events,
+	"Subcontract Advance": _approval_events,
 	"Project Variation Order": _approval_events,
 	"Project Handover": _approval_events,
 	"Procurement Requisition": _approval_events,

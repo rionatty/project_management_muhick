@@ -91,11 +91,13 @@ def update_position(agreement):
 		)
 	)
 	contract_amount = flt(frappe.db.get_value("Subcontract Agreement", agreement, "contract_amount"))
+	advance_paid = frappe.get_all("Subcontract Advance", filters={"subcontract_agreement": agreement, "docstatus": 1}, pluck="paid_amount")
 	frappe.db.set_value(
 		"Subcontract Agreement",
 		agreement,
 		{
 			"certified_to_date": certified,
+			"advance_paid": sum(flt(amount) for amount in advance_paid),
 			"retention_held": sum(flt(n.retention_amount) for n in notes),
 			"advance_recovered": sum(flt(n.advance_recovery) for n in notes),
 			"retention_released": released,

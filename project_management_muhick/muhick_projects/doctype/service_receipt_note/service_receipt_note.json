@@ -27,6 +27,7 @@
   "advance_recovery",
   "net_payable",
   "supporting_documents_section",
+  "service_delivery_certificate",
   "signed_service_receipt",
   "milestone_completion_certificate",
   "column_break_4",
@@ -193,6 +194,11 @@
    "label": "Supporting Documents"
   },
   {
+   "fieldname": "service_delivery_certificate",
+   "fieldtype": "Attach",
+   "label": "Subcontractor's Service Delivery / Interim Certificate"
+  },
+  {
    "fieldname": "signed_service_receipt",
    "fieldtype": "Attach",
    "label": "Signed Service Receipt Note"
@@ -245,7 +251,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-03 06:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Service Receipt Note",

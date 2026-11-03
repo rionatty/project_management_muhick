@@ -1,0 +1,38 @@
+{#- What a subcontractor receives: the work to quote for and by when, with room for its quotation. It shows no budget and
+    no other subcontractor, unlike the document's other prints, which are for inside the company. -#}
+{%- from "templates/print_formats/standard_macros.html" import add_header with context -%}
+{%- set milestone = frappe.db.get_value("Task", doc.phase, "subject") if doc.phase else None -%}
+<style>
+	.subcontract-rfq { font-size: 12px; }
+	.subcontract-rfq h2 { margin: 12px 0; text-align: center; font-size: 16px; font-weight: bold; }
+	.subcontract-rfq h3 { margin: 16px 0 6px; font-size: 13px; font-weight: bold; }
+	.subcontract-rfq table { width: 100%; border-collapse: collapse; }
+	.subcontract-rfq td { padding: 5px 8px; border: 1px solid #999; vertical-align: top; }
+	.subcontract-rfq td.label { width: 30%; font-weight: bold; }
+	.subcontract-rfq td.blank { height: 28px; }
+</style>
+<div class="subcontract-rfq">
+	{{ add_header(1, 1, doc, letter_head, no_letterhead, footer, print_settings, "<span></span>") }}
+	<h2>{{ _("Request for Quotation") }}</h2>
+	<table>
+		<tr><td class="label">{{ _("Reference") }}</td><td>{{ doc.name }}</td></tr>
+		<tr><td class="label">{{ _("Date") }}</td><td>{{ frappe.utils.format_date(doc.rfq_date) if doc.rfq_date else "" }}</td></tr>
+		<tr><td class="label">{{ _("Project") }}</td><td>{{ doc.project_name or doc.project }}</td></tr>
+		{% if milestone %}<tr><td class="label">{{ _("Milestone") }}</td><td>{{ milestone }}</td></tr>{% endif %}
+		<tr><td class="label">{{ _("Subject") }}</td><td>{{ doc.title }}</td></tr>
+		{% if doc.work_start %}<tr><td class="label">{{ _("Work Starts") }}</td><td>{{ frappe.utils.format_date(doc.work_start) }}</td></tr>{% endif %}
+		{% if doc.work_end %}<tr><td class="label">{{ _("Work Ends") }}</td><td>{{ frappe.utils.format_date(doc.work_end) }}</td></tr>{% endif %}
+		<tr><td class="label">{{ _("Quotation Due By") }}</td><td><b>{{ frappe.utils.format_date(doc.quotation_deadline) if doc.quotation_deadline else "" }}</b></td></tr>
+	</table>
+	<h3>{{ _("Scope of Work") }}</h3>
+	<div>{{ doc.scope_of_work or "" }}</div>
+	<h3>{{ _("Your Quotation") }}</h3>
+	<table>
+		<tr><td class="label">{{ _("Subcontractor") }}</td><td class="blank"></td></tr>
+		<tr><td class="label">{{ _("Amount Quoted") }}</td><td class="blank"></td></tr>
+		<tr><td class="label">{{ _("Duration (Days)") }}</td><td class="blank"></td></tr>
+		<tr><td class="label">{{ _("Payment Terms") }}</td><td class="blank"></td></tr>
+		<tr><td class="label">{{ _("Signature and Date") }}</td><td class="blank"></td></tr>
+	</table>
+	<p style="margin-top: 14px">{{ _("Send your quotation to {0}, {1}.").format(frappe.get_fullname(doc.owner), doc.owner) }}</p>
+</div>

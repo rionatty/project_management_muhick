@@ -110,7 +110,10 @@ and certificates, retention, payments and the controls around them.
   each milestone needs. The first approved dates stay as a baseline, and revisions state why the schedule
   moved.
 - Cash requisitions with accountability, weekly labour schedules and casual sheets.
-- Subcontract RFQ and evaluation, agreement, and a service receipt note that gates the invoice.
+- Subcontract RFQ and evaluation, emailed or printed for the subcontractors with no budget or other bidders on it;
+  agreement; a requisition for its advance, signed off by Finance and the General Manager and paid from the payment
+  plan; and a service receipt note that gates the invoice, once its milestone is complete. The payment plan pays that
+  invoice less its retention, until a Retention Release frees it, and less the advance it recovers.
 - Claims that mirror the BOQ, the client's certificate, the invoice, retention and its release,
   variations, practical and full completion, the defects liability period and defects.
 - Site reports, site meetings, a document register, equipment allocation and logs, warranties.

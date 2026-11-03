@@ -211,15 +211,17 @@ def _purchase_invoices(project, pos):
 
 def _subcontracts(project, pos):
 	"""An approved subcontract is committed at its contract amount; once completed, at what
-	was certified. Its cost and payments arrive through the purchase invoices."""
+	was certified. Its cost and payments arrive through the purchase invoices, but for the advance
+	paid and not yet recovered on one."""
 	rows = frappe.get_all(
 		"Subcontract Agreement",
 		filters={"project": project, "docstatus": 1},
-		fields=["cost_code", "status", "contract_amount", "certified_to_date"],
+		fields=["cost_code", "status", "contract_amount", "certified_to_date", "advance_paid", "advance_recovered"],
 	)
 	for r in rows:
 		amount = r.certified_to_date if r.status == "Completed" else r.contract_amount
 		pos[r.cost_code or UNALLOCATED]["committed"] += flt(amount)
+		pos[r.cost_code or UNALLOCATED]["paid"] += max(flt(r.advance_paid) - flt(r.advance_recovered), 0)
 
 
 def _requisitions(project, pos):

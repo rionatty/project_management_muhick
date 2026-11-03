@@ -40,6 +40,7 @@
   "budget_remarks",
   "position_section",
   "certified_to_date",
+  "advance_paid",
   "advance_recovered",
   "column_break_5",
   "retention_held",
@@ -288,6 +289,14 @@
   },
   {
    "allow_on_submit": 1,
+   "fieldname": "advance_paid",
+   "fieldtype": "Currency",
+   "label": "Advance Paid",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
    "fieldname": "advance_recovered",
    "fieldtype": "Currency",
    "label": "Advance Recovered",
@@ -393,8 +402,29 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
- "links": [],
- "modified": "2026-10-12 10:00:00.000000",
+ "links": [
+  {
+   "group": "Work and Payment",
+   "link_doctype": "Subcontract Advance",
+   "link_fieldname": "subcontract_agreement"
+  },
+  {
+   "group": "Work and Payment",
+   "link_doctype": "Service Receipt Note",
+   "link_fieldname": "subcontract_agreement"
+  },
+  {
+   "group": "Work and Payment",
+   "link_doctype": "Purchase Invoice",
+   "link_fieldname": "muhick_subcontract_agreement"
+  },
+  {
+   "group": "Work and Payment",
+   "link_doctype": "Retention Release",
+   "link_fieldname": "subcontract_agreement"
+  }
+ ],
+ "modified": "2026-11-03 06:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Subcontract Agreement",

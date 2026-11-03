@@ -25,7 +25,7 @@ from project_management_muhick.utils.common import FINANCE_ROLES, require_roles
 DONE = ("Paid", "Held", "Not Executed")
 OPEN_PLAN = ("Draft", "Pending Approval", "Approved")
 # documents paid with a Payment Entry; the others are paid from their own form
-PAID_BY_PAYMENT_ENTRY = ("Purchase Invoice", "Purchase Order", "Payment Request", "Procurement Requisition")
+PAID_BY_PAYMENT_ENTRY = ("Purchase Invoice", "Purchase Order", "Payment Request", "Procurement Requisition", "Subcontract Advance")
 # documents with no supplier, paid with a Journal Entry to the expense accounts on their own lines: the method that
 # records the money on the document when the entry is submitted
 PAID_BY_JOURNAL_ENTRY = {"Sales Requisition": "mark_paid", "Bid Security Request": "issue_funds", "Bank Instrument": "pay_fees"}
@@ -139,11 +139,19 @@ class PaymentPlan(Document):
 	def still_owed(self, doctype, source) -> float:
 		"""What an invoice or order still owes, in the company's currency. An order fully billed is owed on its invoices."""
 		if doctype == "Purchase Invoice":
-			return self.in_company_currency(source, source.outstanding_amount)
+			return max(self.in_company_currency(source, source.outstanding_amount) - self.held_back(source), 0.0)
 		if flt(source.per_billed) >= 100:
 			return 0.0
 		total = flt(source.base_rounded_total) or flt(source.base_grand_total)
 		return total - self.in_company_currency(source, source.advance_paid) - flt(source.muhick_paid_on_requisition)
+
+	def held_back(self, invoice) -> float:
+		"""What a subcontractor's invoice keeps back for now (see Service Receipt Note), in the company's currency."""
+		if not invoice.get("muhick_service_receipt_note"):
+			return 0.0
+		from project_management_muhick.muhick_projects.doctype.service_receipt_note import service_receipt_note
+
+		return service_receipt_note.held_back(invoice.muhick_service_receipt_note, self.in_company_currency(invoice, invoice.total_advance))
 
 	def left_on_request(self, line, source) -> float:
 		"""What a payment request asks for, as far as the invoice or order behind it still owes that."""
@@ -197,6 +205,12 @@ class PaymentPlan(Document):
 			frappe.throw(_("Payment Lines row {0}: {1} {2} is not an approved document.").format(line.idx, _(dt), dn))
 		if dt == "Purchase Invoice":
 			details = (source.supplier_name, source.project, self.still_owed(dt, source), source.due_date)
+			held = self.held_back(source)
+			if held:
+				line.description = _("{0} kept back as retention and advance").format(frappe.format_value(held, "Currency"))
+		elif dt == "Subcontract Advance":
+			line.supplier = source.supplier
+			details = (source.supplier_name, source.project, flt(source.amount) - flt(source.paid_amount), source.request_date)
 		elif dt == "Purchase Order":
 			details = (source.supplier_name, source.project, self.still_owed(dt, source), source.schedule_date)
 		elif dt == "Procurement Requisition":
@@ -399,6 +413,12 @@ class PaymentPlan(Document):
 				self.add_line(
 					"Procurement Requisition", requisition.name, due, supplier_name, supplier=supplier, mode_of_payment=requisition.mode_of_payment
 				)
+		for advance in frappe.get_all(
+			"Subcontract Advance",
+			filters={"company": self.company, "docstatus": 1, "status": "Approved"},
+			fields=["name", "supplier", "supplier_name", "mode_of_payment"],
+		):
+			self.add_line("Subcontract Advance", advance.name, None, advance.supplier_name, supplier=advance.supplier, mode_of_payment=advance.mode_of_payment)
 
 	@frappe.whitelist()
 	def get_bank_fees(self):
@@ -487,6 +507,10 @@ class PaymentPlan(Document):
 			order = frappe.db.get_value("Purchase Order", {"muhick_procurement_requisition": name, "supplier": row.supplier, "docstatus": 1}, "name")
 			entry = _payment_against("Purchase Order", order, self.company, row, rate) if order else _payment_on_account(self.company, row, rate)
 			entry.muhick_procurement_requisition = name
+		elif doctype == "Subcontract Advance":
+			# on the subcontractor's account until its Service Receipt Notes recover it
+			entry = _payment_on_account(self.company, row, rate)
+			entry.muhick_subcontract_advance = name
 		else:
 			if doctype == "Payment Request":
 				doctype, name = frappe.db.get_value("Payment Request", name, ["reference_doctype", "reference_name"])
@@ -727,6 +751,10 @@ def on_payment(entry, cancelled=False):
 	update_progress(frappe.db.get_value("Payment Plan Line", line, "parent"))
 	if entry.get("muhick_procurement_requisition"):
 		carry_to_requisition(entry.muhick_procurement_requisition, entry.party)
+	if entry.get("muhick_subcontract_advance"):
+		from project_management_muhick.muhick_projects.doctype.subcontract_advance.subcontract_advance import carry_payment
+
+		carry_payment(entry.muhick_subcontract_advance)
 
 
 def check_expense_accounts(doc, rows):

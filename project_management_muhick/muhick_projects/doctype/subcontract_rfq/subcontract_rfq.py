@@ -3,21 +3,22 @@
 
 """Subcontract RFQ and evaluation.
 
-The Project Manager issues the RFQ, records the quotations received, compares them on price,
-track record and current workload, selects one and sends the evaluation to the COO and then the
-General Manager. Approval notifies Procurement and Finance, and Procurement prepares the
-Subcontract Agreement.
+The Project Manager issues the RFQ and emails or prints it for the subcontractors, on a print that shows them no budget
+and no one else asked. The Procurement Manager and Finance Manager are told of each quotation recorded. The Project Manager
+compares them on price, track record and current workload, selects one and sends the evaluation to the COO and then the
+General Manager. Approval notifies Procurement and Finance, and Procurement prepares the Subcontract Agreement.
 """
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, formatdate
 
 from project_management_muhick.muhick_projects import budget_engine
-from project_management_muhick.utils.common import setting
+from project_management_muhick.utils.common import FM, PRM, notify_roles, setting
 
 BEING_EVALUATED = ("Pending COO", "Pending General Manager", "Approved")
+SUBCONTRACTOR_PRINT = "Subcontract RFQ"
 
 
 class SubcontractRFQ(Document):
@@ -54,6 +55,43 @@ class SubcontractRFQ(Document):
 				indicator="orange",
 				alert=True,
 			)
+
+	def on_update(self):
+		"""The Procurement Manager and Finance Manager are told of each quotation as it is recorded."""
+		before = self.get_doc_before_save()
+		known = {row.supplier for row in before.quotations if row.quotation_received} if before else set()
+		new = [row.supplier for row in self.quotations if row.quotation_received and row.supplier not in known]
+		if new:
+			names = [frappe.db.get_value("Supplier", supplier, "supplier_name") or supplier for supplier in new]
+			notify_roles([PRM, FM], _("{0}: a quotation was recorded from {1}.").format(self.name, ", ".join(names)), doc=self)
+
+	@frappe.whitelist()
+	def email_rfq(self) -> dict:
+		"""The RFQ to each subcontractor asked who has not quoted yet, separately, so none sees who else was asked."""
+		from frappe.core.doctype.communication.email import make
+
+		sent, no_email = [], []
+		for row in self.quotations:
+			if row.quotation_received:
+				continue
+			name = frappe.db.get_value("Supplier", row.supplier, "supplier_name") or row.supplier
+			email = row.email_id or frappe.db.get_value("Supplier", row.supplier, "email_id")
+			if not email:
+				no_email.append(name)
+				continue
+			make(
+				doctype=self.doctype,
+				name=self.name,
+				subject=_("Request for Quotation: {0}").format(self.title),
+				content=_("Dear {0},<br><br>Please find attached our request for quotation for {1}. Please send your quotation by {2}.").format(
+					name, self.title, formatdate(self.quotation_deadline) if self.quotation_deadline else _("the date given")
+				),
+				recipients=email,
+				send_email=True,
+				print_format=SUBCONTRACTOR_PRINT,
+			)
+			sent.append(name)
+		return {"sent": sent, "no_email": no_email}
 
 
 @frappe.whitelist()
