@@ -83,6 +83,7 @@
   "procurement_and_payments_tab",
   "procurement_section",
   "require_procurement_requisition",
+  "approved_order_to_supplier",
   "supplier_onboarding_action",
   "column_break_10",
   "phase_alert_days",
@@ -547,6 +548,13 @@
    "options": "Off\nWarn\nBlock"
   },
   {
+   "default": "Email",
+   "fieldname": "approved_order_to_supplier",
+   "fieldtype": "Select",
+   "label": "Approved Purchase Order to the Supplier",
+   "options": "Email\nPrint Only"
+  },
+  {
    "default": "Warn",
    "fieldname": "supplier_onboarding_action",
    "fieldtype": "Select",
@@ -677,7 +685,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-03 21:00:00.000000",
+ "modified": "2026-11-04 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Settings",

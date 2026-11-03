@@ -34,6 +34,13 @@ ESTIMATE_TABLES = [
 ]
 
 
+# set from the requests behind a document: an administration purchase follows its own approval route
+ADMINISTRATION = dict(
+	fieldname="muhick_administration", label="Administration Purchase", fieldtype="Check", read_only=1, no_copy=1,
+	depends_on="muhick_administration",
+)
+
+
 def _chain(after, fields):
 	"""Place each field after the previous one, starting after an existing field."""
 	out = []
@@ -147,7 +154,7 @@ PURCHASE_INVOICE = _chain(
 	"hold_comment",
 	[
 		_sec("muhick_match_section", "Three-Way Match"),
-		dict(fieldname="muhick_match_status", label="Match Status", fieldtype="Select", options="\nNot Applicable\nMatched\nException\nOverridden", read_only=1, no_copy=1, in_standard_filter=1, allow_on_submit=1),
+		dict(fieldname="muhick_match_status", label="Match Status", fieldtype="Select", options="\nNot Applicable\nMatched\nAwaiting Goods\nException\nOverridden", read_only=1, no_copy=1, in_standard_filter=1, allow_on_submit=1),
 		_ro("muhick_match_overridden_by", "Override By", "Link", options="User", allow_on_submit=1),
 		_col("muhick_match_column"),
 		dict(fieldname="muhick_match_remarks", label="Match Exceptions", fieldtype="Small Text", read_only=1, no_copy=1, allow_on_submit=1),
@@ -237,11 +244,17 @@ CUSTOM_FIELDS = {
 			],
 		),
 	],
+	"Supplier Quotation": _chain("company", [ADMINISTRATION]),
+	"Purchase Receipt": _chain("company", [ADMINISTRATION]),
+	"Payment Request": _chain("company", [ADMINISTRATION]),
+	"Landed Cost Voucher": _chain("company", [_ro("muhick_import_shipment", "Consignment", "Link", options="Import Shipment")]),
 	"Purchase Order": _chain(
 		"project",
 		[
 			_ro("muhick_procurement_requisition", "Procurement Requisition", "Link", options="Procurement Requisition"),
-			dict(fieldname="muhick_payment_type", label="Payment Terms Type", fieldtype="Select", options="\nAdvance\nOn Delivery\nCredit"),
+			dict(fieldname="muhick_procurement_type", label="Procurement Type", fieldtype="Select", options="\nLocal\nInternational", read_only_depends_on="muhick_procurement_requisition"),
+			ADMINISTRATION,
+			dict(fieldname="muhick_payment_type", label="Payment Terms Type", fieldtype="Select", options="\nAdvance\nOn Delivery\nCredit\nLetter of Credit"),
 			dict(fieldname="muhick_advance_percent", label="Advance %", fieldtype="Percent", depends_on="eval:doc.muhick_payment_type=='Advance'"),
 			dict(fieldname="muhick_credit_days", label="Credit Days", fieldtype="Int", depends_on="eval:doc.muhick_payment_type=='Credit'"),
 			dict(fieldname="muhick_mode_of_payment", label="Mode of Payment", fieldtype="Link", options="Mode of Payment"),

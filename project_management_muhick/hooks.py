@@ -70,6 +70,7 @@ override_doctype_dashboards = {
 	"Project": "project_management_muhick.overrides.dashboards.get_project_dashboard",
 	"Task": "project_management_muhick.overrides.dashboards.get_task_dashboard",
 	"Opportunity": "project_management_muhick.overrides.dashboards.get_opportunity_dashboard",
+	"Purchase Order": "project_management_muhick.overrides.dashboards.get_purchase_order_dashboard",
 }
 
 # Document events
@@ -120,9 +121,12 @@ doc_events = {
 	"Purchase Receipt": {
 		"validate": "project_management_muhick.overrides.buying.validate_purchase_receipt",
 		**_approval_events,
+		"on_submit": [_track, "project_management_muhick.muhick_controls.matching.recheck_on_receipt"],
+		"on_cancel": [_track, "project_management_muhick.muhick_controls.matching.recheck_on_receipt"],
 	},
 	"Payment Request": {
 		**_approval_events,
+		"validate": "project_management_muhick.overrides.accounts.validate_payment_request",
 		"on_submit": [_track, "project_management_muhick.overrides.accounts.on_submit_payment_request"],
 	},
 	"Bank Account": {

@@ -20,7 +20,9 @@ from project_management_muhick.overrides import stock as stock_api
 from project_management_muhick.overrides import supplier as supplier_api
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.approval import get_route
-from project_management_muhick.utils.common import PRO, get_settings, notify_roles
+from project_management_muhick.utils.common import (
+	FM, FO, PRO, administration_order, administration_purchase, get_settings, notify_roles,
+)
 
 OVER_BUDGET = ("Exceeds Budget", "Not Budgeted")
 
@@ -102,10 +104,16 @@ def validate_supplier_quotation(doc, method=None):
 	projects = _projects(doc)
 	if not doc.get("project") and len(projects) == 1:
 		doc.project = projects.pop()
+	doc.muhick_administration = administration_purchase(doc.items)
 
 
 def validate_purchase_order(doc, method=None):
 	_fill_cost_codes(doc, "Material Request Item", "material_request_item")
+	doc.muhick_administration = administration_purchase(doc.items)
+	if doc.get("muhick_procurement_requisition"):
+		doc.muhick_procurement_type = frappe.db.get_value(
+			"Procurement Requisition", doc.muhick_procurement_requisition, "procurement_type"
+		)
 	# checks only stop the order once it is sent for approval, so a draft can always be saved
 	enforce = doc.docstatus == 1 or doc.get("workflow_state") not in (None, "", "Draft", "Rejected")
 	if doc.docstatus == 0:
@@ -207,7 +215,55 @@ def on_submit_purchase_order(doc, method=None):
 			doc=doc,
 			extra_users=[doc.owner],
 		)
+	if doc.get("muhick_payment_type") == "Letter of Credit":
+		# Finance applies to the bank, and the supplier confirms it before anything is shipped
+		notify_roles(
+			[FM, FO],
+			_("{0} is approved and is to be paid by letter of credit to {1}. Apply to the bank, then record it from Create on the order.").format(
+				doc.name, doc.supplier_name or doc.supplier
+			),
+			doc=doc,
+		)
+	_send_to_supplier(doc)
 	refresh_budgets(doc)
+
+
+def _send_to_supplier(doc):
+	"""The approved order goes to the supplier by email with the order attached. With no address, or no outgoing email, it
+	is left to the officer to print: an email that fails must not stop the approval. Orders loaded at go-live were sent long
+	ago."""
+	if frappe.flags.in_import or (get_settings().get("approved_order_to_supplier") or "Email") != "Email":
+		return
+	from frappe.core.doctype.communication.email import _make
+
+	supplier = doc.supplier_name or doc.supplier
+	email = doc.get("contact_email") or frappe.db.get_value("Supplier", doc.supplier, "email_id")
+	if not email:
+		notify_roles(
+			PRO, _("{0} is approved but {1} has no email address. Print the order and send it.").format(doc.name, supplier),
+			doc=doc, extra_users=[doc.owner],
+		)
+		return
+	frappe.db.savepoint("email_order")
+	try:
+		_make(
+			doctype=doc.doctype,
+			name=doc.name,
+			subject=_("Purchase Order {0}").format(doc.name),
+			content=_("Dear {0},<br><br>Please find attached our purchase order {1}. Please confirm that you have received it.").format(
+				supplier, doc.name
+			),
+			recipients=email,
+			send_email=True,
+			print_format=frappe.get_meta(doc.doctype).default_print_format or "Standard",
+		)
+	except Exception:
+		frappe.db.rollback(save_point="email_order")
+		frappe.log_error(title=f"Muhick: could not email order {doc.name}")
+		notify_roles(
+			PRO, _("{0} is approved but could not be emailed to {1}. Print the order and send it.").format(doc.name, supplier),
+			doc=doc, extra_users=[doc.owner],
+		)
 
 
 def on_cancel_purchase_order(doc, method=None):
@@ -222,6 +278,7 @@ def refresh_budgets(doc, method=None):
 # ------------------------------------------------------------------ Purchase Receipt
 def validate_purchase_receipt(doc, method=None):
 	_fill_cost_codes(doc, "Purchase Order Item", "purchase_order_item")
+	doc.muhick_administration = administration_order(doc.items)
 	stock_api.refuse_client_store(doc)
 	sod.check_purchase_receipt(doc)
 
@@ -290,6 +347,8 @@ def on_submit_purchase_invoice(doc, method=None):
 		frappe.db.set_value(
 			"Service Receipt Note", doc.muhick_service_receipt_note, {"purchase_invoice": doc.name, "status": "Invoiced"}
 		)
+	if administration_order(doc.items):
+		notify_roles([FM, FO], _("{0} for an administration purchase is posted and waiting to be paid.").format(doc.name), doc=doc)
 	refresh_budgets(doc)
 
 

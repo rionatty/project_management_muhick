@@ -13,6 +13,7 @@ from frappe.utils import add_months, flt, getdate, nowdate
 
 from project_management_muhick.muhick_finance.doctype.bank_facility.bank_facility import RUNNING, get_utilised, update_utilisation
 from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import settle_plan_line
+from project_management_muhick.muhick_procurement.doctype.import_shipment.import_shipment import refresh_letter_of_credit
 from project_management_muhick.muhick_projects.utils import validate_dates
 from project_management_muhick.overrides.crm import refresh_bid_status
 
@@ -119,6 +120,8 @@ class BankInstrument(Document):
 		# the bid's Bid Security Issued milestone
 		if self.opportunity and self.instrument_type == "Bid Security":
 			refresh_bid_status(self.opportunity)
+		if self.purchase_order and self.instrument_type == "Letter of Credit":
+			refresh_letter_of_credit(self.purchase_order)
 
 	def after_delete(self):
 		update_utilisation(self.bank_facility)

@@ -41,15 +41,24 @@ STANDARD_DOCTYPE_PERMISSIONS = {
 	"Material Request": {
 		PM: RAISE, SK: RAISE, SSK: RAISE, ADMIN_MANAGER: RAISE, COO: APPROVE, FM: APPROVE, GM: APPROVE, PRM: APPROVE,
 	},
-	# sales engineers and the General Manager read the quotations that price a bid's BOQ, and a sales
-	# engineer names the supplier of each line of a cost estimate
-	"Supplier Quotation": {PRO: RAISE, PRM: APPROVE, SE: READ, GM: READ},
+	# the officer issues the request and so sends it; the standard purchase role can only draft it
+	"Request for Quotation": {PRO: SUBMIT, ADMIN_MANAGER: SUBMIT},
+	# sales engineers read the quotations that price a bid's BOQ and name the supplier of each line of a cost estimate;
+	# the General Manager reads them too, and decides the supplier of an administration purchase
+	"Supplier Quotation": {PRO: RAISE, PRM: APPROVE, SE: READ, GM: APPROVE, ADMIN_MANAGER: RAISE},
 	"Supplier": {SE: READ},
 	# Project Managers are added to this by Muhick Settings when they are allowed to see supplier prices
-	"Purchase Order": {PRO: RAISE, PRM: RAISE, FM: APPROVE, GM: APPROVE, COO: READ, FO: READ},
-	"Payment Request": {PRO: RAISE, PRM: (*SUBMIT, "cancel"), FM: (*SUBMIT, "cancel"), FO: SUBMIT, GM: READ},
+	"Purchase Order": {PRO: RAISE, PRM: RAISE, FM: APPROVE, GM: APPROVE, COO: READ, FO: READ, ADMIN_MANAGER: SUBMIT},
+	"Payment Request": {PRO: RAISE, PRM: (*SUBMIT, "cancel"), FM: (*SUBMIT, "cancel"), FO: SUBMIT, GM: READ, ADMIN_MANAGER: SUBMIT},
+	# what the Administration Manager picks on those forms, as a purchase role would
+	"Purchase Taxes and Charges Template": {ADMIN_MANAGER: READ},
+	"Price List": {ADMIN_MANAGER: READ},
+	"Mode of Payment": {ADMIN_MANAGER: READ},
+	"Cost Center": {ADMIN_MANAGER: READ},
 	"Vehicle": {ADMIN_MANAGER: RAISE, FLEET_OFFICER: READ, FM: READ, FO: READ},
-	"Purchase Receipt": {SK: RAISE, SSK: RAISE, PRM: APPROVE, FM: READ, FO: READ, PM: READ},
+	"Purchase Receipt": {SK: RAISE, SSK: RAISE, PRM: APPROVE, FM: READ, FO: READ, PM: READ, ADMIN_MANAGER: SUBMIT},
+	# Finance adds the landed cost of an import to the goods
+	"Landed Cost Voucher": {FM: (*SUBMIT, "cancel"), FO: SUBMIT},
 	"Delivery Note": {SK: RAISE, PRM: APPROVE, FM: APPROVE, FO: APPROVE},
 	# most stock entries are submitted directly by the storekeeper
 	"Stock Entry": {SK: SUBMIT, SSK: SUBMIT, PRM: APPROVE, FM: APPROVE, FO: APPROVE, PM: READ},
@@ -63,6 +72,13 @@ STANDARD_DOCTYPE_PERMISSIONS = {
 	# bids are opportunities: management, finance, projects and procurement (who ask suppliers to price
 	# them) follow them
 	"Opportunity": {GM: READ, COO: READ, FM: READ, FO: READ, PM: READ, PRM: READ, PRO: READ},
+}
+
+
+# a report's own list of roles replaces the standard one, so it names those too
+REPORT_ROLES = {
+	# the General Manager decides the supplier of an administration purchase from this comparison
+	"Supplier Quotation Comparison": (GM, "Purchase Manager", "Purchase User", "Stock User", "Manufacturing Manager"),
 }
 
 
@@ -93,6 +109,15 @@ def setup_standard_permissions():
 			for ptype in ptypes:
 				if ptype != "read":
 					update_permission_property(doctype, role, 0, ptype, 1, validate=False)
+
+
+def setup_report_roles():
+	for report, roles in REPORT_ROLES.items():
+		if frappe.db.exists("Custom Role", {"report": report}) or not frappe.db.exists("Report", report):
+			continue
+		frappe.get_doc(
+			doctype="Custom Role", report=report, roles=[{"role": role} for role in roles if frappe.db.exists("Role", role)]
+		).insert(ignore_permissions=True)
 
 
 def restrict_bank_details():

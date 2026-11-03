@@ -12,6 +12,9 @@ frappe.ui.form.on("Purchase Invoice", {
 	},
 
 	refresh(frm) {
+		if (frm.doc.muhick_match_status === "Awaiting Goods") {
+			frm.set_intro(__("Reserve invoice: the goods have not arrived yet."), "blue");
+		}
 		if (frm.is_new() || frm.doc.muhick_match_status !== "Exception") {
 			return;
 		}

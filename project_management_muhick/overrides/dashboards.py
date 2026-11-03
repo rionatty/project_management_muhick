@@ -58,6 +58,12 @@ def get_project_counts(doctype: str, name: str, items=None):
 	return out
 
 
+def get_purchase_order_dashboard(data):
+	"""What an import order leads to: its consignment and the letter of credit that pays for it."""
+	data.setdefault("transactions", []).append({"label": _("Import"), "items": ["Import Shipment", "Bank Instrument"]})
+	return data
+
+
 def get_task_dashboard(data):
 	"""On a milestone (a group task), the documents raised against it."""
 	data.setdefault("non_standard_fieldnames", {}).update(

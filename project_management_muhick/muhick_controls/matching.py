@@ -6,6 +6,9 @@
 Example: order 100 units, receive 80, invoice 100: the invoice is flagged or blocked.
 The action is set in Muhick Settings: Off, Warn (flag the invoice) or Block (flag it, put it on
 hold and refuse payment until the mismatch is resolved or overridden by an authorised role).
+
+The reserve invoice of an import is booked from the commercial invoice, before the goods arrive, so
+it waits for them. Every invoice on an order is matched again when goods are received against it.
 """
 
 import frappe
@@ -13,12 +16,13 @@ from frappe import _
 from frappe.utils import flt
 
 from project_management_muhick.utils import calc
-from project_management_muhick.utils.common import get_settings, user_has_any_role
+from project_management_muhick.utils.common import FM, FO, get_settings, notify_roles, user_has_any_role
 
 HOLD_PREFIX = "Three-way match: "
+RESULT_FIELDS = ("muhick_match_status", "muhick_match_remarks", "muhick_match_overridden_by", "on_hold", "hold_comment")
 
 
-def apply(doc):
+def apply(doc, announce=True):
 	"""Purchase Invoice validate."""
 	settings = get_settings()
 	action = settings.three_way_match_action or "Warn"
@@ -33,7 +37,8 @@ def apply(doc):
 	remarks = "\n".join(exceptions)
 
 	if not exceptions:
-		doc.muhick_match_status = "Matched" if lines else "Not Applicable"
+		waiting = any(line.get("awaiting_goods") for line in lines)
+		doc.muhick_match_status = "Awaiting Goods" if waiting else "Matched" if lines else "Not Applicable"
 		doc.muhick_match_remarks = ""
 		_release_hold(doc)
 		return
@@ -47,15 +52,40 @@ def apply(doc):
 	if action == "Block":
 		doc.on_hold = 1
 		doc.hold_comment = (HOLD_PREFIX + remarks)[:500]
-	frappe.msgprint(
-		_("This invoice does not match the order and the goods received:") + "<br>" + "<br>".join(exceptions),
-		title=_("Three-Way Match Exception"),
-		indicator="red" if action == "Block" else "orange",
-	)
+	if announce:
+		frappe.msgprint(
+			_("This invoice does not match the order and the goods received:") + "<br>" + "<br>".join(exceptions),
+			title=_("Three-Way Match Exception"),
+			indicator="red" if action == "Block" else "orange",
+		)
+
+
+def recheck_on_receipt(doc, method=None):
+	"""Purchase Receipt on_submit and on_cancel: goods have arrived or gone back, so the invoices already posted on those
+	order lines are matched again, and a hold follows. Finance is told of a result that changes."""
+	order_lines = [row.purchase_order_item for row in doc.items if row.get("purchase_order_item")]
+	if not order_lines:
+		return
+	for name in frappe.get_all(
+		"Purchase Invoice Item", filters={"po_detail": ("in", order_lines), "docstatus": 1}, pluck="parent", distinct=True
+	):
+		invoice = frappe.get_doc("Purchase Invoice", name)
+		before = {field: invoice.get(field) for field in RESULT_FIELDS}
+		apply(invoice, announce=False)
+		changed = {field: invoice.get(field) for field in RESULT_FIELDS if invoice.get(field) != before[field]}
+		if changed:
+			frappe.db.set_value("Purchase Invoice", name, changed)
+		if "muhick_match_status" in changed:
+			notify_roles(
+				[FM, FO],
+				_("{0} was matched again after {1}: {2}.").format(name, doc.name, _(invoice.muhick_match_status)),
+				doc=invoice,
+			)
 
 
 def _lines(doc) -> list[dict]:
 	lines = []
+	orders = {}
 	for row in doc.items:
 		if not row.item_code:
 			continue
@@ -72,16 +102,27 @@ def _lines(doc) -> list[dict]:
 			"invoice_rate": flt(row.base_rate),
 		}
 		if has_order:
-			po = frappe.db.get_value("Purchase Order Item", row.po_detail, ["qty", "base_rate"], as_dict=True)
+			po = frappe.db.get_value("Purchase Order Item", row.po_detail, ["qty", "rate", "base_rate", "parent"], as_dict=True)
 			if not po:
 				line["has_order"] = False
 			else:
+				if po.parent not in orders:
+					orders[po.parent] = frappe.db.get_value(
+						"Purchase Order", po.parent, ["currency", "muhick_procurement_type"], as_dict=True
+					)
+				order = orders[po.parent]
+				# in the order's own currency where the invoice is in it too, so a change in the exchange rate does not trip it
+				same_currency = order.currency == doc.get("currency")
+				received = _accepted_qty(row.po_detail)
 				line.update(
 					ordered_qty=flt(po.qty),
-					received_qty=_accepted_qty(row.po_detail),
-					order_rate=flt(po.base_rate),
+					received_qty=received,
+					order_rate=flt(po.rate if same_currency else po.base_rate),
+					invoice_rate=flt(row.rate if same_currency else row.base_rate),
 					billed_qty=_billed_before(row.po_detail, doc.name) + flt(row.qty),
 				)
+				if line["needs_receipt"] and not received and order.muhick_procurement_type == "International":
+					line.update(needs_receipt=False, awaiting_goods=True)
 		lines.append(line)
 	return lines
 

@@ -134,6 +134,22 @@ and certificates, retention, payments and the controls around them.
   the terms. An order with no approved requisition cannot go for approval (Muhick Settings can relax this).
   Create > Cost Control Sheet opens the budget revision already filled with the project, items, cost codes
   and shortfall; approving the sheet raises the budget, and the requisition then passes its check.
+- An approved order is emailed to the supplier with the order attached. With no address on the order's
+  contact or the supplier, or no outgoing email, the officer is told to print it. Muhick Settings can make
+  it print only.
+- An administration purchase, where every request behind a document has Request From "Administration",
+  takes its own route. The Finance Manager approves the request and the General Manager is told. The
+  Administration Manager issues the request for quotation and records the quotations, and the General
+  Manager decides the supplier. The Procurement Officer raises the requisition, which goes to the Finance
+  Manager and then the General Manager whatever its value. The Administration Manager then issues the order,
+  any payment request and the goods received note with no further approval, and Finance is told of each
+  payment request, receipt and invoice.
+- An order says whether it is local or international, from its requisition. A payment term of Letter of
+  Credit tells Finance to apply to the bank; Create > Letter of Credit on the order records it with the
+  bank's other instruments, and the consignment reads it from there. The consignment holds the commercial
+  invoice and packing list, and attaching the invoice tells Finance to book the reserve invoice (Create >
+  Reserve Invoice). Its charges open as a Landed Cost Voucher on the goods received (Create > Landed Cost
+  Voucher), less VAT and withholding tax, which the company claims back.
 - A site store per project; approvals for returns from site, disposals, deliveries and customer returns.
 
 **Finance and controls**
@@ -158,7 +174,10 @@ and certificates, retention, payments and the controls around them.
 - Three-way match (order, what was accepted on the receipt, supplier invoice; rejected goods are not
   owed), segregation of duties across supplier creation, receipt, invoice, payment and bank details,
   quarantine stock, client-owned stock (received at no value and kept apart from the company's),
-  turnaround time per approval step with alerts, and a role and permission matrix.
+  turnaround time per approval step with alerts, and a role and permission matrix. An import's reserve
+  invoice reads Awaiting Goods until they arrive; any invoice on an order is matched again when goods are
+  received against it, or a receipt is cancelled, and a hold it no longer needs comes off. Prices are
+  compared in the order's own currency, so a change in the exchange rate is not a higher price.
 - Approval limits by value and risk on the Procurement Requisition, the Purchase Order, the Project
   Requisition, fuel and vehicle service: the table in Muhick Settings says how far up each one goes. A
   requisition's risk is chosen, and is high whatever was chosen for a single quotation, an advance payment
@@ -356,6 +375,9 @@ again: it only creates what is missing.
      retention invoicing method (confirm with Finance).
    - Approvals: limits by value and risk, allowed hours per approval step, escalation role.
    - Controls and Procurement and Payments: each control is Off, Warn or Block. They start on Warn.
+   - Procurement and Payments: Approved Purchase Order to the Supplier is Email or Print Only. Email goes
+     to real addresses as soon as outgoing email is set up, so use Print Only while testing with real
+     suppliers.
    - "Project Managers Can Open Purchase Orders" is off at the start, so Project Managers do not
      see purchase prices on orders. It works on the whole document, not field by field.
    - Reminders: days of notice for bids, warranties and site reports. "Also Send Approval Alerts by

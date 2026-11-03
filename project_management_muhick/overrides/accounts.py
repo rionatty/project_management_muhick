@@ -12,7 +12,7 @@ from project_management_muhick.muhick_finance import funds
 from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.muhick_finance.doctype.payment_plan import payment_plan
 from project_management_muhick.muhick_finance.doctype.reimbursement_claim import reimbursement_claim
-from project_management_muhick.utils.common import FINANCE_ROLES, FM, GM, PM, get_settings, notify_roles
+from project_management_muhick.utils.common import FINANCE_ROLES, FM, GM, PM, administration_order, get_settings, notify_roles
 
 BANK_DETAILS = ("bank", "account_name", "bank_account_no", "iban", "branch_code", "party_type", "party")
 
@@ -156,6 +156,15 @@ def _check_payment_plan(doc):
 
 
 # ------------------------------------------------------------------ Payment Request
+def validate_payment_request(doc, method=None):
+	"""A request on an administration purchase goes straight to Finance."""
+	if doc.reference_doctype == "Purchase Order":
+		doc.muhick_administration = administration_order([{"purchase_order": doc.reference_name}])
+	elif doc.reference_doctype == "Purchase Invoice":
+		rows = frappe.get_all("Purchase Invoice Item", filters={"parent": doc.reference_name}, fields=["purchase_order"])
+		doc.muhick_administration = administration_order(rows)
+
+
 def on_submit_payment_request(doc, method=None):
 	"""A payment request once approved goes to Finance for the next payment plan."""
 	if doc.payment_request_type == "Outward":

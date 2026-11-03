@@ -98,6 +98,25 @@ def notify_roles(roles, subject, doc=None, message=None, extra_users=None):
 	notify(users_with_roles(*roles) + list(extra_users or []), subject, doc=doc, message=message)
 
 
+def administration_purchase(rows) -> int:
+	"""1 when the requests behind these lines are all the Administration's own, which takes the document down the
+	administration route. A line added by hand has no request behind it and does not change that."""
+	requests = {row.get("material_request") for row in rows if row.get("material_request")}
+	if not requests:
+		return 0
+	origins = frappe.get_all("Material Request", filters={"name": ("in", list(requests))}, pluck="muhick_request_origin")
+	return int(set(origins) == {"Administration"})
+
+
+def administration_order(rows) -> int:
+	"""The same for a goods received note or an invoice, by the orders behind its lines."""
+	orders = {row.get("purchase_order") for row in rows if row.get("purchase_order")}
+	if not orders:
+		return 0
+	flags = frappe.get_all("Purchase Order", filters={"name": ("in", list(orders))}, pluck="muhick_administration")
+	return int(bool(flags) and all(flags))
+
+
 def money(amount, company=None) -> str:
 	currency = frappe.get_cached_value("Company", company, "default_currency") if company else None
 	return fmt_money(amount, currency=currency)

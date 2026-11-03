@@ -13,6 +13,7 @@
   "column_break_1",
   "suppliers",
   "procurement_type",
+  "administration_purchase",
   "column_break_2",
   "workflow_state",
   "status",
@@ -103,6 +104,14 @@
    "label": "Procurement Type",
    "options": "Local\nInternational",
    "reqd": 1
+  },
+  {
+   "depends_on": "administration_purchase",
+   "fieldname": "administration_purchase",
+   "fieldtype": "Check",
+   "label": "Administration Purchase",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "fieldname": "column_break_2",
@@ -235,7 +244,7 @@
    "fieldname": "payment_terms_type",
    "fieldtype": "Select",
    "label": "Payment Terms",
-   "options": "\nAdvance\nOn Delivery\nCredit",
+   "options": "\nAdvance\nOn Delivery\nCredit\nLetter of Credit",
    "reqd": 1
   },
   {
@@ -355,7 +364,7 @@
    "link_fieldname": "muhick_procurement_requisition"
   }
  ],
- "modified": "2026-11-02 18:00:00.000000",
+ "modified": "2026-11-04 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Procurement",
  "name": "Procurement Requisition",
@@ -461,6 +470,15 @@
    "read": 1,
    "report": 1,
    "role": "Storekeeper",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Administration Manager",
    "share": 1
   }
  ],

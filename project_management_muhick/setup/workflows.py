@@ -96,6 +96,8 @@ def _chain(originators, approvers, post_approval_editors=(), pending_editors=(),
 
 
 FULL_CHAIN = [(P_COO, COO), (P_FM, FM), (P_GM, GM)]
+# a purchase for the office, with every request behind it an administration request
+IS_ADMINISTRATION = "doc.muhick_administration"
 
 
 def _requisition():
@@ -220,26 +222,83 @@ def _material_request():
 
 
 def _supplier_quotation():
-	"""Quotations are recorded as drafts. The officer sends the chosen one for approval, which is
-	the supplier selection; the Procurement Manager approves or rejects it."""
+	"""Quotations are recorded as drafts. The officer sends the chosen one for approval, which is the supplier selection;
+	the Procurement Manager approves or rejects it. On an administration purchase the Administration Manager sends it and
+	the General Manager decides."""
 	officers = ["Purchase User", PRO]
-	return _chain(officers, [(P_PRM, PRM)], submit_action="Select Supplier")
+	select = "Select Supplier"
+	states = (
+		_state(DRAFT, 0, *officers, ADM)
+		+ _state(P_PRM, 0, PRM)
+		+ _state(P_GM, 0, GM)
+		+ _state(APPROVED, 1, PRM, GM)
+		+ _state(REJECTED, 0, *officers, ADM)
+		+ _state(CANCELLED, 2, PRM, GM)
+	)
+	transitions = []
+	for start in (DRAFT, REJECTED):
+		transitions += _t(start, select, P_PRM, officers, f"not {IS_ADMINISTRATION}")
+		transitions += _t(start, select, P_GM, [*officers, ADM], IS_ADMINISTRATION)
+	transitions += (
+		_t(P_PRM, APPROVE, APPROVED, PRM)
+		+ _t(P_PRM, REJECT, REJECTED, PRM)
+		+ _t(P_GM, APPROVE, APPROVED, GM)
+		+ _t(P_GM, REJECT, REJECTED, GM)
+		+ _t(APPROVED, CANCEL, CANCELLED, [PRM, GM])
+	)
+	return states, transitions
+
+
+def _procurement_requisition():
+	"""The COO, the Finance Manager and the General Manager, which the approval limits can end early. An administration
+	purchase goes to the Finance Manager and then the General Manager, whatever its value. The officer may still correct
+	prices while it is under approval; the change is logged."""
+	raisers = [PRO, PRM]
+	route = "doc.approval_route"
+	is_admin = "doc.administration_purchase"
+	states = (
+		_state(DRAFT, 0, *raisers)
+		+ _state(P_COO, 0, COO, PRO)
+		+ _state(P_FM, 0, FM, PRO)
+		+ _state(P_GM, 0, GM, PRO)
+		+ _state(APPROVED, 1, GM, *raisers)
+		+ _state(REJECTED, 0, *raisers)
+		+ _state(CANCELLED, 2, GM)
+	)
+	transitions = []
+	for start in (DRAFT, REJECTED):
+		transitions += _t(start, SUBMIT, P_COO, raisers, f"not {is_admin}")
+		transitions += _t(start, SUBMIT, P_FM, raisers, is_admin)
+	transitions += (
+		_t(P_COO, APPROVE, APPROVED, COO, f'{route} == "{ROUTE_ENDS[0]}"')
+		+ _t(P_COO, APPROVE, P_FM, COO, f'{route} != "{ROUTE_ENDS[0]}"')
+		+ _t(P_COO, REJECT, REJECTED, COO)
+		+ _t(P_FM, APPROVE, APPROVED, FM, f'{route} == "{ROUTE_ENDS[1]}" and not {is_admin}')
+		+ _t(P_FM, APPROVE, P_GM, FM, f'{route} != "{ROUTE_ENDS[1]}" or {is_admin}')
+		+ _t(P_FM, REJECT, REJECTED, FM)
+		+ _t(P_GM, APPROVE, APPROVED, GM)
+		+ _t(P_GM, REJECT, REJECTED, GM)
+		+ _t(APPROVED, CANCEL, CANCELLED, GM)
+	)
+	return states, transitions
 
 
 def _purchase_order():
-	"""The Finance Manager, then the General Manager; the approval limits can end it at the Finance Manager."""
+	"""The Finance Manager, then the General Manager; the approval limits can end it at the Finance Manager. An
+	administration order was approved on its requisition, so the Administration Manager issues it with no further step."""
 	officers = ["Purchase User", PRO, PRM]
 	route = "doc.muhick_approval_route"
 	states = (
-		_state(DRAFT, 0, *officers)
+		_state(DRAFT, 0, *officers, ADM)
 		+ _state(P_FM, 0, FM)
 		+ _state(P_GM, 0, GM)
-		+ _state(APPROVED, 1, GM, FM, "Purchase User", "Purchase Manager")
+		+ _state(APPROVED, 1, GM, FM, "Purchase User", "Purchase Manager", ADM)
 		+ _state(REJECTED, 0, *officers)
 		+ _state(CANCELLED, 2, GM)
 	)
 	transitions = (
-		_t(DRAFT, SUBMIT, P_FM, officers)
+		_t(DRAFT, SUBMIT, P_FM, officers, f"not {IS_ADMINISTRATION}")
+		+ _t(DRAFT, DIRECT, APPROVED, ADM, IS_ADMINISTRATION)
 		+ _t(P_FM, APPROVE, APPROVED, FM, f'{route} == "{ROUTE_ENDS[0]}"')
 		+ _t(P_FM, APPROVE, P_GM, FM, f'{route} != "{ROUTE_ENDS[0]}"')
 		+ _t(P_FM, REJECT, REJECTED, FM)
@@ -253,19 +312,21 @@ def _purchase_order():
 
 def _payment_request():
 	"""A request to pay a supplier: the officer asks, the Procurement Manager approves, then Finance plans it. A request
-	for a client to pay has nobody to approve it."""
+	for a client to pay has nobody to approve it, and one on an administration order goes straight to Finance."""
 	makers = [PRO, PRM, FO, FM]
 	finance = [FO, FM]
+	outward = 'doc.payment_request_type == "Outward"'
 	states = (
-		_state(DRAFT, 0, *makers)
+		_state(DRAFT, 0, *makers, ADM)
 		+ _state(P_PRM, 0, PRM)
-		+ _state(APPROVED, 1, PRM, *finance)
+		+ _state(APPROVED, 1, PRM, *finance, ADM)
 		+ _state(REJECTED, 0, *makers)
 		+ _state(CANCELLED, 2, PRM, FM)
 	)
 	transitions = (
-		_t(DRAFT, SUBMIT, P_PRM, makers, 'doc.payment_request_type == "Outward"')
-		+ _t(DRAFT, SUBMIT, APPROVED, finance, 'doc.payment_request_type != "Outward"')
+		_t(DRAFT, SUBMIT, P_PRM, makers, f"{outward} and not {IS_ADMINISTRATION}")
+		+ _t(DRAFT, SUBMIT, APPROVED, finance, f"not ({outward})")
+		+ _t(DRAFT, DIRECT, APPROVED, [ADM, *finance], f"{outward} and {IS_ADMINISTRATION}")
 		+ _t(P_PRM, APPROVE, APPROVED, PRM)
 		+ _t(P_PRM, REJECT, REJECTED, PRM)
 		+ _t(REJECTED, SUBMIT, P_PRM, makers)
@@ -275,17 +336,19 @@ def _payment_request():
 
 
 def _purchase_receipt():
-	"""Goods received note: raised by the storekeeper, approved by the Procurement Manager."""
+	"""Goods received note: raised by the storekeeper, approved by the Procurement Manager. The Administration Manager
+	receives an administration purchase, with no approval after."""
 	receivers = ["Stock User", "Purchase User", SK, SSK]
 	states = (
-		_state(DRAFT, 0, *receivers)
+		_state(DRAFT, 0, *receivers, ADM)
 		+ _state(P_PRM, 0, PRM)
-		+ _state(APPROVED, 1, PRM, "Stock User")
+		+ _state(APPROVED, 1, PRM, "Stock User", ADM)
 		+ _state(REJECTED, 0, *receivers)
 		+ _state(CANCELLED, 2, PRM)
 	)
 	transitions = (
-		_t(DRAFT, SUBMIT, P_PRM, receivers)
+		_t(DRAFT, SUBMIT, P_PRM, receivers, f"not {IS_ADMINISTRATION}")
+		+ _t(DRAFT, DIRECT, APPROVED, ADM, IS_ADMINISTRATION)
 		+ _t(P_PRM, APPROVE, APPROVED, PRM)
 		+ _t(P_PRM, REJECT, REJECTED, PRM)
 		+ _t(REJECTED, SUBMIT, P_PRM, receivers)
@@ -436,10 +499,7 @@ def get_workflows():
 		"Material Request": _material_request(),
 		# procurement: supplier selection, requisition, order, goods received
 		"Supplier Quotation": _supplier_quotation(),
-		# the officer may still correct prices while it is under approval; the change is logged
-		"Procurement Requisition": _chain(
-			[PRO, PRM], FULL_CHAIN, post_approval_editors=[PRO, PRM], pending_editors=[PRO], route="approval_route"
-		),
+		"Procurement Requisition": _procurement_requisition(),
 		"Purchase Order": _purchase_order(),
 		"Purchase Receipt": _purchase_receipt(),
 		# stores

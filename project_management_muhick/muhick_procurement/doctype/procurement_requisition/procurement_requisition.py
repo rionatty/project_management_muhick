@@ -25,7 +25,7 @@ from project_management_muhick.overrides import supplier as supplier_api
 from project_management_muhick.overrides.buying import OVER_BUDGET, _approved_overrun
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.approval import get_route
-from project_management_muhick.utils.common import COO, FINANCE_ROLES, get_settings, notify_roles
+from project_management_muhick.utils.common import COO, FINANCE_ROLES, administration_purchase, get_settings, notify_roles
 
 BEING_PREPARED = (None, "", "Draft", "Rejected")
 RANK = {"Not Applicable": 0, "Within Budget": 1, "Exceeds Budget": 2, "Not Budgeted": 3}
@@ -35,6 +35,7 @@ RISKS = ("Low", "Medium", "High")
 class ProcurementRequisition(Document):
 	def validate(self):
 		quotations = self.set_lines()
+		self.administration_purchase = administration_purchase(self.items)
 		self.set_item_values()
 		self.set_budget_status()
 		self.set_route()
@@ -464,6 +465,7 @@ def _make_order(requisition, rows) -> str:
 			"conversion_rate": rows[0].conversion_rate,
 			"project": projects.pop() if len(projects) == 1 else None,
 			"muhick_procurement_requisition": requisition.name,
+			"muhick_procurement_type": requisition.procurement_type,
 			"muhick_payment_type": requisition.payment_terms_type,
 			"muhick_advance_percent": requisition.advance_percent,
 			"muhick_credit_days": requisition.credit_days,

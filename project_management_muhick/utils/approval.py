@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_to_date, flt, get_datetime, now_datetime
 
-from project_management_muhick.setup.workflows import PENDING_STATES, WORKFLOW_DOCTYPES
+from project_management_muhick.setup.workflows import ADM, PENDING_STATES, WORKFLOW_DOCTYPES
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import (
 	COO, FM, FO, GM, PM, PRM, PRO, SE, SK, get_settings, notify, notify_roles, project_manager_of, users_with_roles,
@@ -58,6 +58,16 @@ NOTIFY_ON_PENDING = {
 	"Payment Request": [FM, FO],
 }
 
+# an administration purchase is followed by the Administration Manager and the General Manager, not Procurement
+ADMINISTRATION_ON_APPROVAL = {
+	"Material Request": [ADM, GM],
+	"Supplier Quotation": [ADM, PRO],
+	"Procurement Requisition": [ADM, FO],
+	"Purchase Order": [ADM],
+	"Purchase Receipt": [FM, FO],
+}
+ADMINISTRATION_ON_PENDING = {"Procurement Requisition": [ADM]}
+
 # documents whose Project Manager is kept informed
 INFORM_PROJECT_MANAGER = ("Material Request", "Purchase Receipt", "Procurement Requisition", "Stock Entry", "Resource Allocation")
 
@@ -69,6 +79,12 @@ def _project_managers(doc) -> list[str]:
 	projects = {doc.get("project"), doc.get("muhick_project"), doc.get("from_project"), doc.get("to_project")}
 	projects.update(row.get("project") for row in doc.get("items") or [])
 	return [pm for pm in (project_manager_of(p) for p in projects if p) if pm]
+
+
+def _is_administration(doc) -> bool:
+	return bool(
+		doc.get("muhick_administration") or doc.get("administration_purchase") or doc.get("muhick_request_origin") == "Administration"
+	)
 
 
 def _is_urgent(doc) -> bool:
@@ -120,7 +136,7 @@ def _on_state_change(doc, state, previous=None):
 		).insert(ignore_permissions=True)
 		subject = _("{0}{1} is waiting for your approval").format(_("URGENT: ") if _is_urgent(doc) else "", label)
 		notify_roles(get_approver_roles(doc.doctype, state), subject, doc=doc)
-		told = list(NOTIFY_ON_PENDING.get(doc.doctype, []))
+		told = list((ADMINISTRATION_ON_PENDING if _is_administration(doc) else NOTIFY_ON_PENDING).get(doc.doctype, []))
 		if doc.doctype == "Material Request" and doc.get("muhick_request_origin") in ("Administration", "User Department"):
 			# a department's own request: the General Manager sees it, though only Finance approves it
 			told.append(GM)
@@ -137,9 +153,8 @@ def _on_state_change(doc, state, previous=None):
 				notify_roles(PRO, _("{0}: materials issued to project {1}.").format(label, doc.project), doc=doc)
 			return
 		subject = _("{0} has been approved").format(label)
-		notify_roles(
-			NOTIFY_ON_APPROVAL.get(doc.doctype, []), subject, doc=doc, extra_users=[doc.owner, *_project_managers(doc)]
-		)
+		told = (ADMINISTRATION_ON_APPROVAL if _is_administration(doc) else NOTIFY_ON_APPROVAL).get(doc.doctype, [])
+		notify_roles(told, subject, doc=doc, extra_users=[doc.owner, *_project_managers(doc)])
 
 
 def _close_open_logs(doc, now, next_state):

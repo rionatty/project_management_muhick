@@ -7,6 +7,7 @@ from project_management_muhick.setup.custom_fields import setup_custom_fields
 from project_management_muhick.setup.defaults import setup_defaults
 from project_management_muhick.setup.roles import (
 	restrict_bank_details,
+	setup_report_roles,
 	setup_role_profiles,
 	setup_roles,
 	setup_standard_permissions,
@@ -60,6 +61,7 @@ def setup():
 	setup_custom_fields()
 	setup_role_profiles()
 	setup_standard_permissions()
+	setup_report_roles()
 	setup_workflows()
 	show_standard_projects_icon(False)
 	add_sales_to_crm_menu()
