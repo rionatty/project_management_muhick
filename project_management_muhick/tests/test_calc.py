@@ -415,5 +415,24 @@ class TestSchedule(unittest.TestCase):
 			self.assertEqual(caught.exception.kind, kind)
 
 
+class TestStillNeeded(unittest.TestCase):
+	PLAN = {(2026, 9): 100, (2026, 11): 200, (2026, 12): 300}
+
+	def test_what_was_paid_covers_the_earliest_months(self):
+		got = calc.still_needed(self.PLAN, 40, 150, (2026, 11))
+		self.assertEqual(got, {"now": 0.0, "months": {(2026, 11): 150.0, (2026, 12): 300.0}, "unscheduled": 40.0, "total": 490.0})
+
+	def test_a_past_month_not_covered_is_needed_now(self):
+		got = calc.still_needed(self.PLAN, 0, 50, (2026, 11))
+		self.assertEqual((got["now"], got["months"][(2026, 11)], got["total"]), (50.0, 200.0, 550.0))
+
+	def test_paid_beyond_the_plan_covers_what_is_not_scheduled(self):
+		got = calc.still_needed(self.PLAN, 40, 610, (2026, 11))
+		self.assertEqual(got, {"now": 0.0, "months": {}, "unscheduled": 30.0, "total": 30.0})
+
+	def test_nothing_planned(self):
+		self.assertEqual(calc.still_needed({}, 0, 100, (2026, 11))["total"], 0.0)
+
+
 if __name__ == "__main__":
 	unittest.main()

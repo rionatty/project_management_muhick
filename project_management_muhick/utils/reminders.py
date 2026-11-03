@@ -17,7 +17,7 @@ def send_daily_reminders():
 	jobs = (
 		overdue_accountability, missing_weekly_reports, phases_due_for_claim, expiring_warranties,
 		phases_starting, payables_falling_due, shipments_needing_attention,
-		bids_needing_attention, bank_instruments_needing_attention, contracts_and_maintenance_due,
+		bids_needing_attention, bank_instruments_needing_attention, contracts_and_maintenance_due, allocations_past_their_refund,
 	)
 	for job in jobs:
 		try:
@@ -268,6 +268,24 @@ def bank_instruments_needing_attention():
 		if messages and _alert_due("Bank Instrument", i.name, i.last_alert_on, today):
 			notify_roles(
 				FINANCE_ROLES, f"{i.title}: " + "; ".join(messages) + ".", doc=frappe._dict(doctype="Bank Instrument", name=i.name)
+			)
+
+
+def allocations_past_their_refund():
+	"""Resource allocations past their expected refund date: the day after it, then weekly."""
+	today = getdate(nowdate())
+	for a in frappe.get_all(
+		"Resource Allocation",
+		filters={"docstatus": 1, "status": ("in", ("Outstanding", "Partly Refunded")), "expected_refund_date": ("<", today)},
+		fields=["name", "from_project", "to_project", "outstanding_amount", "expected_refund_date"],
+	):
+		if (today - getdate(a.expected_refund_date)).days % 7 == 1:
+			notify_roles(
+				FINANCE_ROLES,
+				_("{0}: {1} still to refund from {2} to {3}, expected on {4}.").format(
+					a.name, frappe.format_value(a.outstanding_amount, "Currency"), a.to_project, a.from_project, a.expected_refund_date
+				),
+				doc=frappe._dict(doctype="Resource Allocation", name=a.name),
 			)
 
 

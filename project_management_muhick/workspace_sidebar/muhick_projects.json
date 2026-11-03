@@ -380,8 +380,8 @@
    "collapsible": 1,
    "indent": 0,
    "keep_closed": 0,
-   "label": "Funds Between Projects",
-   "link_to": "Project Fund Transfer",
+   "label": "Resource Allocation",
+   "link_to": "Resource Allocation",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Link"
@@ -985,6 +985,39 @@
    "collapsible": 1,
    "indent": 0,
    "keep_closed": 0,
+   "label": "Funds Needed by Project",
+   "link_to": "Funds Needed by Project",
+   "link_type": "Report",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Project Funds Statement",
+   "link_to": "Project Funds Statement",
+   "link_type": "Report",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Resource Allocation Register",
+   "link_to": "Resource Allocation Register",
+   "link_type": "Report",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
    "label": "Bank Facility Utilisation",
    "link_to": "Bank Facility Utilisation",
    "link_type": "Report",
@@ -1256,7 +1289,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-03 02:00:00.000000",
+ "modified": "2026-11-03 04:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",

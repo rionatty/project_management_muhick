@@ -47,6 +47,7 @@ STANDARD_DOCTYPE_PERMISSIONS = {
 	"Supplier": {SE: READ},
 	# Project Managers are added to this by Muhick Settings when they are allowed to see supplier prices
 	"Purchase Order": {PRO: RAISE, PRM: RAISE, FM: APPROVE, GM: APPROVE, COO: READ, FO: READ},
+	"Payment Request": {PRO: RAISE, PRM: (*SUBMIT, "cancel"), FM: (*SUBMIT, "cancel"), FO: SUBMIT, GM: READ},
 	"Vehicle": {ADMIN_MANAGER: RAISE, FLEET_OFFICER: READ, FM: READ, FO: READ},
 	"Purchase Receipt": {SK: RAISE, SSK: RAISE, PRM: APPROVE, FM: READ, FO: READ, PM: READ},
 	"Delivery Note": {SK: RAISE, PRM: APPROVE, FM: APPROVE, FO: APPROVE},

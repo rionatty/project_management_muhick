@@ -28,12 +28,12 @@
  ],
  "fields": [
   {
-   "default": "PFT-.YYYY.-.#####",
+   "default": "RA-.YYYY.-.#####",
    "fieldname": "naming_series",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Series",
-   "options": "PFT-.YYYY.-.#####",
+   "options": "RA-.YYYY.-.#####",
    "print_hide": 1,
    "reqd": 1
   },
@@ -140,7 +140,7 @@
    "fieldtype": "Table",
    "label": "Refunds to the Lending Project",
    "no_copy": 1,
-   "options": "Project Fund Transfer Refund"
+   "options": "Resource Allocation Refund"
   },
   {
    "allow_on_submit": 1,
@@ -168,7 +168,7 @@
    "fieldtype": "Link",
    "label": "Amended From",
    "no_copy": 1,
-   "options": "Project Fund Transfer",
+   "options": "Resource Allocation",
    "print_hide": 1,
    "read_only": 1
   }
@@ -177,10 +177,10 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-01 10:00:00.000000",
+ "modified": "2026-11-03 04:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Finance",
- "name": "Project Fund Transfer",
+ "name": "Resource Allocation",
  "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
@@ -237,22 +237,26 @@
    "write": 1
   },
   {
+   "create": 1,
    "email": 1,
    "export": 1,
    "print": 1,
    "read": 1,
    "report": 1,
    "role": "Chief Operating Officer",
-   "share": 1
+   "share": 1,
+   "write": 1
   },
   {
+   "create": 1,
    "email": 1,
    "export": 1,
    "print": 1,
    "read": 1,
    "report": 1,
    "role": "Project Manager",
-   "share": 1
+   "share": 1,
+   "write": 1
   }
  ],
  "row_format": "Dynamic",

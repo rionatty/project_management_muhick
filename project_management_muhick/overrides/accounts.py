@@ -8,10 +8,11 @@ from frappe import _
 from frappe.utils import flt
 
 from project_management_muhick.muhick_controls import matching, sod
+from project_management_muhick.muhick_finance import funds
 from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.muhick_finance.doctype.payment_plan import payment_plan
 from project_management_muhick.muhick_finance.doctype.reimbursement_claim import reimbursement_claim
-from project_management_muhick.utils.common import FINANCE_ROLES, FM, GM, PM, PRM, get_settings, notify_roles
+from project_management_muhick.utils.common import FINANCE_ROLES, FM, GM, PM, get_settings, notify_roles
 
 BANK_DETAILS = ("bank", "account_name", "bank_account_no", "iban", "branch_code", "party_type", "party")
 
@@ -41,6 +42,17 @@ def validate_payment_entry(doc, method=None):
 			)
 	sod.check_payment_entry(doc)
 	_check_payment_plan(doc)
+	_attach_project(doc)
+
+
+def _attach_project(doc):
+	"""A payment goes with the project of what it pays, where that is one project, so the money in the bank can be told
+	project by project."""
+	if doc.get("project") or doc.payment_type == "Internal Transfer":
+		return
+	projects = {funds.document_project(ref.reference_doctype, ref.reference_name) for ref in doc.get("references") or []}
+	if len(projects) == 1:
+		doc.project = projects.pop()
 
 
 def after_payment(doc, method=None):
@@ -62,6 +74,8 @@ def after_payment(doc, method=None):
 	for ref in doc.get("references") or []:
 		if ref.reference_doctype == "Sales Invoice":
 			_sync_claim_payment(ref.reference_name)
+	if doc.docstatus == 1:
+		funds.tell_finance_of_receipt(doc)
 
 
 def _sync_claim_payment(sales_invoice):
@@ -143,10 +157,10 @@ def _check_payment_plan(doc):
 
 # ------------------------------------------------------------------ Payment Request
 def on_submit_payment_request(doc, method=None):
-	"""A payment request from a department goes to Finance for the next payment plan."""
+	"""A payment request once approved goes to Finance for the next payment plan."""
 	if doc.payment_request_type == "Outward":
 		notify_roles(
-			[*FINANCE_ROLES, PRM],
+			FINANCE_ROLES,
 			_("Payment request {0} for {1} {2} is waiting to be planned for payment.").format(
 				doc.name, _(doc.reference_doctype), doc.reference_name
 			),

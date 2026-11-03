@@ -278,13 +278,20 @@ and certificates, retention, payments and the controls around them.
 
 **Reports, dashboard and printing**
 
-- Twenty-five reports: budget position, budget cash plan, project accountability, portfolio, material consumption, procurement status, phase
+- Twenty-eight reports: budget position, budget cash plan, project accountability, portfolio, material consumption, procurement status, phase
   plan, proposed against certified valuations, retention, pending approvals, price trends,
   equipment history, subcontractor and freight forwarder performance, bid register, bid margin comparison, bank facility
-  utilisation, resource envelope, payment plan execution, withholding tax register, fuel
+  utilisation, resource envelope, funds needed by project, project funds statement, resource allocation register,
+  payment plan execution, withholding tax register, fuel
   consumption and vehicle maintenance.
 - Project Accountability takes one project requisition by requisition: what was budgeted and requisitioned, given and
   spent, the balance and who owes it, a purchase's LPO, delivery and invoice side by side, and where each stands.
+- Funds are told project by project from the postings on the bank and cash accounts, so they add up to what the banks
+  hold. Resource Envelope shows each project's money, by account if wanted, Funds Needed by Project what each needs
+  month by month against what it has, Project Funds Statement every movement of one project's money, and Resource
+  Allocation Register what has moved between projects and is still to refund. A Resource Allocation is prepared by
+  Finance or the department in need and approved by the General Manager; when the project that owes is paid, or its
+  refund date passes, Finance is told.
 - A project's Connections tab lists every document of the project in the order the work goes, from the bid to
   completion, and its Lifecycle section links the bid, quotation, handover, BOQ, budget and activity plan.
 - Every table in the desk with more columns than the page has room for scrolls sideways, with a bar always in sight
@@ -418,7 +425,7 @@ project_management_muhick/
   utils/approval.py        approval alerts, turnaround log, approval routes
   muhick_projects/         project documents, budget_engine.py, reports
   muhick_procurement/      requisition, shipments, specification changes, reports
-  muhick_finance/          payment plan, expense claims, bank facilities, funds between projects
+  muhick_finance/          payment plan, expense claims, bank facilities, resource allocation, funds.py
   muhick_sales/            bids, sales requisitions
   muhick_admin/            fuel, vehicle servicing, stationery, contracts, facility maintenance
   muhick_controls/         three-way match, segregation of duties, reports

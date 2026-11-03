@@ -4,5 +4,5 @@
 from frappe.model.document import Document
 
 
-class ProjectFundTransferRefund(Document):
+class ResourceAllocationRefund(Document):
 	pass

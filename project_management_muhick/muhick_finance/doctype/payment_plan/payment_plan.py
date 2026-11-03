@@ -557,7 +557,7 @@ def _journal_entry(plan, row):
 			"accounts",
 			{"account": account, "debit_in_account_currency": share, "project": row.project, "cost_center": cost_center, "user_remark": remark},
 		)
-	entry.append("accounts", {"account": row.paid_from, "credit_in_account_currency": amount})
+	entry.append("accounts", {"account": row.paid_from, "credit_in_account_currency": amount, "project": row.project})
 	return entry
 
 

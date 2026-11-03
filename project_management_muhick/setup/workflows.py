@@ -251,6 +251,29 @@ def _purchase_order():
 	return states, transitions
 
 
+def _payment_request():
+	"""A request to pay a supplier: the officer asks, the Procurement Manager approves, then Finance plans it. A request
+	for a client to pay has nobody to approve it."""
+	makers = [PRO, PRM, FO, FM]
+	finance = [FO, FM]
+	states = (
+		_state(DRAFT, 0, *makers)
+		+ _state(P_PRM, 0, PRM)
+		+ _state(APPROVED, 1, PRM, *finance)
+		+ _state(REJECTED, 0, *makers)
+		+ _state(CANCELLED, 2, PRM, FM)
+	)
+	transitions = (
+		_t(DRAFT, SUBMIT, P_PRM, makers, 'doc.payment_request_type == "Outward"')
+		+ _t(DRAFT, SUBMIT, APPROVED, finance, 'doc.payment_request_type != "Outward"')
+		+ _t(P_PRM, APPROVE, APPROVED, PRM)
+		+ _t(P_PRM, REJECT, REJECTED, PRM)
+		+ _t(REJECTED, SUBMIT, P_PRM, makers)
+		+ _t(APPROVED, CANCEL, CANCELLED, [PRM, FM])
+	)
+	return states, transitions
+
+
 def _purchase_receipt():
 	"""Goods received note: raised by the storekeeper, approved by the Procurement Manager."""
 	receivers = ["Stock User", "Purchase User", SK, SSK]
@@ -423,7 +446,9 @@ def get_workflows():
 		# finance: weekly or monthly payment plan, expense claims
 		"Payment Plan": _chain([FO, FM], [(P_FM, FM), (P_GM, GM)], post_approval_editors=[FO, FM]),
 		"Reimbursement Claim": _reimbursement_claim(),
-		"Project Fund Transfer": _chain([FO, FM], [(P_FM, FM), (P_GM, GM)], post_approval_editors=[FO, FM]),
+		# prepared by the Finance Manager or the department that needs the money, approved by the General Manager
+		"Resource Allocation": _chain([FO, FM, PM, COO], [(P_GM, GM)], post_approval_editors=[FO, FM]),
+		"Payment Request": _payment_request(),
 		# sales: funds for a bid
 		"Sales Requisition": _chain([SE], [(P_HOS, HOS), (P_GM, GM)], post_approval_editors=[FM, FO, SE]),
 		# a rejected request is amended and sent again, or left closed while the bid goes on

@@ -122,7 +122,8 @@ doc_events = {
 		**_approval_events,
 	},
 	"Payment Request": {
-		"on_submit": "project_management_muhick.overrides.accounts.on_submit_payment_request",
+		**_approval_events,
+		"on_submit": [_track, "project_management_muhick.overrides.accounts.on_submit_payment_request"],
 	},
 	"Bank Account": {
 		"on_update": "project_management_muhick.overrides.accounts.bank_details_changed",
@@ -185,7 +186,7 @@ doc_events = {
 	"Procurement Requisition": _approval_events,
 	"Payment Plan": _approval_events,
 	"Reimbursement Claim": _approval_events,
-	"Project Fund Transfer": _approval_events,
+	"Resource Allocation": _approval_events,
 	"Sales Requisition": _approval_events,
 	"Bid Security Request": _approval_events,
 	"Bid Outcome": _approval_events,

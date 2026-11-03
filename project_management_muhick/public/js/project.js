@@ -41,6 +41,8 @@ frappe.ui.form.on("Project", {
 		const create = (label, doctype, values) => {
 			frm.add_custom_button(label, () => frappe.new_doc(doctype, values || project), __("Create"));
 		};
+		// the money this project needs, from a project that has some
+		create(__("Resource Allocation"), "Resource Allocation", { to_project: frm.doc.name, company: frm.doc.company });
 		if (stage === "Planning") {
 			// the BOQ starts from the sales order's lines and their stages
 			frm.add_custom_button(
@@ -89,6 +91,7 @@ frappe.ui.form.on("Project", {
 		report(__("Project Cost Report"), "Project Cost Report");
 		report(__("Material Consumption"), "Project Material Consumption");
 		report(__("Accountability"), "Project Accountability");
+		report(__("Funds Statement"), "Project Funds Statement");
 	},
 });
 

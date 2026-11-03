@@ -28,7 +28,7 @@ NOTIFY_ON_APPROVAL = {
 	"Delivery Note": [FM, FO, PRO],
 	"Payment Plan": [FM, FO],
 	"Reimbursement Claim": [FM, FO],
-	"Project Fund Transfer": [FM, FO],
+	"Resource Allocation": [FM, FO],
 	"Sales Requisition": [FM, FO],
 	"Bid Security Request": [FM, FO],
 	"Fuel Requisition": [FO],
@@ -53,17 +53,18 @@ NOTIFY_ON_PENDING = {
 	"Delivery Note": [PRO],
 	"Procurement Requisition": [PRM],
 	"Bid Security Request": [GM],
+	"Payment Request": [FM, FO],
 }
 
 # documents whose Project Manager is kept informed
-INFORM_PROJECT_MANAGER = ("Material Request", "Purchase Receipt", "Procurement Requisition", "Stock Entry")
+INFORM_PROJECT_MANAGER = ("Material Request", "Purchase Receipt", "Procurement Requisition", "Stock Entry", "Resource Allocation")
 
 
 def _project_managers(doc) -> list[str]:
 	"""Project Managers of the projects a document touches."""
 	if doc.doctype not in INFORM_PROJECT_MANAGER:
 		return []
-	projects = {doc.get("project"), doc.get("muhick_project")}
+	projects = {doc.get("project"), doc.get("muhick_project"), doc.get("from_project"), doc.get("to_project")}
 	projects.update(row.get("project") for row in doc.get("items") or [])
 	return [pm for pm in (project_manager_of(p) for p in projects if p) if pm]
 

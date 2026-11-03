@@ -211,6 +211,24 @@ def rate_includes_vat_by_default(section, foreign_currency) -> int:
 	return 1 if section in ("Equipment", "Installation Materials", "Tools and Equipment") and not foreign_currency else 0
 
 
+def still_needed(plan, unscheduled, paid, current) -> dict:
+	"""What a budget's cash plan ({(year, month): amount}, and what it has not scheduled) still needs, once what has been
+	paid has covered its earliest months and then what is not scheduled: {now: what is left of the months before the
+	current one, months: {(year, month): what is left of it}, unscheduled, total}."""
+	left, now, months = _f(paid), 0.0, {}
+	for month in sorted(plan):
+		need = _f(plan[month])
+		covered = min(left, need)
+		left -= covered
+		need -= covered
+		if month < current:
+			now += need
+		elif need:
+			months[month] = need
+	unscheduled = max(_f(unscheduled) - left, 0.0)
+	return {"now": now, "months": months, "unscheduled": unscheduled, "total": now + sum(months.values()) + unscheduled}
+
+
 def month_shares(start, end) -> dict:
 	"""{(year, month): share} of a period's days that fall in each month, adding up to one: 10 October
 	to 9 November -> October 22/31, November 9/31. Without an end, or with the end before the start,

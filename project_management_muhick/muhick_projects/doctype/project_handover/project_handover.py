@@ -92,6 +92,9 @@ class ProjectHandover(Document):
 		project.muhick_handover = self.name
 		project.muhick_bid = self.opportunity
 		project.muhick_quotation = sales_order_quotation(self.sales_order or project.sales_order)
+		# what is made from the order, and paid against it, then goes with the project
+		if self.sales_order and not frappe.db.get_value("Sales Order", self.sales_order, "project"):
+			frappe.db.set_value("Sales Order", self.sales_order, "project", project.name, update_modified=False)
 		for source, target in PROJECT_FIELDS.items():
 			if self.get(source) not in (None, ""):
 				project.set(target, self.get(source))

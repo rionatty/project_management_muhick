@@ -1,7 +1,9 @@
 # Copyright (c) 2026, CyveTech and contributors
 # For license information, please see license.txt
 
+import frappe
 from frappe import _
+from frappe.desk.notifications import get_open_count
 
 
 def get_project_dashboard(data):
@@ -21,7 +23,7 @@ def get_project_dashboard(data):
 			],
 		},
 		{"label": _("Stores and Equipment"), "items": ["Stock Entry", "Project Equipment Allocation", "Equipment Log", "Fuel Requisition"]},
-		{"label": _("Payments"), "items": ["Payment Plan", "Payment Entry", "Journal Entry", "Reimbursement Claim", "Bank Instrument"]},
+		{"label": _("Payments"), "items": ["Payment Plan", "Payment Entry", "Journal Entry", "Reimbursement Claim", "Resource Allocation", "Bank Instrument"]},
 		{"label": _("Labour and Subcontracts"), "items": ["Labour Schedule", "Casual Sheet", "Subcontract RFQ", "Subcontract Agreement", "Service Receipt Note"]},
 		{"label": _("Claims and Completion"), "items": ["Project Claim", "Project Variation Order", "Retention Release", "Project Completion Certificate", "Project Defect", "Project Warranty"]},
 		{"label": _("Site Records"), "items": ["Site Report", "Site Meeting", "Project Document"]},
@@ -33,8 +35,27 @@ def get_project_dashboard(data):
 			groups.append({"label": group["label"], "items": rest})
 	data["transactions"] = groups
 	data.setdefault("internal_links", {}).update({"Opportunity": "muhick_bid", "Quotation": "muhick_quotation", "Sales Order": "sales_order"})
-	data.setdefault("non_standard_fieldnames", {}).update({"Request for Quotation": "project_name", "Opportunity": "name", "Quotation": "name"})
+	data.setdefault("non_standard_fieldnames", {}).update(
+		{"Request for Quotation": "project_name", "Opportunity": "name", "Quotation": "name", "Resource Allocation": "to_project"}
+	)
+	data["method"] = "project_management_muhick.overrides.dashboards.get_project_counts"
 	return data
+
+
+@frappe.whitelist()
+def get_project_counts(doctype: str, name: str, items=None):
+	"""The counts on a project's Connections tab. Money can be allocated from a project or to it, and no one field holds
+	both, so its allocations are found by either and listed by name."""
+	out = get_open_count(doctype, name, items)
+	counts = out.get("count")
+	if isinstance(counts, dict):
+		names = frappe.get_all(
+			"Resource Allocation", filters={"docstatus": ("<", 2)}, or_filters={"from_project": name, "to_project": name}, pluck="name"
+		)
+		counts["external_links_found"] = [row for row in counts["external_links_found"] if row["doctype"] != "Resource Allocation"]
+		if names:
+			counts["internal_links_found"].append({"doctype": "Resource Allocation", "open_count": 0, "count": len(names), "names": names})
+	return out
 
 
 def get_task_dashboard(data):
