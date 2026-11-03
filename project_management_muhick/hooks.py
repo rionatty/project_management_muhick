@@ -148,7 +148,10 @@ doc_events = {
 		"validate": "project_management_muhick.overrides.accounts.validate_payment_entry",
 		"on_submit": "project_management_muhick.overrides.accounts.after_payment",
 		"on_cancel": "project_management_muhick.overrides.accounts.after_payment",
-		"on_trash": "project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan.payment_deleted",
+		"on_trash": [
+			"project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan.payment_deleted",
+			"project_management_muhick.muhick_finance.doctype.resource_allocation.resource_allocation.transfer_deleted",
+		],
 	},
 	"Stock Entry": {
 		"before_validate": "project_management_muhick.overrides.stock.before_validate_stock_entry",

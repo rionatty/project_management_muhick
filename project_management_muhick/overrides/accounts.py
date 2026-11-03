@@ -12,6 +12,7 @@ from project_management_muhick.muhick_finance import funds
 from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.muhick_finance.doctype.payment_plan import payment_plan
 from project_management_muhick.muhick_finance.doctype.reimbursement_claim import reimbursement_claim
+from project_management_muhick.muhick_finance.doctype.resource_allocation import resource_allocation
 from project_management_muhick.utils.common import FINANCE_ROLES, FM, GM, PM, administration_order, get_settings, notify_roles
 
 BANK_DETAILS = ("bank", "account_name", "bank_account_no", "iban", "branch_code", "party_type", "party")
@@ -43,6 +44,7 @@ def validate_payment_entry(doc, method=None):
 	sod.check_payment_entry(doc)
 	_check_payment_plan(doc)
 	_attach_project(doc)
+	resource_allocation.check_transfer(doc)
 
 
 def _attach_project(doc):
@@ -58,6 +60,7 @@ def _attach_project(doc):
 def after_payment(doc, method=None):
 	"""on_submit / on_cancel: refresh the paid figures, the payment plan and the claim status."""
 	payment_plan.on_payment(doc, cancelled=doc.docstatus == 2)
+	resource_allocation.on_transfer(doc, cancelled=doc.docstatus == 2)
 	invoices = [r.reference_name for r in doc.get("references") or [] if r.reference_doctype == "Purchase Invoice"]
 	orders = [r.reference_name for r in doc.get("references") or [] if r.reference_doctype == "Purchase Order"]
 	projects = set()

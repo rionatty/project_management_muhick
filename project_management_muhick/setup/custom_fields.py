@@ -273,6 +273,8 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_payment_plan_line", label="Payment Plan Line", fieldtype="Data", hidden=1, no_copy=1),
 			_ro("muhick_procurement_requisition", "Procurement Requisition", "Link", options="Procurement Requisition"),
 			_ro("muhick_subcontract_advance", "Subcontract Advance", "Link", options="Subcontract Advance"),
+			_ro("muhick_resource_allocation", "Resource Allocation", "Link", options="Resource Allocation"),
+			dict(fieldname="muhick_allocation_refund", label="Resource Allocation Refund", fieldtype="Data", hidden=1, no_copy=1),
 		],
 	),
 	"Opportunity Item": [dict(STAGE, in_list_view=1, columns=2)],

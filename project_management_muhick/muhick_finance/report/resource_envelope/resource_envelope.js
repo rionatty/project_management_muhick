@@ -11,7 +11,7 @@ frappe.query_reports["Resource Envelope"] = {
 			default: frappe.defaults.get_user_default("Company"),
 		},
 		{ fieldname: "as_at", label: __("As At"), fieldtype: "Date", default: frappe.datetime.get_today() },
-		{ fieldname: "by_account", label: __("Show Each Bank Account"), fieldtype: "Check" },
+		{ fieldname: "by_account", label: __("Show Each Bank Account"), fieldtype: "Check", default: 1 },
 	],
 	formatter(value, row, column, data, default_formatter) {
 		value = default_formatter(value, row, column, data);

@@ -7,11 +7,20 @@
  "field_order": [
   "refund_date",
   "amount",
-  "reference"
+  "from_bank_account",
+  "to_bank_account",
+  "transfer_entry",
+  "reference",
+  "exchange_rate",
+  "base_amount",
+  "bank_amount",
+  "received_amount",
+  "from_currency",
+  "to_currency"
  ],
  "fields": [
   {
-   "columns": 2,
+   "columns": 1,
    "fieldname": "refund_date",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -19,26 +28,97 @@
    "reqd": 1
   },
   {
-   "columns": 3,
+   "columns": 2,
    "fieldname": "amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Amount Refunded",
+   "options": "currency",
    "reqd": 1
   },
   {
-   "columns": 5,
+   "columns": 2,
+   "fieldname": "from_bank_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "From Bank Account",
+   "options": "Account"
+  },
+  {
+   "columns": 2,
+   "fieldname": "to_bank_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "To Bank Account",
+   "options": "Account"
+  },
+  {
+   "columns": 2,
+   "fieldname": "transfer_entry",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Internal Transfer",
+   "no_copy": 1,
+   "options": "Payment Entry",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
    "fieldname": "reference",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Reference"
+  },
+  {
+   "fieldname": "exchange_rate",
+   "fieldtype": "Float",
+   "label": "Exchange Rate",
+   "precision": "4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "base_amount",
+   "fieldtype": "Currency",
+   "label": "Amount in Company Currency",
+   "options": "company_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bank_amount",
+   "fieldtype": "Currency",
+   "label": "Amount From the Bank",
+   "options": "from_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "received_amount",
+   "fieldtype": "Currency",
+   "label": "Amount Into the Bank",
+   "options": "to_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "from_currency",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "From Account Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "to_currency",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "To Account Currency",
+   "options": "Currency",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-11-03 04:00:00.000000",
+ "modified": "2026-11-04 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Finance",
  "name": "Resource Allocation Refund",

@@ -314,6 +314,12 @@ and certificates, retention, payments and the controls around them.
   Allocation Register what has moved between projects and is still to refund. A Resource Allocation is prepared by
   Finance or the department in need and approved by the General Manager; when the project that owes is paid, or its
   refund date passes, Finance is told.
+- A Resource Allocation names the bank account the money is in and the one it goes to, and shows what each project holds
+  in each bank. It cannot go for approval for more than the project holds in that bank. Its amount is in that bank's
+  currency, with a rate where one is needed, and project figures stay in the company's currency. In the same bank the
+  money only changes hands between the projects and nothing posts; to another bank, approval raises a draft internal
+  transfer for Finance to complete, and the allocation reads Awaiting Transfer until they do. A refund works the same
+  way back. Allocations made before this count in the projects' totals only, as their bank is not known.
 - A project's Connections tab lists every document of the project in the order the work goes, from the bid to
   completion, and its Lifecycle section links the bid, quotation, handover, BOQ, budget and activity plan.
 - Every table in the desk with more columns than the page has room for scrolls sideways, with a bar always in sight

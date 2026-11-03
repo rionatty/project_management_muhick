@@ -64,9 +64,10 @@ def _entries(project, upto) -> list:
 				"date": allocation.transfer_date,
 				"document_type": "Resource Allocation",
 				"document": allocation.name,
+				"account": allocation.from_bank_account,
 				"details": ": ".join(filter(None, (movement.format(other), allocation.purpose))),
-				"money_in": 0.0 if lent else flt(allocation.amount),
-				"money_out": flt(allocation.amount) if lent else 0.0,
+				"money_in": 0.0 if lent else flt(allocation.base_amount),
+				"money_out": flt(allocation.base_amount) if lent else 0.0,
 			}
 		)
 		for refund in allocation.refunds:
@@ -76,9 +77,10 @@ def _entries(project, upto) -> list:
 					"date": refund.refund_date,
 					"document_type": "Resource Allocation",
 					"document": allocation.name,
+					"account": refund.from_bank_account,
 					"details": ": ".join(filter(None, (movement.format(other), refund.reference))),
-					"money_in": flt(refund.amount) if lent else 0.0,
-					"money_out": 0.0 if lent else flt(refund.amount),
+					"money_in": flt(refund.base_amount) if lent else 0.0,
+					"money_out": 0.0 if lent else flt(refund.base_amount),
 				}
 			)
 	return entries

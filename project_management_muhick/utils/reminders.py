@@ -6,7 +6,7 @@ their follow-ups."""
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, flt, formatdate, getdate, nowdate
+from frappe.utils import add_days, flt, fmt_money, formatdate, getdate, nowdate
 
 from project_management_muhick.utils.common import FINANCE_ROLES, GM, PRM, PRO, get_settings, notify, notify_roles, project_manager_of
 
@@ -276,14 +276,14 @@ def allocations_past_their_refund():
 	today = getdate(nowdate())
 	for a in frappe.get_all(
 		"Resource Allocation",
-		filters={"docstatus": 1, "status": ("in", ("Outstanding", "Partly Refunded")), "expected_refund_date": ("<", today)},
-		fields=["name", "from_project", "to_project", "outstanding_amount", "expected_refund_date"],
+		filters={"docstatus": 1, "status": ("in", ("Awaiting Transfer", "Outstanding", "Partly Refunded")), "expected_refund_date": ("<", today)},
+		fields=["name", "from_project", "to_project", "currency", "outstanding_amount", "expected_refund_date"],
 	):
 		if (today - getdate(a.expected_refund_date)).days % 7 == 1:
 			notify_roles(
 				FINANCE_ROLES,
 				_("{0}: {1} still to refund from {2} to {3}, expected on {4}.").format(
-					a.name, frappe.format_value(a.outstanding_amount, "Currency"), a.to_project, a.from_project, a.expected_refund_date
+					a.name, fmt_money(a.outstanding_amount, currency=a.currency), a.to_project, a.from_project, a.expected_refund_date
 				),
 				doc=frappe._dict(doctype="Resource Allocation", name=a.name),
 			)
