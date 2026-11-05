@@ -237,7 +237,7 @@ for dt, fl in CUSTOM.items():
 					err(f"{where}: {key} refers to missing field {ref}")
 
 # ------------------------------------------------------------------ 3. controllers
-DOC_ATTRS = {
+DOC_ATTRS = {"print_templates", 
 	"name", "doctype", "docstatus", "owner", "creation", "modified", "modified_by", "idx", "flags", "meta", "parent",
 	"get", "set", "append", "update", "save", "insert", "submit", "cancel", "delete", "reload", "db_set", "db_get",
 	"is_new", "has_value_changed", "get_doc_before_save", "check_permission", "add_comment", "as_dict", "run_method",

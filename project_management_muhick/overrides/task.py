@@ -10,6 +10,7 @@ milestone is complete. The milestone's form shows its activities, items and budg
 
 import frappe
 from frappe import _
+from frappe.desk.form.assign_to import close_all_assignments
 from frappe.utils import cstr, flt, getdate
 
 from project_management_muhick.muhick_projects import budget_engine
@@ -86,7 +87,39 @@ def on_update(doc, method=None):
 		project_api.update_progress(doc.project)
 
 
-def roll_up(phase):
+def set_progress(name, progress, on_date=None):
+	"""A task's progress as reported from site, with its status following as on its own form. Written directly, so the tasks
+	of one report can be finished together whichever comes first; the report has checked what the form checks."""
+	task = frappe.db.get_value(
+		"Task",
+		name,
+		["subject", "project", "parent_task", "status", "progress", "muhick_is_billing_milestone", "muhick_billing_status"],
+		as_dict=True,
+	)
+	status = calc.task_status(progress, task.status)
+	values = {"progress": progress, "status": status}
+	if status == "Completed" and task.status != "Completed":
+		values.update(_finished(on_date))
+		close_all_assignments("Task", name, ignore_permissions=True)
+	elif status != "Completed" and task.status == "Completed":
+		values.update(_reopened())
+	frappe.db.set_value("Task", name, values)
+	if task.parent_task:
+		roll_up(task.parent_task, on_date)
+	else:
+		_announce_completion(frappe._dict(task, doctype="Task", name=name, **values), task)
+		project_api.update_progress(task.project)
+
+
+def _finished(on_date=None) -> dict:
+	return {"completed_on": min(getdate(on_date), getdate()), "completed_by": frappe.session.user}
+
+
+def _reopened() -> dict:
+	return {"completed_on": None, "completed_by": None}
+
+
+def roll_up(phase, on_date=None):
 	"""A milestone's or section's progress is the weighted progress of what is under it, and goes on up from there."""
 	children = frappe.get_all(
 		"Task",
@@ -102,15 +135,21 @@ def roll_up(phase):
 		values["progress"] = progress
 	if all(c.status == "Completed" for c in children):
 		values.update(status="Completed", progress=100)
+		if task.status != "Completed":
+			values.update(_finished(on_date))
+	elif task.status == "Completed":
+		values.update(status="Working" if progress > 0 else "Open", **_reopened())
 	elif progress > 0 and task.status == "Open":
 		values["status"] = "Working"
+	elif progress <= 0 and task.status == "Working":
+		values["status"] = "Open"
 	if not values:
 		return
 	before = frappe._dict(progress=task.progress, status=task.status)
 	frappe.db.set_value("Task", phase, values, update_modified=False)
 	task.update(values)
 	if task.parent_task:
-		roll_up(task.parent_task)
+		roll_up(task.parent_task, on_date)
 	else:
 		_announce_completion(task, before)
 		project_api.update_progress(task.project)

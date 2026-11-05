@@ -1,0 +1,33 @@
+{#- A site report's progress on paper: each milestone with its tasks stepped in under it, as on the schedule. It takes the
+    place of the plain table on any of the report's print formats (Site Report.before_print). -#}
+{%- macro percent(value) -%}{{ "%g"|format((value or 0)|round(2)) }}%{%- endmacro -%}
+{%- macro day(value) -%}{{ frappe.utils.format_date(value) if value else "" }}{%- endmacro -%}
+<table class="table table-bordered table-condensed" style="font-size: 11px;">
+	<thead>
+		<tr>
+			<th style="width: 5%;">{{ _("ID") }}</th>
+			<th style="width: 33%;">{{ _("Task Name") }}</th>
+			<th style="width: 10%;">{{ _("Start") }}</th>
+			<th style="width: 10%;">{{ _("Finish") }}</th>
+			<th style="width: 7%;" class="text-right">{{ _("Planned %") }}</th>
+			<th style="width: 7%;" class="text-right">{{ _("Actual %") }}</th>
+			<th style="width: 7%;" class="text-right">{{ _("Variance %") }}</th>
+			<th>{{ _("Comments / Reason") }}</th>
+		</tr>
+	</thead>
+	<tbody>
+		{%- for row in doc.phases %}
+		{%- set milestone = not row.parent_task %}
+		<tr style="{{ 'background: #f4f5f6; font-weight: bold;' if milestone else ('font-weight: bold;' if row.is_group else '') }}">
+			<td>{{ row.row_id or "" }}</td>
+			<td style="padding-left: {{ 6 + (row.level or 0) * 14 }}px;">{{ (row.subject or row.phase) | e }}</td>
+			<td>{{ day(row.planned_start) }}</td>
+			<td>{{ day(row.planned_end) }}</td>
+			<td class="text-right">{{ percent(row.planned_percent) }}</td>
+			<td class="text-right">{{ percent(row.actual_percent) }}</td>
+			<td class="text-right">{{ percent(row.variance_percent) }}</td>
+			<td style="font-weight: normal;">{{ (row.remarks or "") | e }}</td>
+		</tr>
+		{%- endfor %}
+	</tbody>
+</table>

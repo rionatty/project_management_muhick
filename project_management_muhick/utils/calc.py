@@ -363,6 +363,21 @@ def planned_percent(start, end, on_date) -> float:
 	return round((on_date - start).days / (end - start).days * 100, 2)
 
 
+def task_status(progress, status) -> str:
+	"""A task's status once its progress is reported: done at 100%, and otherwise what it says, unless it has just begun, has
+	gone back to nothing or was done and no longer is."""
+	progress = _f(progress)
+	if progress >= 100:
+		return "Completed"
+	if status == "Completed":
+		return "Working" if progress > 0 else "Open"
+	if progress > 0 and status == "Open":
+		return "Working"
+	if progress <= 0 and status == "Working":
+		return "Open"
+	return status
+
+
 def weighted_progress(rows) -> float:
 	"""rows: (weight, percent) pairs. Unweighted rows share equally."""
 	rows = [(_f(w), _f(p)) for w, p in rows]

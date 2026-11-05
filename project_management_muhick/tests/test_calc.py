@@ -262,6 +262,17 @@ class TestProgress(unittest.TestCase):
 		self.assertEqual(calc.planned_percent("2026-01-01", "2026-01-11", "2025-12-31"), 0.0)
 		self.assertEqual(calc.planned_percent("2026-01-01", "2026-01-11", "2026-02-01"), 100.0)
 
+	def test_task_status(self):
+		self.assertEqual(calc.task_status(100, "Open"), "Completed")
+		self.assertEqual(calc.task_status(100, "Overdue"), "Completed")
+		self.assertEqual(calc.task_status(40, "Open"), "Working")
+		self.assertEqual(calc.task_status(40, "Overdue"), "Overdue")
+		self.assertEqual(calc.task_status(40, "Completed"), "Working")
+		self.assertEqual(calc.task_status(0, "Completed"), "Open")
+		self.assertEqual(calc.task_status(0, "Working"), "Open")
+		self.assertEqual(calc.task_status(0, "Open"), "Open")
+		self.assertEqual(calc.task_status(40, "Pending Review"), "Pending Review")
+
 	def test_weighted_progress(self):
 		self.assertEqual(calc.weighted_progress([(60, 100), (40, 50)]), 80.0)
 		self.assertEqual(calc.weighted_progress([(0, 100), (0, 50)]), 75.0)
