@@ -281,6 +281,17 @@
    "collapsible": 1,
    "indent": 0,
    "keep_closed": 0,
+   "label": "Locations",
+   "link_to": "Location",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
    "label": "Specification Change Request",
    "link_to": "Specification Change Request",
    "link_type": "DocType",
@@ -1311,7 +1322,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-05 09:00:00.000000",
+ "modified": "2026-11-05 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",

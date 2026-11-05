@@ -63,6 +63,8 @@ STANDARD_DOCTYPE_PERMISSIONS = {
 	# most stock entries are submitted directly by the storekeeper
 	"Stock Entry": {SK: SUBMIT, SSK: SUBMIT, PRM: APPROVE, FM: APPROVE, FO: APPROVE, PM: READ},
 	"Project": {GM: READ, FM: READ, FO: READ, PRM: READ, PRO: READ, SK: READ, SSK: READ, SE: READ},
+	# where consignments are; whoever handles goods or invoices adds to the list, as Stock User or Accounts User
+	"Location": {PM: READ, COO: READ, GM: READ},
 	"Task": {GM: READ, FM: READ, PRM: READ, PRO: READ, SSK: READ},
 	# the shared milestone list; Project Managers and the COO maintain it through Projects Manager
 	"Task Type": {SE: READ, GM: READ, FM: READ, FO: READ, PRM: READ, PRO: READ},

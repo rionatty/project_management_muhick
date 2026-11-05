@@ -19,8 +19,8 @@ frappe.ui.form.on("Import Shipment", {
 				__("Reserve Invoice"),
 				() => {
 					frappe.model.open_mapped_doc({
-						method: "erpnext.buying.doctype.purchase_order.purchase_order.make_purchase_invoice",
-						source_name: frm.doc.purchase_order,
+						method: "project_management_muhick.muhick_procurement.doctype.import_shipment.import_shipment.make_reserve_invoice",
+						frm: frm,
 					});
 				},
 				__("Create")

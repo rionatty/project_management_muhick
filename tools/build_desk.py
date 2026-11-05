@@ -49,7 +49,7 @@ CARDS = [
 	("Procurement", [
 		("Supplier Quotation", "Supplier Quotation", D), ("Procurement Requisition", "Procurement Requisition", D),
 		("Purchase Order", "Purchase Order", D), ("Goods Received Note", "Purchase Receipt", D),
-		("Consignment Tracking", "Import Shipment", D), ("Specification Change Request", "Specification Change Request", D),
+		("Consignment Tracking", "Import Shipment", D), ("Locations", "Location", D), ("Specification Change Request", "Specification Change Request", D),
 	]),
 	("Payments and Claims", [
 		("Payment Plan", "Payment Plan", D), ("Expense Claim", "Reimbursement Claim", D),

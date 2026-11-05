@@ -15,6 +15,7 @@
   "required_on_site_by",
   "column_break_2",
   "shipment_status",
+  "current_location",
   "is_delayed",
   "delay_reason",
   "manufacture_section",
@@ -150,6 +151,14 @@
    "label": "Status",
    "options": "Awaiting Manufacture\nIn Manufacture\nAwaiting Inspection\nInspected\nIn Transit\nAt Port\nClearing\nDelivered\nClosed",
    "reqd": 1
+  },
+  {
+   "fieldname": "current_location",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Current Location",
+   "options": "Location"
   },
   {
    "fieldname": "is_delayed",
@@ -494,9 +503,19 @@
    "group": "Landed Cost",
    "link_doctype": "Landed Cost Voucher",
    "link_fieldname": "muhick_import_shipment"
+  },
+  {
+   "group": "Goods and Invoices",
+   "link_doctype": "Purchase Invoice",
+   "link_fieldname": "muhick_import_shipment"
+  },
+  {
+   "group": "Goods and Invoices",
+   "link_doctype": "Purchase Receipt",
+   "link_fieldname": "muhick_import_shipment"
   }
  ],
- "modified": "2026-11-04 09:00:00.000000",
+ "modified": "2026-11-05 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Procurement",
  "name": "Import Shipment",

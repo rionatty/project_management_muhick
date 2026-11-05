@@ -137,6 +137,12 @@ BUDGET_CHECK = [
 	dict(fieldname="muhick_budget_remarks", label="Budget Check", fieldtype="Small Text", read_only=1, no_copy=1, print_hide=1),
 ]
 
+# where the goods are, from a list anyone handling them can add to, and the consignment that tells
+CONSIGNMENT_PLACE = [
+	dict(fieldname="muhick_location", label="Location", fieldtype="Link", options="Location", in_standard_filter=1, allow_on_submit=1, no_copy=1, print_hide=1),
+	dict(fieldname="muhick_import_shipment", label="Consignment", fieldtype="Link", options="Import Shipment", in_standard_filter=1, allow_on_submit=1, no_copy=1, print_hide=1),
+]
+
 MATERIAL_REQUEST = _chain(
 	"amended_from",
 	[
@@ -174,7 +180,7 @@ PURCHASE_INVOICE = _chain(
 		dict(fieldname="muhick_service_receipt_note", label="Service Receipt Note", fieldtype="Link", options="Service Receipt Note", no_copy=1),
 		*BUDGET_CHECK,
 	],
-)
+) + _chain("company", CONSIGNMENT_PLACE)
 
 CUSTOM_FIELDS = {
 	"Project": PROJECT,
@@ -275,7 +281,7 @@ CUSTOM_FIELDS = {
 			),
 		],
 	),
-	"Purchase Receipt": _chain("company", [ADMINISTRATION]) + _chain("project", BUDGET_CHECK),
+	"Purchase Receipt": _chain("company", [ADMINISTRATION]) + _chain("project", BUDGET_CHECK) + _chain("supplier_delivery_note", CONSIGNMENT_PLACE),
 	"Payment Request": _chain("company", [ADMINISTRATION]),
 	"Landed Cost Voucher": _chain("company", [_ro("muhick_import_shipment", "Consignment", "Link", options="Import Shipment")]),
 	"Purchase Order": _chain(

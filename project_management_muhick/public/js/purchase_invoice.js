@@ -3,6 +3,11 @@
 
 frappe.ui.form.on("Purchase Invoice", {
 	setup(frm) {
+		// raised from an order, it is on one of that order's consignments
+		frm.set_query("muhick_import_shipment", () => {
+			const orders = [...new Set((frm.doc.items || []).map((row) => row.purchase_order).filter(Boolean))];
+			return { filters: orders.length ? { purchase_order: ["in", orders] } : {} };
+		});
 		frm.set_query("muhick_service_receipt_note", () => ({
 			filters: {
 				subcontract_agreement: frm.doc.muhick_subcontract_agreement || "",

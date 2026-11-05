@@ -365,6 +365,46 @@ def validate_purchase_receipt(doc, method=None):
 	stock_api.refuse_client_store(doc)
 	sod.check_purchase_receipt(doc)
 	_check_budget_past_order(doc)
+	_place_on_consignment(doc)
+
+
+# ------------------------------------------------------------------ where a consignment is
+def _place_on_consignment(doc):
+	"""A receipt or invoice on an imported order belongs to its consignment: the one the order has, or the one chosen where it
+	has several. An invoice for freight or clearing names no order and can name its consignment all the same. It starts where
+	the consignment is, or else where the goods it bills were received."""
+	if doc.docstatus != 0 or doc.get("is_return"):
+		return
+	orders = {row.purchase_order for row in doc.items if row.purchase_order}
+	shipment = doc.get("muhick_import_shipment")
+	if shipment and orders:
+		order = frappe.db.get_value("Import Shipment", shipment, "purchase_order")
+		if order not in orders:
+			frappe.throw(_("Consignment {0} is for order {1}, which this document is not raised from.").format(shipment, order))
+	if not shipment and orders:
+		found = frappe.get_all("Import Shipment", filters={"purchase_order": ("in", list(orders))}, pluck="name")
+		if len(found) == 1:
+			shipment = doc.muhick_import_shipment = found[0]
+	if doc.get("muhick_location"):
+		return
+	if shipment:
+		doc.muhick_location = frappe.db.get_value("Import Shipment", shipment, "current_location")
+	receipts = [row.get("purchase_receipt") for row in doc.items if row.get("purchase_receipt")]
+	if not doc.get("muhick_location") and receipts:
+		doc.muhick_location = frappe.db.get_value("Purchase Receipt", receipts[0], "muhick_location")
+
+
+def update_consignment_location(doc, method=None):
+	"""The consignment is now where this document says, and its timeline keeps the trail. A document saved again with no move
+	leaves it alone, so an older one cannot pull it back."""
+	shipment, location = doc.get("muhick_import_shipment"), doc.get("muhick_location")
+	if not (shipment and location) or doc.get("is_return"):
+		return
+	if not (doc.has_value_changed("muhick_location") or doc.has_value_changed("muhick_import_shipment")):
+		return
+	if frappe.db.get_value("Import Shipment", shipment, "current_location") != location:
+		frappe.db.set_value("Import Shipment", shipment, "current_location", location)
+		frappe.get_doc("Import Shipment", shipment).add_comment("Info", _("Now at {0}, from {1} {2}.").format(location, _(doc.doctype), doc.name))
 
 
 # ------------------------------------------------------------------ Purchase Invoice
@@ -386,6 +426,7 @@ def validate_purchase_invoice(doc, method=None):
 	sod.check_purchase_invoice(doc)
 	if doc.docstatus == 0:
 		_check_budget_past_order(doc)
+	_place_on_consignment(doc)
 
 
 def before_submit_purchase_invoice(doc, method=None):

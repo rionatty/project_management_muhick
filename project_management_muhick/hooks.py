@@ -43,6 +43,7 @@ doctype_js = {
 	"Material Request": "public/js/material_request.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Purchase Order": "public/js/purchase_order.js",
+	"Purchase Receipt": "public/js/purchase_receipt.js",
 	"Supplier Quotation": "public/js/supplier_quotation.js",
 	"Sales Order": "public/js/sales_order.js",
 	"Stock Entry": "public/js/stock_entry.js",
@@ -80,6 +81,8 @@ _track = "project_management_muhick.utils.approval.track"
 _approval_events = {"on_update": _track, "on_submit": _track, "on_cancel": _track}
 # keeps the requested / purchased / consumed quantities on the project's BOQ lines current
 _boq = "project_management_muhick.muhick_projects.doctype.project_boq.project_boq.refresh_from_document"
+# a goods received note or purchase invoice says where its consignment now is
+_consignment_place = "project_management_muhick.overrides.buying.update_consignment_location"
 
 doc_events = {
 	"Lead": {"validate": "project_management_muhick.overrides.crm.validate_lead"},
@@ -122,6 +125,8 @@ doc_events = {
 	"Purchase Receipt": {
 		"validate": "project_management_muhick.overrides.buying.validate_purchase_receipt",
 		**_approval_events,
+		"on_update": [_track, _consignment_place],
+		"on_update_after_submit": _consignment_place,
 		"on_submit": [_track, "project_management_muhick.muhick_controls.matching.recheck_on_receipt"],
 		"on_cancel": [_track, "project_management_muhick.muhick_controls.matching.recheck_on_receipt"],
 	},
@@ -142,6 +147,8 @@ doc_events = {
 		"before_validate": "project_management_muhick.overrides.buying.before_validate_purchase_invoice",
 		"validate": "project_management_muhick.overrides.buying.validate_purchase_invoice",
 		"before_submit": "project_management_muhick.overrides.buying.before_submit_purchase_invoice",
+		"on_update": _consignment_place,
+		"on_update_after_submit": _consignment_place,
 		"on_submit": "project_management_muhick.overrides.buying.on_submit_purchase_invoice",
 		"on_cancel": "project_management_muhick.overrides.buying.on_cancel_purchase_invoice",
 	},

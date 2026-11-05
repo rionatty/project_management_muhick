@@ -99,6 +99,18 @@ def refresh_letter_of_credit(purchase_order):
 
 
 @frappe.whitelist()
+def make_reserve_invoice(source_name: str):
+	"""The invoice of a consignment's order, already on the consignment and where it is."""
+	from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_invoice
+
+	shipment = frappe.get_doc("Import Shipment", source_name)
+	shipment.check_permission("read")
+	invoice = make_purchase_invoice(shipment.purchase_order)
+	invoice.update({"muhick_import_shipment": shipment.name, "muhick_location": shipment.current_location})
+	return invoice
+
+
+@frappe.whitelist()
 def make_landed_cost_voucher(source_name: str):
 	"""The landed cost of a consignment, as a draft: its charges, spread by value over the goods received on its order."""
 	shipment = frappe.get_doc("Import Shipment", source_name)

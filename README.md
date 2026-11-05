@@ -130,6 +130,9 @@ and certificates, retention, payments and the controls around them.
   routed by budget status and by type of request, with a stock check.
 - Supplier selection approval, Procurement Requisition, Purchase Order and goods received note
   approvals, supplier onboarding, specification change requests, consignment tracking for imports.
+- A goods received note and a purchase invoice name their Location, from ERPNext's Location list, which whoever handles goods
+  or invoices can add to from the field, and their Consignment, found from the order. Location can still be changed once they
+  are submitted. The consignment's Current Location follows, and its timeline keeps the trail.
 - Supplier Quotation Comparison compares the quotations of one request for quotation, approved or not, as the supplier is
   chosen from it: each line requested with each supplier's rate and amount in the company's currency, the lowest marked,
   then each quotation's totals and terms. It takes the place of ERPNext's report of that name (install.py points the
