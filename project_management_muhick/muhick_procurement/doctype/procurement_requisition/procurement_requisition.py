@@ -22,13 +22,12 @@ from frappe.utils import cint, flt, fmt_money, formatdate, getdate, now_datetime
 from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.muhick_projects.utils import draft_status, leaving_draft
 from project_management_muhick.overrides import supplier as supplier_api
-from project_management_muhick.overrides.buying import OVER_BUDGET, _approved_overrun
+from project_management_muhick.overrides.buying import OVER_BUDGET, _approved_overrun, _requests_approved_over_budget
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.approval import get_route
 from project_management_muhick.utils.common import COO, FINANCE_ROLES, administration_purchase, get_settings, notify_roles
 
 BEING_PREPARED = (None, "", "Draft", "Rejected")
-RANK = {"Not Applicable": 0, "Within Budget": 1, "Exceeds Budget": 2, "Not Budgeted": 3}
 RISKS = ("Low", "Medium", "High")
 
 
@@ -95,6 +94,10 @@ class ProcurementRequisition(Document):
 				fields=["name", "stock_qty", "muhick_cost_code"],
 			)
 		}
+		items = {row.item_code for row in self.items}
+		costs = {
+			project: budget_engine.budget_costs(project, items) for project in {row.project or self.project for row in self.items} if project
+		}
 		for row in self.items:
 			exchange_rate = flt(row.conversion_rate) or 1
 			row.amount = flt(row.qty) * flt(row.rate)
@@ -108,7 +111,8 @@ class ProcurementRequisition(Document):
 				row.cost_code = source.muhick_cost_code
 			if not row.cost_code and row.project:
 				row.cost_code = budget_engine.get_budget_cost_code(row.project, row.item_code)
-			row.budget_rate = budget_engine.get_budget_rate(row.project, row.item_code) if row.project else 0
+			# what the budget allows for one of the row's own unit
+			row.budget_rate = flt(costs.get(row.project, {}).get(row.item_code)) * (row.stock_qty / flt(row.qty) if flt(row.qty) else 1)
 			row.price_variance = (flt(row.rate) * exchange_rate - flt(row.budget_rate)) * flt(row.qty) if flt(row.budget_rate) else 0
 			self.total_amount += row.base_amount
 			self.total_budget_amount += flt(row.budget_rate) * flt(row.qty)
@@ -138,22 +142,31 @@ class ProcurementRequisition(Document):
 			]
 		)
 
+	def item_rows(self, project) -> list:
+		return [(row.item_code, row.stock_qty, flt(row.base_amount), row.material_request_item) for row in self.items if row.project == project]
+
 	def set_budget_status(self):
 		"""Worst result across the projects on the requisition (normally one)."""
 		self.budget_status, remarks = "Not Applicable", []
+		self._full_route = False
 		# an over-budget Material Request that was approved covers the same value here
 		allowance = _approved_overrun(self)
+		covered = {row.name for row in _requests_approved_over_budget(self)}
 		for project, amounts in self.amounts_by_project().items():
 			status, note = budget_engine.evaluate(project, amounts, allowance=allowance.get(project))
 			status, note = budget_engine.with_quantities(project, status, note, self.new_quantities(project))
-			if RANK[status] > RANK[self.budget_status]:
+			# a price above the budget alone does not lengthen the route, or nearly every purchase would go all the way up
+			self._full_route = self._full_route or budget_engine.with_items(project, status, note, self.item_rows(project), covered, prices=False)[0] in OVER_BUDGET
+			status, note = budget_engine.with_items(project, status, note, self.item_rows(project), covered)
+			if budget_engine.RANK[status] > budget_engine.RANK[self.budget_status]:
 				self.budget_status = status
 			if note:
 				remarks.append(f"{project}: {note}")
 		self.budget_remarks = "; ".join(remarks)
 
 	def set_route(self):
-		"""Who approves follows the value and the risk. What is over budget takes the full route."""
+		"""Who approves follows the value and the risk. Over a cost code or a quantity, or an item not in the budget, takes the
+		full route."""
 		settings = get_settings()
 		reasons = [
 			reason
@@ -170,8 +183,7 @@ class ProcurementRequisition(Document):
 		before = self.get_doc_before_save()
 		if before and before.get("workflow_state") not in BEING_PREPARED and RISKS.index(self.risk_class) < RISKS.index(before.risk_class or "Low"):
 			self.risk_class = before.risk_class
-		over_budget = self.budget_status in OVER_BUDGET
-		self.approval_route = calc.FULL_ROUTE if over_budget else get_route(self.doctype, self.total_amount, self.risk_class)
+		self.approval_route = calc.FULL_ROUTE if self._full_route else get_route(self.doctype, self.total_amount, self.risk_class)
 
 	def check_rejection(self):
 		"""An approver says why it goes back. Once it is sent again the reason has served."""
@@ -245,6 +257,10 @@ class ProcurementRequisition(Document):
 			status, note = budget_engine.evaluate(project, amounts, allowance=_approved_overrun(self).get(project))
 			status, note = budget_engine.with_quantities(project, status, note, self.new_quantities(project))
 			budget_engine.enforce(self, "budget_action_on_purchase_order", status, f"{project}: {note}")
+			status, note = budget_engine.with_items(
+				project, "Within Budget", "", self.item_rows(project), {row.name for row in _requests_approved_over_budget(self)}
+			)
+			budget_engine.enforce(self, "budget_action_on_item", status, f"{project}: {note}")
 		self.status = "Approved"
 
 	def on_cancel(self):
@@ -368,7 +384,7 @@ def _quotation_lines(names, requisition=None) -> tuple[list, dict]:
 					"project": source.project or item.project or quotation.project,
 					"warehouse": item.warehouse or source.warehouse,
 					"schedule_date": item.expected_delivery_date or source.schedule_date,
-					"cost_code": source.muhick_cost_code,
+					"cost_code": source.muhick_cost_code or item.get("muhick_cost_code"),
 					"material_request": item.material_request,
 					"material_request_item": item.material_request_item,
 				}
@@ -529,6 +545,8 @@ def _over_budget_lines(requisition, project) -> list:
 	"""Per cost code and item, what goes over the budget: the price above budget, the quantity above budget, and at
 	least what the cost code is short of when the requisition is over budget."""
 	excess = budget_engine.quantities_over_budget(project, requisition.new_quantities(project))
+	held = budget_engine.budgeted_quantities(project, {row.item_code for row in requisition.items if row.project == project})[0]
+	covered = {row.name for row in _requests_approved_over_budget(requisition)}
 	lines = {}
 	for row in requisition.items:
 		if row.project != project:
@@ -537,6 +555,10 @@ def _over_budget_lines(requisition, project) -> list:
 			(row.cost_code or "", row.item_code),
 			frappe._dict(cost_code=row.cost_code, item_code=row.item_code, description=row.item_name, amount=0, qty=0, reasons=[]),
 		)
+		if row.item_code not in held and row.material_request_item not in covered:
+			line.amount += flt(row.base_amount)
+			line.qty += flt(row.stock_qty)
+			line.reasons.append(_("not in the approved budget"))
 		above_price = max(flt(row.price_variance), 0)
 		if above_price:
 			line.amount += above_price

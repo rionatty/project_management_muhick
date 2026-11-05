@@ -134,6 +134,13 @@ and certificates, retention, payments and the controls around them.
   chosen from it: each line requested with each supplier's rate and amount in the company's currency, the lowest marked,
   then each quotation's totals and terms. It takes the place of ERPNext's report of that name (install.py points the
   report at this app's module), so its links stay.
+- The budget is checked on items at each step of procurement: material request, request for quotation, supplier
+  quotation, requisition, order, goods received note and invoice each carry a Budget Status and Budget Check. Over a cost code
+  or an item's quantity stops the requisition and the order, as Muhick Settings says. An item the budget does not hold, or
+  priced above what it allows for one, is flagged for people to weigh: a supplier cannot be selected on it without a
+  justification, and it stops the requisition and order only if the setting Item Not in the Budget or Priced Above It says
+  Stop. A price alone does not lengthen the approval route. The budget's cost of an item is all its lines with approved
+  revisions, per stock unit; what an approved request has covered is not counted twice. None of it prints.
 - A Procurement Requisition is raised from one approved supplier quotation or several: Create on the
   quotation, Actions on the ticked quotations of the list, or Get Items From on the requisition. Each line
   keeps its source, its currency and, where it has one, its material request; a quotation's line goes on one

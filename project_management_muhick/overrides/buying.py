@@ -1,10 +1,15 @@
 # Copyright (c) 2026, CyveTech and contributors
 # For license information, please see license.txt
 
-"""Purchase Order, Purchase Receipt and Purchase Invoice hooks.
+"""Request for Quotation, Supplier Quotation, Purchase Order, Purchase Receipt and Purchase Invoice hooks.
 
 An approved Purchase Order is a commitment: it reduces the available project budget at once,
 before anything is paid.
+
+The budget is checked at each of them, as it is on the material request and the procurement requisition, and the result
+stays on the document. What each adds is what the step before has not already approved. Over a cost code, or over an item's
+quantity, stops the requisition and the order. An item the budget does not hold, or priced above it, is flagged for people
+to weigh, and stops them only if the settings say so.
 """
 
 from collections import defaultdict
@@ -28,7 +33,7 @@ OVER_BUDGET = ("Exceeds Budget", "Not Budgeted")
 
 
 def _projects(doc) -> set:
-	return {row.project for row in doc.items if row.project} | ({doc.project} if doc.get("project") else set())
+	return {row.get("project") for row in doc.items if row.get("project")} | ({doc.project} if doc.get("project") else set())
 
 
 def _fill_cost_codes(doc, source_doctype=None, source_field=None):
@@ -52,13 +57,12 @@ def _amounts_by_project(doc) -> dict:
 	return amounts
 
 
-def _approved_overrun(doc) -> dict:
-	"""Value of the order's lines that come from a Material Request already approved over budget."""
-	allowance = defaultdict(lambda: defaultdict(float))
+def _requests_approved_over_budget(doc) -> list:
+	"""The document's request rows whose Material Request was approved over budget."""
 	mr_rows = [row.material_request_item for row in doc.items if row.get("material_request_item")]
 	if not mr_rows:
-		return allowance
-	rows = frappe.db.sql(
+		return []
+	return frappe.db.sql(
 		"""
 		select mri.name, mri.amount, mri.project, ifnull(mri.muhick_cost_code, '') as cost_code
 		from `tabMaterial Request Item` mri
@@ -68,43 +72,119 @@ def _approved_overrun(doc) -> dict:
 		{"rows": tuple(mr_rows), "over": OVER_BUDGET},
 		as_dict=True,
 	)
-	for r in rows:
+
+
+def _approved_overrun(doc) -> dict:
+	"""Value of the document's lines that come from a Material Request already approved over budget."""
+	allowance = defaultdict(lambda: defaultdict(float))
+	for r in _requests_approved_over_budget(doc):
 		if r.project:
 			allowance[r.project][r.cost_code] += flt(r.amount)
 	return allowance
 
 
-def _check_budget(doc, enforce=False) -> bool:
-	"""Whether the document is over budget on any project."""
-	over_budget = False
-	allowance = _approved_overrun(doc) if doc.doctype == "Purchase Order" else {}
-	for project, amounts in _amounts_by_project(doc).items():
-		status, remarks = budget_engine.evaluate(project, amounts, allowance=allowance.get(project))
-		rows = [
-			(row.item_code, budget_engine.row_stock_qty(row), row.get("material_request_item"))
-			for row in doc.items
-			if row.item_code and (row.project or doc.get("project")) == project
-		]
-		status, remarks = budget_engine.with_quantities(project, status, remarks, budget_engine.beyond_requests(rows))
-		if status not in OVER_BUDGET:
-			continue
-		over_budget = True
+def _item_rows(doc, project, only=None) -> list:
+	"""The document's rows on a project as the budget's item check reads them, priced where the document has prices."""
+	return [
+		(row.item_code, budget_engine.row_stock_qty(row), flt(row.get("base_net_amount")), row.get("material_request_item"))
+		for row in doc.items
+		if (row.get("project") or row.get("project_name") or doc.get("project")) == project and (not only or only(row))
+	]
+
+
+def _set_budget_check(doc, amounts, quantities, allowance=None, covered=(), enforce=False, stops_on=None) -> bool:
+	"""Say on the document whether it is over budget, in its Budget Status and Budget Check; amounts and quantities: {project:
+	what it adds}. Returns whether that takes it the full approval route: a price above the budget alone does not, or nearly
+	every purchase would go all the way up."""
+	shown, notes, full_route = "Not Applicable", [], False
+	for project in sorted(_projects(doc) | {row.get("project_name") for row in doc.items if row.get("project_name")}):
+		rows = _item_rows(doc, project)
+		status, remarks = budget_engine.evaluate(project, amounts.get(project), allowance=(allowance or {}).get(project))
+		status, remarks = budget_engine.with_quantities(project, status, remarks, quantities.get(project) or {})
 		if enforce:
 			budget_engine.enforce(doc, "budget_action_on_purchase_order", status, f"{project}: {remarks}")
-		else:
-			frappe.msgprint(
-				_("{0}: {1}. {2}").format(project, _(status), remarks), title=_("Budget Check"), indicator="orange"
-			)
-	return over_budget
+			item_status, item_remarks = budget_engine.with_items(project, "Within Budget", "", _item_rows(doc, project, stops_on), covered)
+			budget_engine.enforce(doc, "budget_action_on_item", item_status, f"{project}: {item_remarks}")
+		full_route = full_route or budget_engine.with_items(project, status, remarks, rows, covered, prices=False)[0] in OVER_BUDGET
+		status, remarks = budget_engine.with_items(project, status, remarks, rows, covered)
+		if budget_engine.RANK[status] > budget_engine.RANK[shown]:
+			shown = status
+		if remarks:
+			notes.append((project, remarks))
+	doc.muhick_budget_status = shown
+	doc.muhick_budget_remarks = "; ".join(f"{project}: {remarks}" if len(notes) > 1 else remarks for project, remarks in notes)
+	return full_route
 
 
-# ------------------------------------------------------------------ Purchase Order
+def _check_budget(doc, enforce=False) -> bool:
+	"""A quotation or order: all of it is new money, but for what an approved request has already asked for."""
+	quantities = {}
+	for project in _amounts_by_project(doc):
+		quantities[project] = budget_engine.beyond_requests([(item, qty, source) for item, qty, _amount, source in _item_rows(doc, project) if item])
+	approved = _requests_approved_over_budget(doc)
+	return _set_budget_check(doc, _amounts_by_project(doc), quantities, _approved_overrun(doc), {r.name for r in approved}, enforce)
+
+
+def _check_budget_past_order(doc, enforce=False) -> bool:
+	"""A receipt or invoice: the order behind a line has been checked, so what has none is the new money, and only that can
+	stop it. A return gives money back, and a subcontract has its own check."""
+	if doc.get("muhick_subcontract_agreement") or doc.get("is_return"):
+		doc.muhick_budget_status, doc.muhick_budget_remarks = "Not Applicable", ""
+		return False
+	amounts = defaultdict(lambda: defaultdict(float))
+	quantities = defaultdict(lambda: defaultdict(float))
+	for row in doc.items:
+		project = row.project or doc.get("project")
+		if project and not row.purchase_order:
+			amounts[project][row.get("muhick_cost_code") or ""] += flt(row.base_net_amount)
+			if row.item_code:
+				quantities[project][row.item_code] += budget_engine.row_stock_qty(row)
+	covered = {r.name for r in _requests_approved_over_budget(doc)}
+	return _set_budget_check(doc, amounts, quantities, covered=covered, enforce=enforce, stops_on=lambda row: not row.purchase_order)
+
+
+# ------------------------------------------------------------------ Request for Quotation
+def validate_request_for_quotation(doc, method=None):
+	"""No prices yet: its items and quantities, beyond what approved requests have asked for."""
+	quantities = {}
+	for project in {row.project_name for row in doc.items if row.project_name}:
+		quantities[project] = budget_engine.beyond_requests([(item, qty, source) for item, qty, _amount, source in _item_rows(doc, project) if item])
+	_set_budget_check(doc, {}, quantities, covered={r.name for r in _requests_approved_over_budget(doc)})
+
+
+# ------------------------------------------------------------------ Supplier Quotation
 def validate_supplier_quotation(doc, method=None):
-	"""A quotation for one project carries it on its header, where the project's connections read it."""
+	"""A quotation for one project carries it on its header, where the project's connections read it, and on its rows. Its
+	prices are the first real ones, so each row shows what the budget allows beside what is quoted. One over budget can be
+	recorded, but its supplier is not chosen without a reason."""
 	projects = _projects(doc)
 	if not doc.get("project") and len(projects) == 1:
 		doc.project = projects.pop()
+	for row in doc.items:
+		row.project = row.project or doc.get("project")
 	doc.muhick_administration = administration_purchase(doc.items)
+	_fill_cost_codes(doc, "Material Request Item", "material_request_item")
+	_show_budget_on_rows(doc)
+	_check_budget(doc)
+	sent_on = doc.get("workflow_state") not in (None, "", "Draft", "Rejected")
+	if doc.muhick_budget_status in OVER_BUDGET and sent_on and not (doc.get("muhick_justification") or "").strip():
+		frappe.throw(_("This quotation is over budget: {0}. Enter a Justification before selecting this supplier.").format(doc.muhick_budget_remarks))
+
+
+def _show_budget_on_rows(doc):
+	"""What the budget holds of each row's item and allows for one, in the row's own unit."""
+	for project in {row.project for row in doc.items if row.project}:
+		items = {row.item_code for row in doc.items if row.project == project and row.item_code}
+		costs = budget_engine.budget_costs(project, items)
+		budgeted = budget_engine.budgeted_quantities(project, items)[0]
+		for row in doc.items:
+			if row.project == project:
+				factor = budget_engine.row_stock_qty(row) / flt(row.qty) if flt(row.qty) else 1
+				row.muhick_budget_qty = flt(budgeted.get(row.item_code)) / (factor or 1)
+				row.muhick_budget_rate = flt(costs.get(row.item_code)) * factor
+
+
+# ------------------------------------------------------------------ Purchase Order
 
 
 def validate_purchase_order(doc, method=None):
@@ -117,7 +197,10 @@ def validate_purchase_order(doc, method=None):
 	# checks only stop the order once it is sent for approval, so a draft can always be saved
 	enforce = doc.docstatus == 1 or doc.get("workflow_state") not in (None, "", "Draft", "Rejected")
 	if doc.docstatus == 0:
-		_set_route(doc, _check_budget(doc))
+		full_route = _check_budget(doc)
+		if doc.muhick_budget_status in OVER_BUDGET:
+			frappe.msgprint(doc.muhick_budget_remarks, title=_("Budget Check"), indicator="orange")
+		_set_route(doc, full_route)
 	_check_requisition(doc, enforce)
 	supplier_api.check_purchase_order(doc, enforce)
 	if doc.docstatus == 0 and doc.get("muhick_procurement_requisition"):
@@ -281,6 +364,7 @@ def validate_purchase_receipt(doc, method=None):
 	doc.muhick_administration = administration_order(doc.items)
 	stock_api.refuse_client_store(doc)
 	sod.check_purchase_receipt(doc)
+	_check_budget_past_order(doc)
 
 
 # ------------------------------------------------------------------ Purchase Invoice
@@ -300,23 +384,13 @@ def validate_purchase_invoice(doc, method=None):
 	_validate_subcontract_invoice(doc)
 	matching.apply(doc)
 	sod.check_purchase_invoice(doc)
+	if doc.docstatus == 0:
+		_check_budget_past_order(doc)
 
 
 def before_submit_purchase_invoice(doc, method=None):
 	# an invoice with no purchase order commits the budget itself
-	direct = defaultdict(lambda: defaultdict(float))
-	quantities = defaultdict(lambda: defaultdict(float))
-	if not doc.get("muhick_subcontract_agreement") and not doc.is_return:
-		for row in doc.items:
-			project = row.project or doc.get("project")
-			if project and not row.purchase_order:
-				direct[project][row.get("muhick_cost_code") or ""] += flt(row.base_net_amount)
-				if row.item_code:
-					quantities[project][row.item_code] += budget_engine.row_stock_qty(row)
-	for project, amounts in direct.items():
-		status, remarks = budget_engine.evaluate(project, amounts)
-		status, remarks = budget_engine.with_quantities(project, status, remarks, quantities[project])
-		budget_engine.enforce(doc, "budget_action_on_purchase_order", status, f"{project}: {remarks}")
+	_check_budget_past_order(doc, enforce=True)
 
 
 def _validate_subcontract_invoice(doc):

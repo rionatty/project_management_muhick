@@ -25,8 +25,11 @@ frappe.query_reports["Supplier Quotation Comparison"] = {
 		} else {
 			shown = default_formatter(value, row, column, data);
 		}
-		if (data && (data.lowest_cells || []).includes(column.fieldname)) {
-			shown = `<span style="color: var(--green-600, #16a34a); font-weight: 600;">${shown}</span>`;
+		// the lowest stands out, and a price above the budget reads red, even when it is the lowest
+		const lowest = data && (data.lowest_cells || []).includes(column.fieldname);
+		const above = data && (data.over_cells || []).includes(column.fieldname);
+		if (lowest || above) {
+			shown = `<span style="color: ${above ? "var(--red-600, #dc2626)" : "var(--green-600, #16a34a)"}; ${lowest ? "font-weight: 600;" : ""}">${shown}</span>`;
 		}
 		return data && (data.bold || (data.fact && column.fieldname === "item_name")) ? `<b>${shown}</b>` : shown;
 	},

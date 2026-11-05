@@ -28,6 +28,8 @@ from project_management_muhick.utils.common import setting, user_has_any_role
 UNALLOCATED = ""
 # the budget's sections that hold what is requested from procurement
 GOODS_SECTIONS = ("Equipment", "Installation Materials", "Tools and Equipment")
+RANK = {"Not Applicable": 0, "Within Budget": 1, "Exceeds Budget": 2, "Not Budgeted": 3}
+SAME_PRICE = 0.005
 
 
 # ------------------------------------------------------------------ lookups
@@ -59,15 +61,39 @@ def get_budget_rows(budget) -> dict:
 
 
 def get_budget_rate(project, item_code) -> float:
-	"""Budgeted cost of one unit of an item on the project's approved budget, in the company's currency
+	"""Budgeted cost of one stock unit of an item on the project's approved budget, in the company's currency
 	without VAT (0 when not budgeted)."""
+	return flt(budget_costs(project, {item_code}).get(item_code)) if item_code else 0.0
+
+
+def budget_costs(project, items=None) -> dict:
+	"""{item the approved budget holds: what one of its stock unit is budgeted at}, in the company's currency without VAT, over
+	all its lines with what approved revisions add to them."""
 	budget = get_approved_budget(project)
-	if not budget or not item_code:
-		return 0.0
-	line = frappe.db.get_value(
-		"Project Budget Line", {"parent": budget, "parenttype": "Project Budget", "item_code": item_code}, ["qty", "amount"], as_dict=True
-	)
-	return flt(line.amount) / flt(line.qty) if line and flt(line.qty) else 0.0
+	if not budget or (items is not None and not items):
+		return {}
+	quantities = budgeted_quantities(project, items)[0]
+	if not quantities:
+		return {}
+	named = ("in", list(quantities))
+	amounts = defaultdict(float)
+	for line in frappe.get_all(
+		"Project Budget Line", filters={"parent": budget, "parenttype": "Project Budget", "item_code": named}, fields=["item_code", "amount"]
+	):
+		amounts[line.item_code] += flt(line.amount)
+	revisions = frappe.get_all("Project Budget Revision", filters={"project_budget": budget, "docstatus": 1}, pluck="name")
+	if revisions:
+		for line in frappe.get_all(
+			"Project Budget Revision Line",
+			filters={"parent": ("in", revisions), "parenttype": "Project Budget Revision", "item_code": named},
+			fields=["item_code", "change_amount"],
+		):
+			amounts[line.item_code] += flt(line.change_amount)
+	return {item: amounts[item] / qty if qty else 0.0 for item, qty in quantities.items()}
+
+
+def _item_label(item) -> str:
+	return frappe.db.get_value("Item", item, "item_name") or item
 
 
 def line_places(project):
@@ -602,10 +628,10 @@ def quantity_overruns(project, quantities, milestone=None, exclude_request=None)
 		if item in placed:
 			subject = frappe.db.get_value("Task", milestone, "subject")
 			over.append(
-				_("{0}: {1} requested to date for {2} against {3} budgeted for it").format(item, f"{total:g}", subject, f"{budgeted[item]:g}")
+				_("{0}: {1} requested to date for {2} against {3} budgeted for it").format(_item_label(item), f"{total:g}", subject, f"{budgeted[item]:g}")
 			)
 		else:
-			over.append(_("{0}: {1} requested or ordered to date against {2} budgeted").format(item, f"{total:g}", f"{budgeted[item]:g}"))
+			over.append(_("{0}: {1} requested or ordered to date against {2} budgeted").format(_item_label(item), f"{total:g}", f"{budgeted[item]:g}"))
 	return over
 
 
@@ -687,6 +713,38 @@ def with_quantities(project, status, remarks, quantities, milestone=None, exclud
 	if not over:
 		return status, remarks
 	return (status if status == "Not Budgeted" else "Exceeds Budget"), "; ".join(filter(None, [remarks, *over]))
+
+
+def with_items(project, status, remarks, rows, covered=(), prices=True) -> tuple[str, str]:
+	"""A result with the document's items looked at one by one; rows: (item, stock quantity, amount in the company's currency
+	or nothing where it has no price yet, the request row it comes from). An item the approved budget does not hold is not
+	budgeted, unless it comes from a request approved as such (covered). One priced above what the budget allows for one
+	exceeds it. These are for people to weigh: a cost code with money left may well carry them."""
+	rows = [row for row in rows if row[0]]
+	if not rows:
+		return status, remarks
+	if not get_approved_budget(project):
+		return "Not Budgeted", remarks or _("Project {0} has no approved budget.").format(project)
+	totals = defaultdict(lambda: [0.0, 0.0, True])
+	for item, qty, amount, source in rows:
+		total = totals[item]
+		total[0] += flt(qty)
+		total[1] += flt(amount)
+		total[2] = total[2] and bool(source and source in covered)
+	costs = budget_costs(project, set(totals))
+	missing, above = [], []
+	for item, (qty, amount, is_covered) in totals.items():
+		if item not in costs:
+			if not is_covered:
+				missing.append(_("{0} is not in the approved budget").format(_item_label(item)))
+		elif prices and qty and amount and costs[item] and amount / qty - costs[item] > SAME_PRICE:
+			above.append(
+				_("{0}: {1} a unit against {2} budgeted").format(
+					_item_label(item), frappe.format_value(amount / qty, "Currency"), frappe.format_value(costs[item], "Currency")
+				)
+			)
+	found = "Not Budgeted" if missing else "Exceeds Budget" if above else "Within Budget"
+	return (status if RANK[status] > RANK[found] else found), "; ".join(filter(None, [remarks, *missing, *above]))
 
 
 def evaluate(project, amounts, pending_requests=False, exclude_material_request=None, allowance=None) -> tuple[str, str]:

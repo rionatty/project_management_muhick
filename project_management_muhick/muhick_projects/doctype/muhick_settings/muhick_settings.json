@@ -32,6 +32,7 @@
   "budget_action_on_subcontract",
   "column_break_4",
   "budget_action_on_requisition",
+  "budget_action_on_item",
   "budget_override_role",
   "min_subcontract_quotations",
   "estimates_section",
@@ -264,6 +265,13 @@
    "fieldname": "budget_action_on_requisition",
    "fieldtype": "Select",
    "label": "Requisition / Labour Exceeds Available Budget",
+   "options": "Stop\nWarn\nIgnore"
+  },
+  {
+   "default": "Warn",
+   "fieldname": "budget_action_on_item",
+   "fieldtype": "Select",
+   "label": "Item Not in the Budget or Priced Above It",
    "options": "Stop\nWarn\nIgnore"
   },
   {
@@ -685,7 +693,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-04 09:00:00.000000",
+ "modified": "2026-11-05 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Settings",

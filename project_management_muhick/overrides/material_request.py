@@ -44,7 +44,7 @@ def validate(doc, method=None):
 	if needs_reason and leaving_draft and not doc.get("muhick_justification"):
 		frappe.throw(
 			_("This request is {0}. Enter a justification before sending it for approval.").format(
-				_("outside the current phase") if doc.get("muhick_out_of_phase") else _(doc.muhick_budget_status).lower()
+				_("outside the current phase") if doc.get("muhick_out_of_phase") else _("over budget")
 			)
 		)
 
@@ -71,8 +71,9 @@ def _set_cost_codes(doc, project):
 def _row_amount(row, project) -> float:
 	if flt(row.amount):
 		return flt(row.amount)
-	rate = flt(row.rate) or budget_engine.get_budget_rate(project, row.item_code)
-	return flt(row.qty) * rate
+	if flt(row.rate):
+		return flt(row.qty) * flt(row.rate)
+	return budget_engine.row_stock_qty(row) * budget_engine.get_budget_rate(project, row.item_code)
 
 
 def _check_budget(doc, project):
@@ -92,8 +93,10 @@ def _check_budget(doc, project):
 	for row in doc.items:
 		if row.item_code and (row.project or project) == project:
 			quantities[row.item_code] += budget_engine.row_stock_qty(row)
-	doc.muhick_budget_status, doc.muhick_budget_remarks = budget_engine.with_quantities(
-		project, status, remarks, quantities, doc.get("muhick_phase"), doc.name
+	status, remarks = budget_engine.with_quantities(project, status, remarks, quantities, doc.get("muhick_phase"), doc.name)
+	# a request has no supplier's price yet, so its items are checked and not their prices
+	doc.muhick_budget_status, doc.muhick_budget_remarks = budget_engine.with_items(
+		project, status, remarks, [(item, qty, 0, None) for item, qty in quantities.items()]
 	)
 
 

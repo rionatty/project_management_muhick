@@ -129,6 +129,14 @@ PROJECT = _chain(
 	],
 )
 
+# never on a print: orders and requests for quotation go to suppliers
+BUDGET_CHECK = [
+	_sec("muhick_budget_section", "Budget Check", print_hide=1),
+	dict(fieldname="muhick_budget_status", label="Budget Status", fieldtype="Select", options=BUDGET_STATUS, read_only=1, no_copy=1, in_standard_filter=1, print_hide=1),
+	_col("muhick_budget_column"),
+	dict(fieldname="muhick_budget_remarks", label="Budget Check", fieldtype="Small Text", read_only=1, no_copy=1, print_hide=1),
+]
+
 MATERIAL_REQUEST = _chain(
 	"amended_from",
 	[
@@ -164,6 +172,7 @@ PURCHASE_INVOICE = _chain(
 	[
 		dict(fieldname="muhick_subcontract_agreement", label="Subcontract Agreement", fieldtype="Link", options="Subcontract Agreement", no_copy=1),
 		dict(fieldname="muhick_service_receipt_note", label="Service Receipt Note", fieldtype="Link", options="Service Receipt Note", no_copy=1),
+		*BUDGET_CHECK,
 	],
 )
 
@@ -173,6 +182,16 @@ CUSTOM_FIELDS = {
 	"Material Request Item": [dict(COST_CODE)],
 	"Purchase Order Item": [dict(COST_CODE)],
 	"Purchase Receipt Item": [dict(COST_CODE)],
+	"Supplier Quotation Item": [
+		dict(COST_CODE, print_hide=1),
+		*_chain(
+			"amount",
+			[
+				_ro("muhick_budget_qty", "Budget Qty", "Float", in_list_view=1, columns=1, print_hide=1),
+				_ro("muhick_budget_rate", "Budget Rate", "Currency", options="Company:company:default_currency", in_list_view=1, columns=1, print_hide=1),
+			],
+		),
+	],
 	"Purchase Invoice Item": [dict(COST_CODE)],
 	"Purchase Invoice": PURCHASE_INVOICE,
 	"Stock Entry": _chain(
@@ -244,8 +263,19 @@ CUSTOM_FIELDS = {
 			],
 		),
 	],
-	"Supplier Quotation": _chain("company", [ADMINISTRATION]),
-	"Purchase Receipt": _chain("company", [ADMINISTRATION]),
+	"Request for Quotation": _chain("suppliers", BUDGET_CHECK),
+	"Supplier Quotation": _chain("company", [ADMINISTRATION])
+	+ _chain(
+		"project",
+		[
+			*BUDGET_CHECK,
+			dict(
+				fieldname="muhick_justification", label="Justification", fieldtype="Small Text", print_hide=1, no_copy=1,
+				depends_on="eval:in_list(['Exceeds Budget','Not Budgeted'], doc.muhick_budget_status)",
+			),
+		],
+	),
+	"Purchase Receipt": _chain("company", [ADMINISTRATION]) + _chain("project", BUDGET_CHECK),
 	"Payment Request": _chain("company", [ADMINISTRATION]),
 	"Landed Cost Voucher": _chain("company", [_ro("muhick_import_shipment", "Consignment", "Link", options="Import Shipment")]),
 	"Purchase Order": _chain(
@@ -264,6 +294,7 @@ CUSTOM_FIELDS = {
 			dict(fieldname="muhick_acceptance_criteria", label="Acceptance Criteria", fieldtype="Small Text"),
 			_ro("muhick_risk_class", "Risk Class", "Select", options="\nLow\nMedium\nHigh"),
 			_ro("muhick_approval_route", "Approval Route", "Select", options="\nFirst Approver Only\nUp to Second Approver\nFull Route"),
+			*BUDGET_CHECK,
 		],
 	),
 	"Payment Entry": _chain(

@@ -3,8 +3,8 @@
 
 """Supplier Quotation Comparison: the quotations of one request for quotation side by side, approved or not, because the
 supplier is chosen from this before its quotation goes for approval. Each line requested is a row with each supplier's
-price and amount in the company's currency, so that any two can be weighed, and the lowest marked; what a supplier quoted
-beyond the request follows, then each quotation's totals and terms.
+price and amount in the company's currency, so that any two can be weighed, beside what the project's budget allows, and the
+lowest marked; what a supplier quoted beyond the request follows, then each quotation's totals and terms.
 
 ERPNext's report of this name lists the quotations of a period one after the other. install.py points the report at this
 module, so the sidebar and the request for quotation's View menu open this one."""
@@ -14,6 +14,8 @@ from collections import defaultdict
 import frappe
 from frappe import _
 from frappe.utils import flt, fmt_money, formatdate
+
+from project_management_muhick.muhick_projects import budget_engine
 
 SAME = 0.005
 
@@ -29,19 +31,31 @@ def execute(filters=None):
 	requested = frappe.get_all(
 		"Request for Quotation Item",
 		filters={"parent": request},
-		fields=["name", "item_code", "item_name", "qty", "uom", "stock_qty", "conversion_factor"],
+		fields=["name", "item_code", "item_name", "qty", "uom", "stock_qty", "conversion_factor", "project_name"],
 		order_by="idx asc",
 	)
 	cells, extras = _quoted(request, requested, quotations)
-	rows = [_row(line, line.name, quotations, cells, home) for line in requested]
-	rows += [_row(line, key, quotations, cells, home) for key, line in extras.items()]
+	budgets = _budgets(requested)
+	rows = [_row(line, line.name, quotations, cells, home, budgets) for line in requested]
+	rows += [_row(line, key, quotations, cells, home, budgets) for key, line in extras.items()]
 	rows += _totals(quotations, requested, cells, home)
 	message = []
 	if not quotations:
 		message.append(_("No quotations have been recorded against {0} yet.").format(request))
 	if expired:
 		message.append(_("{0} expired quotations are left out.").format(expired))
-	return _columns(quotations, requested, cells), rows, " ".join(message) or None
+	return _columns(quotations, requested, cells, budgets), rows, " ".join(message) or None
+
+
+def _budgets(requested) -> dict:
+	"""{(project, item): (quantity, cost of one stock unit)} on the approved budgets of the lines requested."""
+	budgets = {}
+	for project in {line.project_name for line in requested if line.project_name}:
+		items = {line.item_code for line in requested if line.project_name == project}
+		costs = budget_engine.budget_costs(project, items)
+		for item, qty in budget_engine.budgeted_quantities(project, items)[0].items():
+			budgets[(project, item)] = (flt(qty), flt(costs.get(item)))
+	return budgets
 
 
 def _quotations(request, include_expired) -> tuple:
@@ -110,10 +124,14 @@ def _lowest(values) -> list:
 	return [index for index, value in values.items() if value - min(values.values()) < SAME] if values else []
 
 
-def _row(line, key, quotations, cells, home) -> dict:
+def _row(line, key, quotations, cells, home, budgets) -> dict:
 	row = {
 		"item_code": line.item_code, "item_name": line.item_name, "qty": line.get("qty"), "uom": line.uom, "currency": home,
 	}
+	factor = flt(line.get("conversion_factor")) or 1
+	budget_qty, budget_cost = budgets.get((line.get("project_name"), line.item_code), (None, None))
+	if budget_qty is not None:
+		row.update(budget_qty=budget_qty / factor, budget_rate=budget_cost * factor)
 	rates = {}
 	for index, quotation in enumerate(quotations):
 		cell = cells.get((quotation.name, key))
@@ -131,6 +149,7 @@ def _row(line, key, quotations, cells, home) -> dict:
 	lowest = _lowest(rates)
 	row["lowest"] = ", ".join(quotations[index].supplier_name for index in lowest)
 	row["lowest_cells"] = [f"rate_{index}" for index in lowest]
+	row["over_cells"] = [f"rate_{index}" for index, rate in rates.items() if rate and budget_cost and rate - budget_cost * factor > SAME]
 	return row
 
 
@@ -177,13 +196,18 @@ def _totals(quotations, requested, cells, home) -> list:
 	return rows
 
 
-def _columns(quotations, requested, cells) -> list:
+def _columns(quotations, requested, cells, budgets) -> list:
 	columns = [
 		{"fieldname": "item_code", "label": _("Item"), "fieldtype": "Link", "options": "Item", "width": 130},
 		{"fieldname": "item_name", "label": _("Item Name"), "fieldtype": "Data", "width": 240},
 		{"fieldname": "qty", "label": _("Qty"), "fieldtype": "Float", "width": 80},
 		{"fieldname": "uom", "label": _("UOM"), "fieldtype": "Data", "width": 70},
 	]
+	if budgets:
+		columns += [
+			{"fieldname": "budget_qty", "label": _("Budget Qty"), "fieldtype": "Float", "width": 90},
+			{"fieldname": "budget_rate", "label": _("Budget Rate"), "fieldtype": "Currency", "options": "currency", "width": 120},
+		]
 	wanted = {line.name: flt(line.stock_qty) for line in requested}
 	names = [quotation.supplier_name for quotation in quotations]
 	for index, quotation in enumerate(quotations):

@@ -109,6 +109,7 @@ doc_events = {
 		"validate": "project_management_muhick.overrides.supplier.validate",
 		"after_insert": "project_management_muhick.overrides.supplier.after_insert",
 	},
+	"Request for Quotation": {"validate": "project_management_muhick.overrides.buying.validate_request_for_quotation"},
 	"Supplier Quotation": {**_approval_events, "validate": "project_management_muhick.overrides.buying.validate_supplier_quotation"},
 	"Purchase Order": {
 		"validate": "project_management_muhick.overrides.buying.validate_purchase_order",
