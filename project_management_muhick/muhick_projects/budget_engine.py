@@ -264,14 +264,14 @@ def _casual_sheets(project, pos):
 	rows = frappe.get_all(
 		"Casual Sheet",
 		filters={"project": project, "docstatus": 1},
-		fields=["cost_code", "status", "total_amount"],
+		fields=["cost_code", "status", "total_amount", "paid_amount"],
 	)
 	for r in rows:
 		bucket = pos[r.cost_code or UNALLOCATED]
 		bucket["committed"] += flt(r.total_amount)
 		bucket["actual"] += flt(r.total_amount)
-		if r.status == "Paid":
-			bucket["paid"] += flt(r.total_amount)
+		# one marked paid before a sheet could be paid in part has no paid amount
+		bucket["paid"] += flt(r.paid_amount) or (flt(r.total_amount) if r.status == "Paid" else 0)
 
 
 def _reimbursement_claims(project, pos):

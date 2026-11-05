@@ -267,11 +267,21 @@ for name, d in OURS.items():
 		continue
 	fields = fields_of(name)
 	value_fields = {k for k, v in fields.items() if v["fieldtype"] not in NO_VALUE or v["fieldtype"] in ("Table", "Table MultiSelect")}
-	methods = {n.name for n in cls.body if isinstance(n, ast.FunctionDef)}
+	# a class of this app that the controller is mixed with is checked against its fields as its own code is
+	mixed = []
+	for base in cls.bases:
+		if isinstance(base, ast.Name) and base.id != "Document":
+			for imported in tree.body:
+				if isinstance(imported, ast.ImportFrom) and any(a.name == base.id for a in imported.names):
+					path = os.path.join(APP, *imported.module.split(".")) + ".py"
+					if os.path.exists(path):
+						mixed += [n for n in ast.parse(open(path, encoding="utf-8").read()).body if isinstance(n, ast.ClassDef) and n.name == base.id]
+	methods = {n.name for c in (cls, *mixed) for n in c.body if isinstance(n, ast.FunctionDef)}
+	methods |= {t.id for c in (cls, *mixed) for n in c.body if isinstance(n, ast.Assign) for t in n.targets if isinstance(t, ast.Name)}
 	for clash in (methods | frappe_doc_names) & set(fields):
 		err(f"{name}: fieldname '{clash}' clashes with a controller / Document method")
 	tables = {k: v["options"] for k, v in fields.items() if v["fieldtype"] == "Table"}
-	for node in ast.walk(cls):
+	for node in (n for c in (cls, *mixed) for n in ast.walk(c)):
 		if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "self":
 			a = node.attr
 			if a not in value_fields and a not in methods and a not in DOC_ATTRS and not a.startswith("_"):

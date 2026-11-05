@@ -8,7 +8,7 @@ from frappe import _
 from frappe.utils import flt
 
 from project_management_muhick.muhick_controls import matching, sod
-from project_management_muhick.muhick_finance import funds
+from project_management_muhick.muhick_finance import cash_requisition, funds
 from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.muhick_finance.doctype.payment_plan import payment_plan
 from project_management_muhick.muhick_finance.doctype.reimbursement_claim import reimbursement_claim
@@ -189,3 +189,4 @@ def on_submit_journal_entry(doc, method=None):
 def on_cancel_journal_entry(doc, method=None):
 	reimbursement_claim.on_refund(doc, cancelled=True)
 	payment_plan.on_journal_entry(doc, cancelled=True)
+	cash_requisition.on_entry_cancelled(doc)

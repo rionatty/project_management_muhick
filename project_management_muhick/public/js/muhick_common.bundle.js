@@ -850,3 +850,98 @@ muhick.run = function (frm, method, args) {
 muhick.prompt_and_run = function (frm, title, fields, method) {
 	frappe.prompt(fields, (values) => muhick.run(frm, method, values), title);
 };
+
+// BEGIN cash requisitions: the same for a project's and a bid's
+muhick.setup_cash_requisition = function (frm) {
+	const company = () => ({ company: frm.doc.company || "" });
+	frm.set_query("employee", () => ({
+		query: "project_management_muhick.muhick_finance.cash_requisition.employee_query",
+		filters: company(),
+	}));
+	["items", "expenses"].forEach((table) => {
+		frm.set_query("expense_account", table, () => ({
+			query: "project_management_muhick.muhick_finance.cash_requisition.expense_account_query",
+			filters: company(),
+		}));
+	});
+};
+
+muhick.cash_requisition_actions = function (frm) {
+	const status = frm.doc.status;
+	const finance = frappe.user.has_role(["Finance Manager", "Finance Officer", "System Manager"]);
+	if (status === "Approved") {
+		muhick.show_payment_schedule(frm);
+		return;
+	}
+	if (["Rejected", "Cancelled"].includes(status)) {
+		return;
+	}
+	frm.add_custom_button(
+		__("Accountability Form"),
+		() => frappe.utils.print(frm.doctype, frm.doc.name, `${frm.doctype} Accountability Form`, frm.doc.letter_head || ""),
+		__("View")
+	);
+	if (status === "Paid") {
+		frm.set_intro(__("Enter what each line cost, with receipts, in the Accountability section, save, then submit the accountability."), "blue");
+		frm.add_custom_button(__("Submit Accountability"), () => {
+			// save the expense lines first so the server sees them
+			const submit = () => muhick.run(frm, "submit_accountability");
+			frm.is_dirty() ? frm.save("Update").then(submit) : submit();
+		}).addClass("btn-primary");
+	}
+	if (status === "Accountability Submitted" && finance) {
+		frm.add_custom_button(__("Verify Accountability"), () => {
+			frappe.confirm(__("Have the expenses been checked against the supporting documents? They will be posted to the expense accounts."), () =>
+				muhick.run(frm, "verify_accountability")
+			);
+		}).addClass("btn-primary");
+	}
+	if (status !== "Accounted") {
+		return;
+	}
+	const reference = { fieldname: "reference", fieldtype: "Data", label: __("Reference") };
+	if (flt(frm.doc.balance_to_return) > 0 && finance) {
+		const posting = frm.doc.issue_entry
+			? [
+					{
+						fieldname: "bank_account",
+						fieldtype: "Link",
+						options: "Account",
+						label: __("Received Into"),
+						reqd: 1,
+						default: frm.doc.paid_from,
+						get_query: () => ({ filters: { company: frm.doc.company, is_group: 0, account_type: ["in", ["Bank", "Cash"]] } }),
+					},
+					{ fieldname: "on_date", fieldtype: "Date", label: __("Date"), reqd: 1, default: frappe.datetime.get_today() },
+			  ]
+			: [];
+		frm.add_custom_button(__("Record Balance Returned"), () => {
+			muhick.prompt_and_run(
+				frm,
+				__("Balance Returned by the Requester"),
+				[
+					{
+						fieldname: "amount",
+						fieldtype: "Currency",
+						label: __("Amount Returned"),
+						reqd: 1,
+						default: flt(frm.doc.balance_to_return) - flt(frm.doc.returned_amount),
+					},
+					...posting,
+					reference,
+				],
+				"record_return"
+			);
+		}).addClass("btn-primary");
+	}
+	if (flt(frm.doc.reimbursement_due) > 0) {
+		if (frm.doc.issue_entry) {
+			frm.set_intro(__("{0} is due back to the requester. It goes on the next weekly payment plan.", [format_currency(flt(frm.doc.reimbursement_due) - flt(frm.doc.reimbursed_amount))]), "blue");
+		} else if (finance) {
+			frm.add_custom_button(__("Record Reimbursement Paid"), () => {
+				muhick.prompt_and_run(frm, __("Reimbursement Paid"), [reference], "record_reimbursement");
+			}).addClass("btn-primary");
+		}
+	}
+};
+// END cash requisitions

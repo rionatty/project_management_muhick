@@ -92,26 +92,26 @@ def ensure_milestone(name):
 
 
 def check_overdue_accountability(doc):
-	"""No new cash request while one of the requester's earlier ones is past its accountability date
-	and the accountability has still not been submitted."""
+	"""No new cash request while an earlier one, of the person asking or the person it goes to and for a project or a bid, is
+	past its accountability date and the accountability has still not been submitted."""
 	if not setting("block_requisition_if_pending_accountability", 1):
 		return
-	overdue = frappe.get_all(
-		doc.doctype,
-		filters={
-			"requested_by": doc.requested_by,
-			"docstatus": 1,
-			"status": "Paid",
-			"accountability_due_date": ("<", nowdate()),
-			"name": ("!=", doc.name or ""),
-		},
-		fields=["name", "accountability_due_date"],
-		order_by="accountability_due_date asc",
-	)
+	overdue = {}
+	for doctype in ("Project Requisition", "Sales Requisition"):
+		for person in ({"requested_by": doc.requested_by}, {"employee": doc.get("employee")}):
+			if not all(person.values()):
+				continue
+			for row in frappe.get_all(
+				doctype,
+				filters={**person, "docstatus": 1, "status": "Paid", "accountability_due_date": ("<", nowdate()), "name": ("!=", doc.name or "")},
+				fields=["name", "accountability_due_date"],
+			):
+				overdue[row.name] = row
+	overdue = sorted(overdue.values(), key=lambda row: row.accountability_due_date)
 	if overdue:
 		frappe.throw(
 			_("{0} has not accounted for {1}. Submit that accountability before requesting more funds.").format(
-				doc.requested_by,
+				doc.get("payee") or doc.requested_by,
 				", ".join(_("{0} (due {1})").format(r.name, formatdate(r.accountability_due_date)) for r in overdue),
 			),
 			title=_("Accountability Overdue"),

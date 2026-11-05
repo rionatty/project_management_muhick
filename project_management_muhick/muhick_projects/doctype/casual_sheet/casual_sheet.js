@@ -4,22 +4,16 @@
 frappe.ui.form.on("Casual Sheet", {
 	setup(frm) {
 		muhick.set_project_queries(frm);
+		frm.set_query("expense_account", () => ({
+			query: "project_management_muhick.muhick_finance.cash_requisition.expense_account_query",
+			filters: { company: frm.doc.company || "" },
+		}));
 	},
 
 	refresh(frm) {
-		const finance = frappe.user.has_role(["Finance Manager", "Finance Officer", "System Manager"]);
-		if (frm.doc.docstatus === 1 && frm.doc.status === "Approved" && finance) {
-			frm.add_custom_button(__("Record Payment"), () => {
-				muhick.prompt_and_run(
-					frm,
-					__("Wages Paid"),
-					[
-						{ fieldname: "paid_on", fieldtype: "Date", label: __("Paid On"), reqd: 1, default: frappe.datetime.get_today() },
-						{ fieldname: "payment_reference", fieldtype: "Data", label: __("Payment Reference") },
-					],
-					"mark_paid"
-				);
-			}).addClass("btn-primary");
+		// its wages are paid from the weekly payment plan
+		if (frm.doc.docstatus === 1 && frm.doc.status === "Approved") {
+			muhick.show_payment_schedule(frm);
 		}
 	},
 });

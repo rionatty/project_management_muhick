@@ -73,10 +73,18 @@ def cash_requisitions(project) -> list:
 		filters={"project": project, "docstatus": 1, "status": ("not in", ("Rejected", "Cancelled"))},
 		fields=[
 			"name", "requisition_date", "phase", "purpose_title", "payee", "status", "accountability_due_date", "total_amount",
-			"amount_issued", "amount_spent", "returned_amount", "reimbursement_due", "budget_remarks",
+			"amount_issued", "amount_spent", "returned_amount", "reimbursement_due", "reimbursed_amount", "budget_remarks",
 		],
 	)
 	subjects = _subjects(doc.phase for doc in docs)
+	# what the person said of a line that was not what was asked for
+	reasons = defaultdict(list)
+	if docs:
+		for line in frappe.get_all(
+			"Project Requisition Expense", filters={"parent": ("in", [doc.name for doc in docs])}, fields=["parent", "description", "reason"]
+		):
+			if line.reason:
+				reasons[line.parent].append(f"{line.description}: {line.reason}")
 	rows = []
 	for doc in docs:
 		position = calc.accountability_position(doc.amount_issued, doc.amount_spent, doc.returned_amount)
@@ -96,9 +104,9 @@ def cash_requisitions(project) -> list:
 				"balance": flt(doc.amount_issued) - flt(doc.amount_spent),
 				"returned": flt(doc.returned_amount),
 				"to_return": position["balance_outstanding"] if verified else 0,
-				"to_pay": flt(doc.reimbursement_due) if doc.status == "Accounted" else 0,
+				"to_pay": flt(doc.reimbursement_due) - flt(doc.reimbursed_amount) if doc.status == "Accounted" else 0,
 				"variance": flt(doc.amount_spent) - flt(doc.total_amount) if flt(doc.amount_spent) else 0,
-				"comments": doc.budget_remarks,
+				"comments": "; ".join(reasons[doc.name]) or doc.budget_remarks,
 			}
 		)
 	return rows
@@ -275,12 +283,12 @@ def casual_sheets(project) -> list:
 	docs = frappe.get_all(
 		"Casual Sheet",
 		filters={"project": project, "docstatus": 1, "status": ("not in", ("Rejected", "Cancelled"))},
-		fields=["name", "period_to", "phase", "status", "scheduled_amount", "total_amount", "variance", "variance_explanation"],
+		fields=["name", "period_to", "phase", "status", "scheduled_amount", "total_amount", "paid_amount", "variance", "variance_explanation"],
 	)
 	subjects = _subjects(doc.phase for doc in docs)
 	rows = []
 	for doc in docs:
-		paid = flt(doc.total_amount) if doc.status == "Paid" else 0
+		paid = flt(doc.paid_amount) or (flt(doc.total_amount) if doc.status == "Paid" else 0)
 		rows.append(
 			{
 				"document_type": "Casual Sheet",

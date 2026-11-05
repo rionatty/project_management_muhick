@@ -284,6 +284,13 @@ CUSTOM_FIELDS = {
 		_ro("muhick_reimbursement_claim", "Reimbursement Claim", "Link", options="Reimbursement Claim", insert_after="user_remark"),
 		_ro("muhick_payment_plan", "Payment Plan", "Link", options="Payment Plan", insert_after="muhick_reimbursement_claim"),
 		dict(fieldname="muhick_payment_plan_line", label="Payment Plan Line", fieldtype="Data", hidden=1, no_copy=1, insert_after="muhick_payment_plan"),
+		dict(fieldname="muhick_requisition_type", label="Requisition Type", fieldtype="Link", options="DocType", hidden=1, read_only=1, no_copy=1, insert_after="muhick_payment_plan_line"),
+		dict(fieldname="muhick_requisition", label="Requisition", fieldtype="Dynamic Link", options="muhick_requisition_type", read_only=1, no_copy=1, depends_on="muhick_requisition", insert_after="muhick_requisition_type"),
+		dict(fieldname="muhick_requisition_step", label="Requisition Step", fieldtype="Data", read_only=1, no_copy=1, depends_on="muhick_requisition", insert_after="muhick_requisition"),
+	],
+	# the account people's cash is held on until they account for it, each under their own name as its party
+	"Company": [
+		dict(fieldname="muhick_staff_advance_account", label="Staff Advance Account", fieldtype="Link", options="Account", insert_after="default_payable_account"),
 	],
 	"Lead": [
 		# the lead's own Email belongs to its contact person; the organisation has its own

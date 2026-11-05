@@ -885,7 +885,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Procurement and Finance Reports",
-   "link_count": 10,
+   "link_count": 11,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -984,6 +984,17 @@
    "label": "Payment Plan Execution",
    "link_count": 0,
    "link_to": "Payment Plan Execution",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Staff Cash Held",
+   "link_count": 0,
+   "link_to": "Staff Cash Held",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
@@ -1233,7 +1244,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-03 06:00:00.000000",
+ "modified": "2026-11-05 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",

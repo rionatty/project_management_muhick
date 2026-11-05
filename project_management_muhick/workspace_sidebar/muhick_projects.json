@@ -1051,6 +1051,17 @@
    "collapsible": 1,
    "indent": 0,
    "keep_closed": 0,
+   "label": "Staff Cash Held",
+   "link_to": "Staff Cash Held",
+   "link_type": "Report",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
    "label": "Withholding Tax Register",
    "link_to": "Withholding Tax Register",
    "link_type": "Report",
@@ -1300,7 +1311,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-03 06:00:00.000000",
+ "modified": "2026-11-05 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Projects",
  "name": "Muhick Projects",

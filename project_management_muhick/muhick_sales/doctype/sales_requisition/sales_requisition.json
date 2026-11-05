@@ -13,6 +13,8 @@
   "requisition_date",
   "required_by",
   "requested_by",
+  "employee",
+  "payee",
   "column_break_2",
   "status",
   "workflow_state",
@@ -27,6 +29,8 @@
   "issued_on",
   "column_break_4",
   "payment_reference",
+  "paid_from",
+  "issue_entry",
   "accountability_due_date",
   "accountability_section",
   "expenses",
@@ -37,7 +41,11 @@
   "column_break_5",
   "returned_amount",
   "return_reference",
+  "reimbursed_amount",
+  "accountability_entry",
   "verified_by",
+  "verified_on",
+  "accountability_submitted_on",
   "amended_from"
  ],
  "fields": [
@@ -98,6 +106,20 @@
    "in_standard_filter": 1,
    "label": "Prepared By",
    "options": "User",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Money Given To",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "payee",
+   "fieldtype": "Data",
+   "label": "Pay To",
    "read_only": 1
   },
   {
@@ -195,6 +217,24 @@
   },
   {
    "allow_on_submit": 1,
+   "fieldname": "paid_from",
+   "fieldtype": "Link",
+   "label": "Paid From",
+   "no_copy": 1,
+   "options": "Account",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "issue_entry",
+   "fieldtype": "Link",
+   "label": "Journal Entry",
+   "no_copy": 1,
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
    "fieldname": "accountability_due_date",
    "fieldtype": "Date",
    "label": "Accountability Due",
@@ -266,11 +306,44 @@
   },
   {
    "allow_on_submit": 1,
+   "fieldname": "reimbursed_amount",
+   "fieldtype": "Currency",
+   "label": "Refunded to Requester",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "accountability_entry",
+   "fieldtype": "Link",
+   "label": "Posted to Expenses By",
+   "no_copy": 1,
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
    "fieldname": "verified_by",
    "fieldtype": "Link",
    "label": "Verified By",
    "no_copy": 1,
    "options": "User",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "verified_on",
+   "fieldtype": "Datetime",
+   "label": "Verified On",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "accountability_submitted_on",
+   "fieldtype": "Datetime",
+   "label": "Accountability Submitted On",
+   "no_copy": 1,
    "read_only": 1
   },
   {
@@ -286,8 +359,14 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
- "links": [],
- "modified": "2026-10-25 11:14:38.737390",
+ "links": [
+  {
+   "group": "Accounting",
+   "link_doctype": "Journal Entry",
+   "link_fieldname": "muhick_requisition"
+  }
+ ],
+ "modified": "2026-11-05 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Muhick Sales",
  "name": "Sales Requisition",

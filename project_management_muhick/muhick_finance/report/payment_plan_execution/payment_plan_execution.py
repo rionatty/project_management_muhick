@@ -2,11 +2,14 @@
 # For license information, please see license.txt
 
 """Accountability for the payment plans: every approved line against what was actually paid,
-and the reason for anything held, not executed or paid at a different amount."""
+and the reason for anything held, not executed or paid at a different amount. Cash given to a person shows what they have
+accounted for and what is still to come back or be refunded."""
 
 import frappe
 from frappe import _
 from frappe.utils import flt
+
+from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import PAID_TO_A_PERSON
 
 
 def execute(filters=None):
@@ -30,6 +33,10 @@ def execute(filters=None):
 		{"fieldname": "journal_entry", "label": _("Journal Entry"), "fieldtype": "Link", "options": "Journal Entry", "width": 160},
 		{"fieldname": "payment_reference", "label": _("Payment Reference"), "fieldtype": "Data", "width": 150},
 		{"fieldname": "hold_reason", "label": _("Reason Held / Not Executed"), "fieldtype": "Data", "width": 280},
+		{"fieldname": "accountability", "label": _("Accountability"), "fieldtype": "Data", "width": 170},
+		{"fieldname": "spent", "label": _("Spent"), "fieldtype": "Currency", "width": 130},
+		{"fieldname": "to_return", "label": _("Still to Return"), "fieldtype": "Currency", "width": 130},
+		{"fieldname": "to_refund", "label": _("Still to Refund"), "fieldtype": "Currency", "width": 130},
 	]
 	conditions, params = ["p.docstatus = 1"], {}
 	if filters.plan:
@@ -59,5 +66,16 @@ def execute(filters=None):
 		r.not_paid = max(flt(r.approved_amount) - flt(r.paid_amount), 0)
 		if filters.only_unpaid and r.not_paid <= 0.005 and r.line_status == "Paid":
 			continue
+		if r.reference_doctype in PAID_TO_A_PERSON:
+			cash = frappe.db.get_value(
+				r.reference_doctype,
+				r.reference_name,
+				["status", "amount_spent", "balance_to_return", "returned_amount", "reimbursement_due", "reimbursed_amount"],
+				as_dict=True,
+			)
+			r.accountability = _(cash.status)
+			r.spent = flt(cash.amount_spent)
+			r.to_return = flt(cash.balance_to_return) - flt(cash.returned_amount)
+			r.to_refund = flt(cash.reimbursement_due) - flt(cash.reimbursed_amount)
 		data.append(r)
 	return columns, data

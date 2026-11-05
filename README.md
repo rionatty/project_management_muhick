@@ -109,7 +109,8 @@ and certificates, retention, payments and the controls around them.
   and its date recorded. The Milestones tab holds weights, valuations and claims, and Items Required what
   each milestone needs. The first approved dates stay as a baseline, and revisions state why the schedule
   moved.
-- Cash requisitions with accountability, weekly labour schedules and casual sheets.
+- Cash requisitions with accountability, weekly labour schedules and casual sheets, paid from the weekly payment
+  plan. Cash goes on the person's account until they account for it; see Finance and controls.
 - Subcontract RFQ and evaluation, emailed or printed for the subcontractors with no budget or other bidders on it;
   agreement; a requisition for its advance, signed off by Finance and the General Manager and paid from the payment
   plan; and a service receipt note that gates the invoice, once its milestone is complete. The payment plan pays that
@@ -154,8 +155,15 @@ and certificates, retention, payments and the controls around them.
 
 **Finance and controls**
 
-- Weekly or monthly payment plan from which supplier payments are raised; the money for a bid (sales
-  requisitions and bid security requests) and the bank fees of guarantees and bonds falling due are
+- Cash given to a person, on a project requisition or a sales requisition, goes on their account: the Company's Staff
+  Advance Account, with them as its party. Each requisition line is mapped to an expense account, from its cost code or
+  type. The plan's journal entry pays their account from the line's bank and opens the accountability, with a line for each
+  line requisitioned. They enter what each cost, with its receipt and the reason for any difference; Finance's verifying
+  posts it to the expense accounts out of their account. If they spent less they return the rest (Record Balance Returned
+  posts it back to the bank), and if they spent more the refund goes on the next plan. Their account ends at nothing, Staff
+  Cash Held shows who holds what, and the Accountability Form prints it all for signing.
+- Weekly or monthly payment plan from which supplier payments are raised; casual sheets, bid security requests and the
+  bank fees of guarantees and bonds falling due are
   paid from it only, with a draft journal entry from the line's account to the expense account on each of the
   document's own lines, which marks the document paid when it is submitted. A line's account fills in from its
   Financial Requirement Type; a bank fee's is on its instrument. Expense claims are refunded by journal entry.
@@ -275,8 +283,8 @@ and certificates, retention, payments and the controls around them.
   shows the amount.
 - Sales requisitions for the cost of preparing a bid, paid through the weekly payment plan only: the
   journal entry raised from its approved plan line records the money issued, with the date it must be accounted for
-  by, and the requisition shows the plan it is on. As for project requisitions, a new one is refused only while an earlier one of
-  the same person is past that date and still not accounted for.
+  by, and the requisition shows the plan it is on. As for project requisitions, a new one is refused only while an earlier one,
+  of the same person or given to them, for a project or a bid, is past that date and still not accounted for.
 - Bid security requests, raised from the opportunity with their securities and the expenses of
   obtaining them (one-off or recurring) as lines: the Finance Manager approves one (the General
   Manager is told) or rejects it with the reason, after which it is amended and sent again or left
@@ -300,7 +308,7 @@ and certificates, retention, payments and the controls around them.
 
 **Reports, dashboard and printing**
 
-- Twenty-eight reports: budget position, budget cash plan, project accountability, portfolio, material consumption, procurement status, phase
+- Twenty-nine reports: staff cash held, budget position, budget cash plan, project accountability, portfolio, material consumption, procurement status, phase
   plan, proposed against certified valuations, retention, pending approvals, price trends,
   equipment history, subcontractor and freight forwarder performance, bid register, bid margin comparison, bank facility
   utilisation, resource envelope, funds needed by project, project funds statement, resource allocation register,
@@ -381,6 +389,7 @@ again: it only creates what is missing.
      retention invoicing method (confirm with Finance).
    - Approvals: limits by value and risk, allowed hours per approval step, escalation role.
    - Controls and Procurement and Payments: each control is Off, Warn or Block. They start on Warn.
+   - On the Company, set Staff Advance Account. Give each person who takes cash an Employee record, with their user on it.
    - Procurement and Payments: Approved Purchase Order to the Supplier is Email or Print Only. Email goes
      to real addresses as soon as outgoing email is set up, so use Print Only while testing with real
      suppliers.

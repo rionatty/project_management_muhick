@@ -4,8 +4,8 @@
 """Weekly or monthly payment plan: the list of what Finance proposes to pay in the period, set
 against the cash and bank position. It is approved by the Finance Manager and then the General
 Manager, who may reduce an amount or hold a line. Payments are then raised from the approved
-lines, so every supplier payment traces back to an approved plan. The money for a bid (its sales
-requisitions and bid security requests) and the bank fees of guarantees and bonds falling due are
+lines, so every supplier payment traces back to an approved plan. Cash requisitions, for a project or
+a bid, casual sheets, bid security requests and the bank fees of guarantees and bonds falling due are
 paid from the plan only, with a journal entry. Each line says which bank account pays it; the position shows what that
 leaves in each account. A supplier may go on the plan as soon as its requisition is approved: the
 payment is then linked to the line and the requisition, and carried to the order and the invoice.
@@ -26,10 +26,18 @@ DONE = ("Paid", "Held", "Not Executed")
 OPEN_PLAN = ("Draft", "Pending Approval", "Approved")
 # documents paid with a Payment Entry; the others are paid from their own form
 PAID_BY_PAYMENT_ENTRY = ("Purchase Invoice", "Purchase Order", "Payment Request", "Procurement Requisition", "Subcontract Advance")
-# documents with no supplier, paid with a Journal Entry to the expense accounts on their own lines: the method that
-# records the money on the document when the entry is submitted
-PAID_BY_JOURNAL_ENTRY = {"Sales Requisition": "mark_paid", "Bid Security Request": "issue_funds", "Bank Instrument": "pay_fees"}
+# documents with no supplier, paid with a Journal Entry: the method that records the money on the document when the entry
+# is submitted
+PAID_BY_JOURNAL_ENTRY = {
+	"Project Requisition": "mark_paid",
+	"Sales Requisition": "mark_paid",
+	"Casual Sheet": "mark_paid",
+	"Bid Security Request": "issue_funds",
+	"Bank Instrument": "pay_fees",
+}
 RAISED_FROM_PLAN = (*PAID_BY_PAYMENT_ENTRY, *PAID_BY_JOURNAL_ENTRY)
+# of those, the ones paid to a person's account until they account for it; the others go straight to their expense accounts
+PAID_TO_A_PERSON = ("Project Requisition", "Sales Requisition")
 # a guarantee or bond whose bank fees are still charged
 FEES_RUNNING = ("Requested", "Active", "Cancellation Requested")
 
@@ -217,12 +225,14 @@ class PaymentPlan(Document):
 			details = self.requisition_details(line, source)
 		elif dt == "Payment Request":
 			details = (source.party, source.project, self.left_on_request(line, source), source.transaction_date)
-		elif dt == "Project Requisition":
-			outstanding = flt(source.total_amount) - flt(source.amount_issued)
-			details = (source.payee or source.requested_by, source.project, outstanding, source.required_by)
-		elif dt == "Sales Requisition":
-			outstanding = flt(source.total_amount) - flt(source.amount_issued)
-			details = (source.requested_by, None, outstanding, source.required_by)
+		elif dt in PAID_TO_A_PERSON:
+			# what they were given, or once they have accounted for more than that, what they are refunded
+			outstanding = (
+				flt(source.reimbursement_due) - flt(source.reimbursed_amount)
+				if source.status == "Accounted"
+				else flt(source.total_amount) - flt(source.amount_issued)
+			)
+			details = (source.payee or source.requested_by, source.get("project"), outstanding, source.required_by)
 		elif dt == "Bid Security Request":
 			outstanding = flt(source.funds_required) - flt(source.amount_issued)
 			details = (source.requested_by, None, outstanding, source.required_by)
@@ -231,7 +241,7 @@ class PaymentPlan(Document):
 			bank = frappe.db.get_value("Bank Facility", source.bank_facility, "bank") if source.bank_facility else None
 			details = (bank or source.title, source.project, sum(flt(f.amount) for f in fees), fees[0].due_date if fees else None)
 		elif dt == "Casual Sheet":
-			outstanding = 0 if source.status == "Paid" else source.total_amount
+			outstanding = 0 if source.status == "Paid" else flt(source.total_amount) - flt(source.paid_amount)
 			details = (_("Casual labour"), source.project, outstanding, source.period_to)
 		else:
 			outstanding = 0 if source.status == "Paid" else source.total_amount
@@ -389,7 +399,16 @@ class PaymentPlan(Document):
 				filters={"company": self.company, "docstatus": 1, "status": "Approved"},
 				fields=["name", f"{amount} as amount", f"{title} as title"],
 			):
-				self.add_line(doctype, doc.name, doc.amount, doc.title)
+				values = {"mode_of_payment": frappe.db.get_value(doctype, doc.name, "mode_of_payment")} if doctype == "Project Requisition" else {}
+				self.add_line(doctype, doc.name, None if doctype == "Casual Sheet" else doc.amount, doc.title, **values)
+		# who accounted for more than they were given is refunded
+		for doctype, title in (("Project Requisition", "purpose_title"), ("Sales Requisition", "organisation")):
+			for doc in frappe.get_all(
+				doctype,
+				filters={"company": self.company, "docstatus": 1, "status": "Accounted", "reimbursement_due": (">", 0), "issue_entry": ("is", "set")},
+				fields=["name", f"{title} as title"],
+			):
+				self.add_line(doctype, doc.name, None, _("Refund: {0}").format(doc.title))
 
 	@frappe.whitelist()
 	def get_approved_requisitions(self):
@@ -558,10 +577,10 @@ def _account_position(account) -> dict:
 
 
 def _journal_entry(plan, row):
-	"""The draft that pays a line with no supplier: from the line's account to the expense accounts on the document's own
-	lines, shared out if the plan approved less than they ask for. The bank's reference is entered before it is submitted,
-	and submitting it marks the document paid."""
-	expenses = frappe.get_doc(row.reference_doctype, row.reference_name).expense_lines()
+	"""The draft that pays a line with no supplier: from the line's account to the person's, if they are to account for it,
+	or else to the expense accounts on the document's own lines, shared out if the plan approved less than they ask for. The
+	bank's reference is entered before it is submitted, and submitting it marks the document paid."""
+	doc = frappe.get_doc(row.reference_doctype, row.reference_name)
 	amount = flt(row.approved_amount)
 	cost_center = frappe.get_cached_value("Company", plan.company, "cost_center")
 	entry = frappe.new_doc("Journal Entry")
@@ -576,11 +595,16 @@ def _journal_entry(plan, row):
 			"muhick_payment_plan_line": row.name,
 		}
 	)
-	for (account, _amount, remark), share in zip(expenses, calc.share_out([e[1] for e in expenses], amount)):
-		entry.append(
-			"accounts",
-			{"account": account, "debit_in_account_currency": share, "project": row.project, "cost_center": cost_center, "user_remark": remark},
-		)
+	if row.reference_doctype in PAID_TO_A_PERSON:
+		entry.update(doc.plan_entry())
+		entry.append("accounts", doc.staff_row(debit=amount))
+	else:
+		expenses = doc.expense_lines()
+		for (account, _amount, remark), share in zip(expenses, calc.share_out([e[1] for e in expenses], amount)):
+			entry.append(
+				"accounts",
+				{"account": account, "debit_in_account_currency": share, "project": row.project, "cost_center": cost_center, "user_remark": remark},
+			)
 	entry.append("accounts", {"account": row.paid_from, "credit_in_account_currency": amount, "project": row.project})
 	return entry
 
@@ -757,10 +781,12 @@ def on_payment(entry, cancelled=False):
 		carry_payment(entry.muhick_subcontract_advance)
 
 
-def check_expense_accounts(doc, rows):
-	"""Every line a document pays for posts to an expense account: its own, or else the one its type has."""
+def check_expense_accounts(doc, rows, source=("Financial Requirement Type", "expense_type")):
+	"""Every line a document pays for posts to an expense account: its own, or else the one its type or cost code has."""
+	master, field = source
 	for row in rows:
-		row.expense_account = row.expense_account or frappe.db.get_value("Financial Requirement Type", row.expense_type, "expense_account")
+		if not row.expense_account and row.get(field):
+			row.expense_account = frappe.db.get_value(master, row.get(field), "expense_account")
 	missing = [str(row.idx) for row in rows if flt(row.amount) and not row.expense_account]
 	if missing:
 		frappe.throw(_("Choose the Expense Account on line {0} of {1}.").format(", ".join(missing), doc.name))

@@ -11,6 +11,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, nowdate
 
+from project_management_muhick.muhick_finance.doctype.payment_plan.payment_plan import settle_plan_line
 from project_management_muhick.muhick_projects import budget_engine
 from project_management_muhick.muhick_projects.utils import draft_status, leaving_draft, validate_dates
 from project_management_muhick.utils.common import FINANCE_ROLES, notify, require_roles
@@ -32,6 +33,8 @@ class CasualSheet(Document):
 		self.set_schedule_variance()
 		self.budget_status, self.budget_remarks = budget_engine.evaluate(self.project, {self.cost_code: self.total_amount})
 		self.status = draft_status(self)
+		if self.docstatus == 0 and leaving_draft(self):
+			self.expense_lines()
 
 	def set_schedule_variance(self):
 		scheduled = frappe.get_all(
@@ -64,12 +67,34 @@ class CasualSheet(Document):
 		self.db_set("status", "Cancelled")
 		budget_engine.refresh_projects([self.project])
 
-	@frappe.whitelist()
-	def mark_paid(self, paid_on: str | None = None, payment_reference: str | None = None):
-		"""Finance records the wage payment (outgoing payment process)."""
+	def expense_lines(self) -> list:
+		"""What its payment posts: the wages, to its expense account. A casual sheet is its own accounting."""
+		self.expense_account = self.expense_account or frappe.db.get_value("Cost Code", self.cost_code, "expense_account")
+		if not self.expense_account:
+			frappe.throw(_("Choose the Expense Account on {0}.").format(self.name))
+		return [(self.expense_account, flt(self.total_amount), _("Casual labour, {0} to {1}").format(self.period_from, self.period_to))]
+
+	def mark_paid(self, amount: float, paid_on: str | None = None, payment_reference: str | None = None):
+		"""The plan's journal entry is submitted: the wages are paid, in full or towards them."""
 		require_roles(*FINANCE_ROLES)
 		if self.docstatus != 1 or self.status != "Approved":
 			frappe.throw(_("Only an approved, unpaid casual sheet can be marked as paid."))
-		self.db_set({"status": "Paid", "paid_on": paid_on or nowdate(), "payment_reference": payment_reference})
+		paid = flt(self.paid_amount) + flt(amount)
+		self.db_set(
+			{
+				"paid_amount": paid,
+				"status": "Paid" if paid >= flt(self.total_amount) - 0.005 else "Approved",
+				"paid_on": paid_on or nowdate(),
+				"payment_reference": payment_reference,
+			}
+		)
+		settle_plan_line(self.doctype, self.name, flt(amount))
 		budget_engine.refresh_projects([self.project])
 		notify([self.owner], _("Casual sheet {0} has been paid.").format(self.name), doc=self)
+
+	def reverse_funds(self, reference=None):
+		"""The plan's journal entry is cancelled: what it paid is owed again."""
+		require_roles(*FINANCE_ROLES)
+		paid = flt(self.paid_amount) - flt(frappe.db.get_value("Journal Entry", reference, "total_debit"))
+		self.db_set({"paid_amount": max(paid, 0), "status": "Approved", "paid_on": None, "payment_reference": None})
+		budget_engine.refresh_projects([self.project])

@@ -1,0 +1,127 @@
+{#- The accountability form: what was given to the person against a requisition, line by line what each was to cost and
+    what it did cost, why any differs, and what comes back or is owed. Its columns follow the business's assessment sheet. -#}
+{%- from "templates/print_formats/standard_macros.html" import add_header with context -%}
+{%- macro money(value) -%}{{ frappe.utils.fmt_money(value or 0, precision=0 if (value or 0) == ((value or 0) | int) else 2) }}{%- endmacro -%}
+{%- macro signature(role, user, on) -%}
+<td>
+	<div class="sign-role">{{ role }}</div>
+	<div class="sign-name">{{ frappe.get_fullname(user) if user else "" }}</div>
+	<div class="sign-line">{{ _("Signature") }}</div>
+	<div class="sign-line">{{ _("Date") }}: {{ frappe.utils.format_date(on) if on else "" }}</div>
+</td>
+{%- endmacro -%}
+{%- set home_currency = frappe.db.get_value("Company", doc.company, "default_currency") -%}
+{%- set on_project = doc.doctype == "Project Requisition" -%}
+{%- set requested = doc.expenses | map(attribute="requested_amount") | map("float") | sum -%}
+{%- set spent = doc.expenses | map(attribute="amount") | map("float") | sum -%}
+{%- set still_returned = (doc.balance_to_return or 0) - (doc.returned_amount or 0) -%}
+{%- set still_refunded = (doc.reimbursement_due or 0) - (doc.reimbursed_amount or 0) -%}
+
+<style>
+	.muhick-accountability h3.form-title { margin: 6px 0 10px; text-align: center; font-weight: bold; letter-spacing: 1px; }
+	.muhick-accountability table.facts { width: 100%; margin-bottom: 10px; font-size: 12px; }
+	.muhick-accountability table.facts td { padding: 2px 8px 2px 0; vertical-align: top; }
+	.muhick-accountability table.facts td.label { width: 16%; font-weight: bold; }
+	.muhick-accountability table.grid { width: 100%; border-collapse: collapse; font-size: 11px; }
+	.muhick-accountability table.grid th,
+	.muhick-accountability table.grid td { border: 1px solid #333; padding: 4px 5px; vertical-align: top; }
+	.muhick-accountability table.grid th { text-align: center; font-weight: bold; }
+	.muhick-accountability .num { text-align: right; white-space: nowrap; }
+	.muhick-accountability .mid { text-align: center; }
+	.muhick-accountability tr.total td { font-weight: bold; }
+	.muhick-accountability table.position { width: 45%; margin: 12px 0 0 auto; border-collapse: collapse; font-size: 12px; }
+	.muhick-accountability table.position td { border: 1px solid #333; padding: 4px 6px; }
+	.muhick-accountability table.position tr.due td { font-weight: bold; }
+	.muhick-accountability table.signatures { width: 100%; margin-top: 26px; font-size: 12px; page-break-inside: avoid; }
+	.muhick-accountability table.signatures td { width: 33%; padding: 0 12px 0 0; vertical-align: top; }
+	.muhick-accountability .sign-role { font-weight: bold; }
+	.muhick-accountability .sign-name { min-height: 18px; }
+	.muhick-accountability .sign-line { margin-top: 16px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+</style>
+
+<div class="muhick-accountability">
+	{{ add_header(1, 1, doc, letter_head, no_letterhead, footer, print_settings, "<span></span>") }}
+	<h3 class="form-title">{{ _("ACCOUNTABILITY FORM") }}</h3>
+	<table class="facts">
+		<tr>
+			<td class="label">{{ _("Requisition") }}</td><td>{{ doc.name }}</td>
+			<td class="label">{{ _("Given To") }}</td><td>{{ doc.payee or frappe.get_fullname(doc.requested_by) }}</td>
+		</tr>
+		<tr>
+			{%- if on_project -%}
+			<td class="label">{{ _("Project") }}</td><td>{{ doc.project_name or doc.project }}</td>
+			{%- else -%}
+			<td class="label">{{ _("Bid") }}</td><td>{{ doc.organisation or doc.opportunity }}</td>
+			{%- endif -%}
+			<td class="label">{{ _("Given On") }}</td><td>{{ frappe.utils.format_date(doc.issued_on) if doc.issued_on else "" }}</td>
+		</tr>
+		<tr>
+			<td class="label">{{ _("Purpose") }}</td><td>{{ doc.purpose_title if on_project else doc.remarks or "" }}</td>
+			<td class="label">{{ _("Paid From") }}</td><td>{{ doc.paid_from or "" }}</td>
+		</tr>
+		<tr>
+			<td class="label">{{ _("Status") }}</td><td>{{ _(doc.status) }}</td>
+			<td class="label">{{ _("Account By") }}</td><td>{{ frappe.utils.format_date(doc.accountability_due_date) if doc.accountability_due_date else "" }}</td>
+		</tr>
+	</table>
+
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="width: 4%">{{ _("S/N") }}</th>
+				<th>{{ _("Items") }}</th>
+				{%- if on_project %}<th style="width: 11%">{{ _("Cost Code") }}</th>{% endif %}
+				<th style="width: 16%">{{ _("Expense Account") }}</th>
+				<th style="width: 10%">{{ _("Requested") }} ({{ home_currency }})</th>
+				<th style="width: 10%">{{ _("Actual Cost") }} ({{ home_currency }})</th>
+				<th style="width: 10%">{{ _("Variation") }} ({{ home_currency }})</th>
+				<th style="width: 8%">{{ _("Receipt No.") }}</th>
+				<th style="width: 18%">{{ _("Reason") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{%- for row in doc.expenses %}
+			<tr>
+				<td class="mid">{{ loop.index }}</td>
+				<td>{{ row.description or "" }}</td>
+				{%- if on_project %}<td>{{ row.cost_code or "" }}</td>{% endif %}
+				<td>{{ row.expense_account or "" }}</td>
+				<td class="num">{{ money(row.requested_amount) }}</td>
+				<td class="num">{{ money(row.amount) }}</td>
+				<td class="num">{{ money((row.requested_amount or 0) - (row.amount or 0)) }}</td>
+				<td>{{ row.receipt_no or "" }}</td>
+				<td>{{ row.reason or "" }}</td>
+			</tr>
+			{%- endfor %}
+			<tr class="total">
+				<td colspan="{{ 4 if on_project else 3 }}">{{ _("Total") }}</td>
+				<td class="num">{{ money(requested) }}</td>
+				<td class="num">{{ money(spent) }}</td>
+				<td class="num">{{ money(requested - spent) }}</td>
+				<td colspan="2"></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<table class="position">
+		<tr><td>{{ _("Amount Given") }}</td><td class="num">{{ money(doc.amount_issued) }}</td></tr>
+		<tr><td>{{ _("Amount Spent") }}</td><td class="num">{{ money(spent) }}</td></tr>
+		{%- if doc.balance_to_return %}
+		<tr><td>{{ _("Balance to Return to Finance") }}</td><td class="num">{{ money(doc.balance_to_return) }}</td></tr>
+		<tr><td>{{ _("Returned") }}</td><td class="num">{{ money(doc.returned_amount) }}</td></tr>
+		<tr class="due"><td>{{ _("Still to Return") }}</td><td class="num">{{ money(still_returned) }}</td></tr>
+		{%- elif doc.reimbursement_due %}
+		<tr><td>{{ _("Refund Due to the Employee") }}</td><td class="num">{{ money(doc.reimbursement_due) }}</td></tr>
+		<tr><td>{{ _("Refunded") }}</td><td class="num">{{ money(doc.reimbursed_amount) }}</td></tr>
+		<tr class="due"><td>{{ _("Still to Refund") }}</td><td class="num">{{ money(still_refunded) }}</td></tr>
+		{%- endif %}
+	</table>
+
+	<table class="signatures">
+		<tr>
+			{{ signature(_("Accounted For By"), doc.requested_by, doc.accountability_submitted_on) }}
+			{{ signature(_("Verified By (Finance)"), doc.verified_by, doc.verified_on) }}
+			{{ signature(_("Approved By (General Manager)"), None, None) }}
+		</tr>
+	</table>
+</div>
