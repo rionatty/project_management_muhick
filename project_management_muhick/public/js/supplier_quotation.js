@@ -3,9 +3,11 @@
 
 frappe.ui.form.on("Supplier Quotation", {
 	refresh(frm) {
-		if (frm.doc.docstatus === 0 && !frm.is_new()) {
+		// against the others for the same request for quotation
+		const request = (frm.doc.items || []).map((row) => row.request_for_quotation).find(Boolean);
+		if (request && frm.doc.docstatus < 2 && !frm.is_new()) {
 			frm.add_custom_button(__("Compare Quotations"), () => {
-				frappe.set_route("query-report", "Supplier Quotation Comparison", { company: frm.doc.company });
+				frappe.set_route("query-report", "Supplier Quotation Comparison", { request_for_quotation: request });
 			});
 		}
 		// the approved quotation is the selected supplier: the requisition is raised from it

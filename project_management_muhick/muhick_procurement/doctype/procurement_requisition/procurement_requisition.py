@@ -275,8 +275,8 @@ def _on_open_requisitions(quotation_rows, requisition=None) -> dict:
 
 
 def _quotations_compared(quotation_rows, quotations) -> int:
-	"""How many quotations were weighed for a line: those for its request or enquiry or, with neither, those for its
-	item that were open at the same time as its own. The thinnest comparison stands for the requisition."""
+	"""How many quotations were weighed for a line: those for its request for quotation or material request or, with neither,
+	those for its item that were open at the same time as its own. The thinnest comparison stands for the requisition."""
 	counts = {}
 	for row in frappe.get_all(
 		"Supplier Quotation Item",
@@ -286,10 +286,10 @@ def _quotations_compared(quotation_rows, quotations) -> int:
 		own = quotations.get(row.parent)
 		if not own:
 			continue
-		if row.material_request:
-			rule, values = "sqi.material_request = %(value)s", {"value": row.material_request}
-		elif row.request_for_quotation:
+		if row.request_for_quotation:
 			rule, values = "sqi.request_for_quotation = %(value)s", {"value": row.request_for_quotation}
+		elif row.material_request:
+			rule, values = "sqi.material_request = %(value)s", {"value": row.material_request}
 		else:
 			rule = """sqi.item_code = %(value)s and sq.company = %(company)s and sq.transaction_date <= %(till)s
 				and ifnull(sq.valid_till, sq.transaction_date) >= %(since)s"""

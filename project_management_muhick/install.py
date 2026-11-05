@@ -35,6 +35,9 @@ CRM_ITEMS = (
 # taken out of the CRM menu while the app is installed (a lead is already one organisation), put back
 # on uninstall
 CRM_HIDDEN = (("Contact", "Prospect", "DocType", "Prospect", 1),)
+# a standard report the app answers itself: (its module here, its module in ERPNext). A report runs from the folder of its
+# module, so the links to it all stay as they are
+OWN_REPORTS = {"Supplier Quotation Comparison": ("Muhick Procurement", "Buying")}
 
 
 def after_install():
@@ -49,6 +52,7 @@ def after_migrate():
 
 def before_uninstall():
 	show_standard_projects_icon(True)
+	take_over_reports(False)
 	if frappe.db.exists("Workspace Sidebar", CRM_SIDEBAR):
 		frappe.db.delete("Workspace Sidebar Item", {"parent": CRM_SIDEBAR, "link_to": ("in", [i[3] for i in CRM_ITEMS])})
 		for item in CRM_HIDDEN:
@@ -63,9 +67,16 @@ def setup():
 	setup_standard_permissions()
 	setup_report_roles()
 	setup_workflows()
+	take_over_reports(True)
 	show_standard_projects_icon(False)
 	add_sales_to_crm_menu()
 	frappe.clear_cache()
+
+
+def take_over_reports(own):
+	for report, (ours, theirs) in OWN_REPORTS.items():
+		if frappe.db.exists("Report", report):
+			frappe.db.set_value("Report", report, "module", ours if own else theirs, update_modified=False)
 
 
 def show_standard_projects_icon(show):

@@ -118,6 +118,10 @@ and certificates, retention, payments and the controls around them.
 - Claims that mirror the BOQ, the client's certificate, the invoice, retention and its release,
   variations, practical and full completion, the defects liability period and defects.
 - Site reports, site meetings, a document register, equipment allocation and logs, warranties.
+- A site report brings each milestone with its group tasks and subtasks, as on the schedule, and progress is entered on
+  each task. What sits above a task adds up. Submitting moves the tasks it changed, with their status and the date they
+  finished, and what they sit under follows; each task's timeline names the report, and cancelling it moves back those
+  that have not moved since. A task cannot be reported finished before those it follows.
 
 **Procurement and stores**
 
@@ -126,6 +130,10 @@ and certificates, retention, payments and the controls around them.
   routed by budget status and by type of request, with a stock check.
 - Supplier selection approval, Procurement Requisition, Purchase Order and goods received note
   approvals, supplier onboarding, specification change requests, consignment tracking for imports.
+- Supplier Quotation Comparison compares the quotations of one request for quotation, approved or not, as the supplier is
+  chosen from it: each line requested with each supplier's rate and amount in the company's currency, the lowest marked,
+  then each quotation's totals and terms. It takes the place of ERPNext's report of that name (install.py points the
+  report at this app's module), so its links stay.
 - A Procurement Requisition is raised from one approved supplier quotation or several: Create on the
   quotation, Actions on the ticked quotations of the list, or Get Items From on the requisition. Each line
   keeps its source, its currency and, where it has one, its material request; a quotation's line goes on one
