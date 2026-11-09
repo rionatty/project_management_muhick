@@ -5,7 +5,13 @@
 
 Each workflow is created once. After that it belongs to the site: an administrator can change
 steps and roles in the Workflow screen and a later migrate will not overwrite the change.
+
+Who decides a step is its role, and, where the role's approver group names anyone, only them: each
+role that decides a step has a standard User Group, "<role> Approvers", which the step's own
+condition reads. Left empty, everyone with the role decides.
 """
+
+from functools import cache
 
 import frappe
 
@@ -50,6 +56,30 @@ PENDING_STATES = (P_COO, P_FM, P_GM, P_PRM, P_HOS, P_ADM, "Pending Acceptance")
 # the approval route that ends at the first approver, and at the second
 ROUTE_ENDS = ("First Approver Only", "Up to Second Approver")
 
+# what is decided at a step; only these are kept to the people an approver group names
+DECISIONS = (APPROVE, REJECT, "Accept", "Return")
+
+
+def approver_group(role) -> str:
+	"""The standard User Group naming who decides a role's steps."""
+	return f"{role} Approvers"
+
+
+def named_clause(role) -> str:
+	"""A decision is anyone's with the role while its approver group is empty, and only its members' once it names any.
+	Someone without the role passes, so Frappe still lists the step for the role, and the Administrator keeps access."""
+	group = approver_group(role)
+	return (
+		f'(not frappe.db.get_value("Has Role", {{"parent": frappe.session.user, "role": "{role}"}}, "name")'
+		f' or not frappe.db.get_value("User Group Member", {{"parent": "{group}"}}, "name")'
+		f' or frappe.db.get_value("User Group Member", {{"parent": "{group}", "user": frappe.session.user}}, "name"))'
+	)
+
+
+def with_named(condition, role) -> str:
+	clause = named_clause(role)
+	return f"({condition}) and {clause}" if condition else clause
+
 
 def _state(state, doc_status, *roles):
 	return [dict(state=state, doc_status=str(doc_status), allow_edit=role) for role in roles]
@@ -61,7 +91,14 @@ def _t(state, action, next_state, roles, condition=None):
 	# nobody approves or accepts a document they raised themselves (segregation of duties)
 	self_approval = 0 if action in (APPROVE, "Accept") else 1
 	return [
-		dict(state=state, action=action, next_state=next_state, allowed=role, allow_self_approval=self_approval, condition=condition)
+		dict(
+			state=state,
+			action=action,
+			next_state=next_state,
+			allowed=role,
+			allow_self_approval=self_approval,
+			condition=with_named(condition, role) if action in DECISIONS else condition,
+		)
 		for role in roles
 	]
 
@@ -529,6 +566,23 @@ WORKFLOW_DOCTYPES = tuple(get_workflows())
 
 def workflow_name(doctype):
 	return f"Muhick {doctype} Approval"
+
+
+@cache
+def approving_roles() -> tuple:
+	"""Every role that decides a step of these workflows."""
+	return tuple(
+		sorted({t["allowed"] for _states, transitions in get_workflows().values() for t in transitions if t["action"] in DECISIONS})
+	)
+
+
+def setup_approver_groups(roles=()):
+	"""An approver group for each role that decides a step, made empty: everyone with the role decides until someone is
+	named in it. A group already there is left as it is."""
+	for role in sorted({*approving_roles(), *roles}):
+		name = approver_group(role)
+		if not frappe.db.exists("User Group", name):
+			frappe.get_doc({"doctype": "User Group", "name": name}).insert(ignore_permissions=True)
 
 
 def setup_workflows(force=False, doctypes=None):

@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_to_date, flt, get_datetime, now_datetime
 
-from project_management_muhick.setup.workflows import ADM, PENDING_STATES, WORKFLOW_DOCTYPES
+from project_management_muhick.setup.workflows import ADM, DECISIONS, PENDING_STATES, WORKFLOW_DOCTYPES, approver_group, approving_roles
 from project_management_muhick.utils import calc
 from project_management_muhick.utils.common import (
 	COO, FM, FO, GM, PM, PRM, PRO, SE, SK, get_settings, notify, notify_roles, project_manager_of, users_with_roles,
@@ -135,7 +135,7 @@ def _on_state_change(doc, state, previous=None):
 			allowed_hours=_allowed_hours(doc.doctype, state),
 		).insert(ignore_permissions=True)
 		subject = _("{0}{1} is waiting for your approval").format(_("URGENT: ") if _is_urgent(doc) else "", label)
-		notify_roles(get_approver_roles(doc.doctype, state), subject, doc=doc)
+		notify(approvers(get_approver_roles(doc.doctype, state)), subject, doc=doc)
 		told = list((ADMINISTRATION_ON_PENDING if _is_administration(doc) else NOTIFY_ON_PENDING).get(doc.doctype, []))
 		if doc.doctype == "Material Request" and _is_administration(doc):
 			# the company's own request: the General Manager sees it, though only Finance approves it
@@ -202,6 +202,54 @@ def get_approver_roles(doctype, state) -> list[str]:
 	)
 
 
+def approvers(roles) -> list[str]:
+	"""Who decides for these roles: the people each role's approver group names, or everyone with the role when it names
+	none."""
+	users = set()
+	for role in roles:
+		named = frappe.get_all("User Group Member", filters={"parent": approver_group(role)}, pluck="user")
+		users.update(named or users_with_roles(role))
+	return sorted(users)
+
+
+def _role_of_group(group) -> str | None:
+	"""The role an approver group names people for, or None for any other group: a role that decides a step, in the
+	add-on's workflows or on one the site has changed."""
+	suffix = approver_group("")
+	if not group or not group.endswith(suffix):
+		return None
+	role = group[: -len(suffix)]
+	if role in approving_roles() or frappe.db.exists("Workflow Transition", {"allowed": role, "action": ("in", DECISIONS)}):
+		return role
+	return None
+
+
+def validate_approver_group(doc, method=None):
+	"""User Group validate: an approver group names only enabled users who hold its role. Anyone else could never decide,
+	and the step would wait on them."""
+	role = _role_of_group(doc.name)
+	if not role:
+		return
+	for row in doc.get("user_group_members") or []:
+		if not frappe.db.get_value("User", row.user, "enabled"):
+			frappe.throw(_("{0} is disabled, so cannot decide as {1}.").format(row.user, role))
+		if role not in frappe.get_roles(row.user):
+			frappe.throw(_("{0} does not have the role {1}, so cannot decide as {1}.").format(row.user, role))
+
+
+def leave_approver_groups(doc, method=None):
+	"""User on_update: someone disabled, or no longer holding a role, leaves that role's approver group, so no step waits on
+	them. A group left empty is everyone's with the role again."""
+	roles = {row.role for row in doc.get("roles") or []} if doc.get("enabled") else set()
+	for row in frappe.get_all("User Group Member", filters={"user": doc.name}, fields=["parent"]):
+		role = _role_of_group(row.parent)
+		if role and role not in roles:
+			group = frappe.get_doc("User Group", row.parent)
+			group.set("user_group_members", [member for member in group.user_group_members if member.user != doc.name])
+			group.flags.ignore_permissions = True
+			group.save()
+
+
 # ------------------------------------------------------------------ scheduled
 def send_overdue_alerts():
 	"""Hourly: chase approvals that have sat in one step longer than allowed, once a day each."""
@@ -228,7 +276,7 @@ def send_overdue_alerts():
 		subject = _("Overdue approval: {0} {1} has waited {2} hours at {3} (allowed {4})").format(
 			_(log.reference_doctype), log.reference_name, round(waited), _(log.workflow_state), round(flt(log.allowed_hours))
 		)
-		users = users_with_roles(*roles, escalate) if escalate else users_with_roles(*roles)
+		users = approvers(roles) + (users_with_roles(escalate) if escalate else [])
 		notify(users, subject, doc=frappe._dict(doctype=log.reference_doctype, name=log.reference_name))
 		frappe.db.set_value("Approval Turnaround Log", log.name, "alert_sent_on", now)
 	frappe.db.commit()

@@ -479,6 +479,14 @@ again: it only creates what is missing.
 - **Workflow emails are off** because they need an outgoing email account. Approvers get in-system
   notifications. Switch "Send Email Alert" on in each Workflow once email is configured.
 - **Nobody can approve a document they raised.** The Administrator can, for support.
+- **Named approvers.** Each role that decides a step has a standard User Group, "<role> Approvers"
+  (Muhick Projects > Controls > Approver Groups), made empty at install. Left empty, everyone with the
+  role decides, as before. Name one or more people in it and only they can approve, reject, accept
+  or return at that role's steps, on every document; they alone are told it is waiting and when it is
+  overdue. Each decision's own workflow condition reads the group, so this is the standard engine
+  with nothing overridden; a patch added that condition to the workflows already on a site, keeping
+  their own conditions. A group takes only enabled users who hold its role, and someone disabled or
+  losing the role leaves it, so a step never waits on them.
 - **How the budget figures are defined**
   - Committed: approved purchase order lines at full value (a closed order counts what was received
     or billed), supplier invoices raised without an order, approved subcontracts, requisitions,

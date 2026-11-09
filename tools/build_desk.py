@@ -103,6 +103,7 @@ CARDS = [
 	("Controls", [
 		("Pending Approvals", "Pending Approvals", R), ("Three Way Match Exceptions", "Three Way Match Exceptions", R),
 		("Role Permission Matrix", "Role Permission Matrix", R), ("Approval Turnaround Log", "Approval Turnaround Log", D),
+		("Approver Groups", "User Group", D),
 	]),
 	# what ERPNext's own Projects workspace offers, so one icon covers everything
 	("Timesheets and Standard Project Tools", [

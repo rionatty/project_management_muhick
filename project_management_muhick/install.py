@@ -12,7 +12,7 @@ from project_management_muhick.setup.roles import (
 	setup_roles,
 	setup_standard_permissions,
 )
-from project_management_muhick.setup.workflows import setup_workflows
+from project_management_muhick.setup.workflows import setup_approver_groups, setup_workflows
 
 # ERPNext's own desk icon for its Projects workspace
 STANDARD_PROJECTS_ICON = "Projects"
@@ -67,6 +67,7 @@ def setup():
 	setup_standard_permissions()
 	setup_report_roles()
 	setup_workflows()
+	setup_approver_groups()
 	take_over_reports(True)
 	show_standard_projects_icon(False)
 	add_sales_to_crm_menu()

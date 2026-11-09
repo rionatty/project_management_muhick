@@ -115,6 +115,9 @@ doc_events = {
 		"after_insert": "project_management_muhick.overrides.supplier.after_insert",
 	},
 	"Request for Quotation": {"validate": "project_management_muhick.overrides.buying.validate_request_for_quotation"},
+	# who decides a step: a role's approver group, kept to enabled users holding the role
+	"User Group": {"validate": "project_management_muhick.utils.approval.validate_approver_group"},
+	"User": {"on_update": "project_management_muhick.utils.approval.leave_approver_groups"},
 	"Supplier Quotation": {"validate": "project_management_muhick.overrides.buying.validate_supplier_quotation"},
 	"Supplier Evaluation": _approval_events,
 	"Purchase Order": {
