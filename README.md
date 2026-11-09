@@ -182,7 +182,10 @@ and certificates, retention, payments and the controls around them.
   bank's other instruments, and the consignment reads it from there. The consignment holds the commercial
   invoice and packing list, and attaching the invoice tells Finance to book the reserve invoice (Create >
   Reserve Invoice). Its charges open as a Landed Cost Voucher on the goods received (Create > Landed Cost
-  Voucher), less VAT and withholding tax, which the company claims back.
+  Voucher), less VAT and withholding tax, which the company claims back. Where the voucher's charges carry a
+  Supplier (stock_addon adds one, and on submit makes each supplier's invoice), each charge takes its Payee, else
+  the consignment's freight forwarder for freight and its clearing agent for the agent's fees. Those invoices
+  are on the consignment and are not matched against an order.
 - A site store per project; approvals for returns from site, disposals, deliveries and customer returns.
 
 **Finance and controls**
@@ -217,7 +220,8 @@ and certificates, retention, payments and the controls around them.
   turnaround time per approval step with alerts, and a role and permission matrix. An import's reserve
   invoice reads Awaiting Goods until they arrive; any invoice on an order is matched again when goods are
   received against it, or a receipt is cancelled, and a hold it no longer needs comes off. Prices are
-  compared in the order's own currency, so a change in the exchange rate is not a higher price.
+  compared in the order's own currency, so a change in the exchange rate is not a higher price. The
+  invoices a landed cost voucher makes for its charges are not matched: they bill goods already received.
 - Approval limits by value and risk on the Procurement Requisition, the Purchase Order, the Project
   Requisition, fuel and vehicle service: the table in Muhick Settings says how far up each one goes. A
   requisition's risk is chosen, and is high whatever was chosen for a single quotation, an advance payment

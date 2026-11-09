@@ -17,6 +17,8 @@ from project_management_muhick.utils.common import FM, FO, notify_roles
 
 # taxes the company claims back rather than costs: they stay off the cost of the goods
 NOT_A_COST = ("VAT", "Withholding Tax")
+# who is paid for a charge whose payee is not given: the consignment's own forwarder or agent
+PAID_TO = {"Freight": "freight_forwarder", "Clearing Agent Fees": "clearing_agent"}
 
 
 class ImportShipment(Document):
@@ -112,7 +114,9 @@ def make_reserve_invoice(source_name: str):
 
 @frappe.whitelist()
 def make_landed_cost_voucher(source_name: str):
-	"""The landed cost of a consignment, as a draft: its charges, spread by value over the goods received on its order."""
+	"""The landed cost of a consignment, as a draft: its charges, spread by value over the goods received on its order,
+	each with who is paid for it where the site keeps that on the charge (the stock add-on does, and on submit makes each
+	of them an invoice)."""
 	shipment = frappe.get_doc("Import Shipment", source_name)
 	shipment.check_permission("read")
 	existing = frappe.db.get_value("Landed Cost Voucher", {"muhick_import_shipment": shipment.name, "docstatus": ("<", 2)}, "name")
@@ -153,19 +157,20 @@ def make_landed_cost_voucher(source_name: str):
 		pluck="name",
 	)
 	currency = frappe.get_cached_value("Company", shipment.company, "default_currency")
+	names_payee = frappe.get_meta("Landed Cost Taxes and Charges").has_field("custom_supplier")
 	for row in charges:
-		voucher.append(
-			"taxes",
-			{
-				"description": f"{_(row.charge_type)}: {row.description}" if row.description else _(row.charge_type),
-				"expense_account": accounts[0] if len(accounts) == 1 else None,
-				"account_currency": currency,
-				"exchange_rate": 1,
-				"amount": row.amount,
-				"base_amount": row.amount,
-				"project": shipment.project,
-			},
-		)
+		line = {
+			"description": f"{_(row.charge_type)}: {row.description}" if row.description else _(row.charge_type),
+			"expense_account": accounts[0] if len(accounts) == 1 else None,
+			"account_currency": currency,
+			"exchange_rate": 1,
+			"amount": row.amount,
+			"base_amount": row.amount,
+			"project": shipment.project,
+		}
+		if names_payee:
+			line["custom_supplier"] = row.payee or shipment.get(PAID_TO.get(row.charge_type, ""))
+		voucher.append("taxes", line)
 	voucher.set_total_taxes_and_charges()
 	return voucher
 

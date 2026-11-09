@@ -368,12 +368,16 @@ def validate_purchase_receipt(doc, method=None):
 # ------------------------------------------------------------------ where a consignment is
 def _place_on_consignment(doc):
 	"""A receipt or invoice on an imported order belongs to its consignment: the one the order has, or the one chosen where it
-	has several. An invoice for freight or clearing names no order and can name its consignment all the same. It starts where
-	the consignment is, or else where the goods it bills were received."""
+	has several. An invoice for freight or clearing names no order and can name its consignment all the same, and one the
+	stock add-on makes for a landed cost voucher's charges takes the voucher's. It starts where the consignment is, or else
+	where the goods it bills were received."""
 	if doc.docstatus != 0 or doc.get("is_return"):
 		return
 	orders = {row.purchase_order for row in doc.items if row.purchase_order}
 	shipment = doc.get("muhick_import_shipment")
+	voucher = doc.get("custom_landed_cost_voucher_reference")
+	if not shipment and voucher:
+		shipment = doc.muhick_import_shipment = frappe.db.get_value("Landed Cost Voucher", voucher, "muhick_import_shipment")
 	if shipment and orders:
 		order = frappe.db.get_value("Import Shipment", shipment, "purchase_order")
 		if order not in orders:

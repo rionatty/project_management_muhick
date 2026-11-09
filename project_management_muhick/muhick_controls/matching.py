@@ -26,8 +26,9 @@ def apply(doc, announce=True):
 	"""Purchase Invoice validate."""
 	settings = get_settings()
 	action = settings.three_way_match_action or "Warn"
-	if action == "Off" or doc.is_return or doc.get("muhick_subcontract_agreement"):
-		# subcontract work is certified by a Service Receipt Note instead of a goods receipt
+	if action == "Off" or doc.is_return or doc.get("muhick_subcontract_agreement") or doc.get("custom_landed_cost_voucher_reference"):
+		# subcontract work is certified by a Service Receipt Note instead of a goods receipt; the invoices the stock add-on
+		# makes for a landed cost voucher's charges bill freight, duty and clearing on goods already received, with no order
 		doc.muhick_match_status = "Not Applicable"
 		doc.muhick_match_remarks = ""
 		return
