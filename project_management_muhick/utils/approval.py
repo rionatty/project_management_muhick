@@ -137,8 +137,8 @@ def _on_state_change(doc, state, previous=None):
 		subject = _("{0}{1} is waiting for your approval").format(_("URGENT: ") if _is_urgent(doc) else "", label)
 		notify_roles(get_approver_roles(doc.doctype, state), subject, doc=doc)
 		told = list((ADMINISTRATION_ON_PENDING if _is_administration(doc) else NOTIFY_ON_PENDING).get(doc.doctype, []))
-		if doc.doctype == "Material Request" and doc.get("muhick_request_origin") in ("Administration", "User Department"):
-			# a department's own request: the General Manager sees it, though only Finance approves it
+		if doc.doctype == "Material Request" and _is_administration(doc):
+			# the company's own request: the General Manager sees it, though only Finance approves it
 			told.append(GM)
 		notify_roles(told, _("{0} has been raised and is awaiting approval").format(label), doc=doc, extra_users=_project_managers(doc))
 	elif state == "RFQ Issued":

@@ -127,7 +127,9 @@ and certificates, retention, payments and the controls around them.
 
 - Material Request raised per milestone ("Get Items from Milestone" loads what the plan lists for it and what
   the budget places in it, less what other requests ask for),
-  routed by budget status and by type of request, with a stock check.
+  routed by budget status and by type of request, with a stock check. Local and international procurement are
+  for projects: a request with no project, for the company's own needs, goes the administration way whoever raises
+  it.
 - Supplier Evaluation, Procurement Requisition, Purchase Order and goods received note
   approvals, supplier onboarding, specification change requests, consignment tracking for imports.
 - A goods received note and a purchase invoice name their Location, from ERPNext's Location list, which whoever handles goods
@@ -170,8 +172,9 @@ and certificates, retention, payments and the controls around them.
 - An approved order is emailed to the supplier with the order attached. With no address on the order's
   contact or the supplier, or no outgoing email, the officer is told to print it. Muhick Settings can make
   it print only.
-- An administration purchase, where every request behind a document has Request From "Administration",
-  takes its own route. The Finance Manager approves the request and the General Manager is told. The
+- An administration purchase, where every request behind a document is the company's own need with no project
+  (Request From Administration, or a department's request with no project; the request shows Administration
+  Purchase), takes its own route. The Finance Manager approves the request and the General Manager is told. The
   Administration Manager issues the request for quotation, records the quotations and sends the Supplier
   Evaluation to the General Manager, who decides it. The Procurement Officer raises the requisition, which goes to the Finance
   Manager and then the General Manager whatever its value. The Administration Manager then issues the order,

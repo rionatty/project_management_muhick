@@ -99,13 +99,13 @@ def notify_roles(roles, subject, doc=None, message=None, extra_users=None):
 
 
 def administration_purchase(rows) -> int:
-	"""1 when the requests behind these lines are all the Administration's own, which takes the document down the
-	administration route. A line added by hand has no request behind it and does not change that."""
+	"""1 when the requests behind these lines all take the administration route, the company's own needs with no project,
+	which takes the document down it too. A line added by hand has no request behind it and does not change that."""
 	requests = {row.get("material_request") for row in rows if row.get("material_request")}
 	if not requests:
 		return 0
-	origins = frappe.get_all("Material Request", filters={"name": ("in", list(requests))}, pluck="muhick_request_origin")
-	return int(set(origins) == {"Administration"})
+	flags = frappe.get_all("Material Request", filters={"name": ("in", list(requests))}, pluck="muhick_administration")
+	return int(bool(flags) and all(flags))
 
 
 def administration_order(rows) -> int:

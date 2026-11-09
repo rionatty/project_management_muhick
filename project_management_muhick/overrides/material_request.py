@@ -5,7 +5,8 @@
 
 The result (Within Budget / Exceeds Budget / Not Budgeted) decides the approval route:
 within budget goes to the COO only, anything else also needs the Finance Manager and the
-General Manager.
+General Manager. The company's own needs, with no project, go the administration way instead,
+whoever raises them: local and international procurement are for projects.
 """
 
 from collections import defaultdict
@@ -24,15 +25,14 @@ def validate(doc, method=None):
 	if doc.get("muhick_priority") == "Urgent" and not (doc.get("muhick_priority_reason") or "").strip():
 		frappe.throw(_("Give the reason this request is urgent."))
 	_check_stock(doc)
+	if not doc.get("muhick_request_origin"):
+		doc.muhick_request_origin = "Project" if project else "User Department"
+	doc.muhick_administration = _company_own(doc, project)
 	if not project:
 		doc.muhick_budget_status = "Not Applicable"
 		doc.muhick_budget_remarks = ""
-		if not doc.get("muhick_request_origin"):
-			doc.muhick_request_origin = "User Department"
 		return
 
-	if not doc.get("muhick_request_origin"):
-		doc.muhick_request_origin = "Project"
 	_set_cost_codes(doc, project)
 	_check_budget(doc, project)
 	_check_brands(doc, project)
@@ -47,6 +47,17 @@ def validate(doc, method=None):
 				_("outside the current phase") if doc.get("muhick_out_of_phase") else _("over budget")
 			)
 		)
+
+
+def _company_own(doc, project) -> int:
+	"""1 when the request takes the administration route: the Administration's own, or a department's with no project on
+	it or on any line. Its approval, and the documents raised from it, follow (utils.common.administration_purchase)."""
+	if doc.material_request_type == "Material Transfer":
+		return 0
+	origin = doc.get("muhick_request_origin")
+	if origin == "Administration":
+		return 1
+	return int(origin == "User Department" and not project and not any(row.get("project") for row in doc.items))
 
 
 def _resolve_project(doc):

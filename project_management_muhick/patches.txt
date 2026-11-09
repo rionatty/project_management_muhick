@@ -39,3 +39,4 @@ project_management_muhick.patches.procurement_routes
 project_management_muhick.patches.allocation_banks
 project_management_muhick.patches.site_report_task_rows
 project_management_muhick.patches.supplier_evaluation
+project_management_muhick.patches.administration_channel

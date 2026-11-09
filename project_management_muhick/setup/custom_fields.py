@@ -148,6 +148,7 @@ MATERIAL_REQUEST = _chain(
 	[
 		_sec("muhick_project_section", "Project and Budget"),
 		dict(fieldname="muhick_request_origin", label="Request From", fieldtype="Select", options="\nProject\nDefects Liability\nSite Store\nUser Department\nAdministration\nFixed Asset", in_standard_filter=1),
+		ADMINISTRATION,
 		dict(fieldname="muhick_project", label="Project", fieldtype="Link", options="Project", in_standard_filter=1),
 		dict(fieldname="muhick_phase", label="Milestone / Phase", fieldtype="Link", options="Task", mandatory_depends_on="eval:doc.muhick_project && doc.muhick_request_origin=='Project'"),
 		_col("muhick_project_column"),

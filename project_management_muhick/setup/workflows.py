@@ -178,14 +178,15 @@ def _handover():
 def _material_request():
 	"""Material Request approval routes.
 
-	Purchase or issue for a project / user department : COO, then Finance and GM when over budget.
-	Fixed asset                                       : COO, Finance Manager and General Manager, always.
-	Administration request                            : Finance Manager.
-	Transfer to a site store                          : Procurement Manager.
+	Purchase or issue for a project                    : COO, then Finance and GM when over budget.
+	Fixed asset                                        : COO, Finance Manager and General Manager, always.
+	The company's own, with no project (Administration
+	Purchase: from the Administration, or a department) : Finance Manager.
+	Transfer to a site store                           : Procurement Manager.
 	"""
 	originators = ["Stock User", "Purchase User", PM, SK, SSK, ADM]
 	is_transfer = 'doc.material_request_type == "Material Transfer"'
-	is_admin = 'doc.muhick_request_origin == "Administration"'
+	is_admin = "doc.muhick_administration"
 	coo_only = (
 		'doc.muhick_budget_status in ("Within Budget", "Not Applicable", "", None)'
 		' and doc.muhick_request_origin != "Fixed Asset"'
