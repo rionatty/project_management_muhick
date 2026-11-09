@@ -195,6 +195,9 @@ CUSTOM_FIELDS = {
 			[
 				_ro("muhick_budget_qty", "Budget Qty", "Float", in_list_view=1, columns=1, print_hide=1),
 				_ro("muhick_budget_rate", "Budget Rate", "Currency", options="Company:company:default_currency", in_list_view=1, columns=1, print_hide=1),
+				# chosen on an approved Supplier Evaluation: only such a line goes on a requisition
+				_ro("muhick_selected", "Chosen", "Check", allow_on_submit=1, print_hide=1),
+				_ro("muhick_supplier_evaluation", "Supplier Evaluation", "Link", options="Supplier Evaluation", allow_on_submit=1, print_hide=1),
 			],
 		),
 	],
@@ -270,17 +273,7 @@ CUSTOM_FIELDS = {
 		),
 	],
 	"Request for Quotation": _chain("suppliers", BUDGET_CHECK),
-	"Supplier Quotation": _chain("company", [ADMINISTRATION])
-	+ _chain(
-		"project",
-		[
-			*BUDGET_CHECK,
-			dict(
-				fieldname="muhick_justification", label="Justification", fieldtype="Small Text", print_hide=1, no_copy=1,
-				depends_on="eval:in_list(['Exceeds Budget','Not Budgeted'], doc.muhick_budget_status)",
-			),
-		],
-	),
+	"Supplier Quotation": _chain("company", [ADMINISTRATION]) + _chain("project", BUDGET_CHECK),
 	"Purchase Receipt": _chain("company", [ADMINISTRATION]) + _chain("project", BUDGET_CHECK) + _chain("supplier_delivery_note", CONSIGNMENT_PLACE),
 	"Payment Request": _chain("company", [ADMINISTRATION]),
 	"Landed Cost Voucher": _chain("company", [_ro("muhick_import_shipment", "Consignment", "Link", options="Import Shipment")]),

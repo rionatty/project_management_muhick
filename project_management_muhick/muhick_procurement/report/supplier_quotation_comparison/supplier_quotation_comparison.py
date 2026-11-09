@@ -65,7 +65,7 @@ def _quotations(request, include_expired) -> tuple:
 		"Supplier Quotation",
 		filters={"name": ("in", list(set(names))), "docstatus": ("<", 2)},
 		fields=[
-			"name", "supplier", "supplier_name", "status", "workflow_state", "currency", "conversion_rate", "valid_till", "tc_name", "incoterm",
+			"name", "supplier", "supplier_name", "status", "currency", "conversion_rate", "valid_till", "tc_name", "incoterm",
 			"grand_total", "base_grand_total", "base_total_taxes_and_charges",
 		],
 		order_by="transaction_date asc, name asc",
@@ -77,7 +77,7 @@ def _quotations(request, include_expired) -> tuple:
 def _quoted(request, requested, quotations) -> tuple:
 	"""{(quotation, row of the report): what it quoted there}, and the rows for what was quoted beyond the request. A line
 	belonging to another request is not this comparison's."""
-	cells = defaultdict(lambda: frappe._dict(amount=0.0, stock_qty=0.0, qty=0.0, lead_time=0, brand=None))
+	cells = defaultdict(lambda: frappe._dict(amount=0.0, stock_qty=0.0, qty=0.0, lead_time=0, brand=None, rows=[]))
 	extras = {}
 	if not quotations:
 		return cells, extras
@@ -89,7 +89,7 @@ def _quoted(request, requested, quotations) -> tuple:
 		"Supplier Quotation Item",
 		filters={"parent": ("in", [quotation.name for quotation in quotations])},
 		fields=[
-			"parent", "item_code", "item_name", "uom", "qty", "stock_qty", "base_net_amount", "lead_time_days", "brand", "request_for_quotation",
+			"name", "parent", "item_code", "item_name", "uom", "qty", "stock_qty", "base_net_amount", "lead_time_days", "brand", "request_for_quotation",
 			"request_for_quotation_item",
 		],
 		order_by="idx asc",
@@ -106,6 +106,7 @@ def _quoted(request, requested, quotations) -> tuple:
 		cell.qty += flt(line.qty)
 		cell.lead_time = max(cell.lead_time, flt(line.lead_time_days))
 		cell.brand = cell.brand or line.brand
+		cell.rows.append(line.name)
 	return cells, extras
 
 
@@ -192,7 +193,7 @@ def _totals(quotations, requested, cells, home) -> list:
 		if any(values):
 			rows.append(fact(label, values))
 	rows.append(fact(_("Quotation"), [quotation.name for quotation in quotations], "link"))
-	rows.append(fact(_("Status"), [_(quotation.workflow_state or quotation.status) for quotation in quotations]))
+	rows.append(fact(_("Status"), [_(quotation.status) for quotation in quotations]))
 	return rows
 
 

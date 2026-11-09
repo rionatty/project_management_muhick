@@ -1,0 +1,105 @@
+{#- The procurement report: every item of the material request, the supplier chosen for it and where it stands, on one page,
+    then the suppliers chosen with the reason for each, for signing. -#}
+{%- from "templates/print_formats/standard_macros.html" import add_header with context -%}
+{%- set currency = frappe.db.get_value("Company", doc.company, "default_currency") -%}
+{%- macro money(value) -%}{{ frappe.utils.fmt_money(value or 0, precision=0 if (value or 0) == ((value or 0) | int) else 2, currency=currency) }}{%- endmacro -%}
+{%- macro day(value) -%}{{ frappe.utils.format_date(value) if value else "" }}{%- endmacro -%}
+<style>
+	.muhick-procurement-report h3.form-title { margin: 4px 0 8px; text-align: center; font-weight: bold; letter-spacing: 1px; }
+	.muhick-procurement-report table.facts { width: 100%; margin-bottom: 8px; font-size: 11px; }
+	.muhick-procurement-report table.facts td { padding: 2px 8px 2px 0; vertical-align: top; }
+	.muhick-procurement-report table.facts td.label { width: 15%; font-weight: bold; }
+	.muhick-procurement-report table.grid { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 10px; }
+	.muhick-procurement-report table.grid th,
+	.muhick-procurement-report table.grid td { border: 1px solid #333; padding: 3px 4px; vertical-align: top; }
+	.muhick-procurement-report table.grid th { text-align: center; font-weight: bold; }
+	.muhick-procurement-report .num { text-align: right; white-space: nowrap; }
+	.muhick-procurement-report tr.pending td { color: #555; font-style: italic; }
+	.muhick-procurement-report tr.total td { font-weight: bold; }
+	.muhick-procurement-report table.signatures { width: 100%; margin-top: 22px; font-size: 11px; page-break-inside: avoid; }
+	.muhick-procurement-report table.signatures td { width: 50%; padding: 0 16px 0 0; vertical-align: top; }
+	.muhick-procurement-report .sign-line { margin-top: 16px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+</style>
+
+<div class="muhick-procurement-report">
+	{{ add_header(1, 1, doc, letter_head, no_letterhead, footer, print_settings, "<span></span>") }}
+	<h3 class="form-title">{{ _("PROCUREMENT REPORT") }}</h3>
+	<table class="facts">
+		<tr>
+			<td class="label">{{ _("Material Request") }}</td><td>{{ doc.material_request }}</td>
+			<td class="label">{{ _("As At") }}</td><td>{{ day(doc.report_date) }}</td>
+		</tr>
+		<tr>
+			<td class="label">{{ _("Project") }}</td><td>{{ (frappe.db.get_value("Project", doc.project, "project_name") or doc.project or "") | e }}</td>
+			<td class="label">{{ _("Required By") }}</td><td>{{ day(doc.required_by) }}</td>
+		</tr>
+		<tr>
+			<td class="label">{{ _("Items") }}</td><td>{{ doc.items_total or 0 }}</td>
+			<td class="label">{{ _("With a Supplier") }}</td><td>{{ doc.items_selected or 0 }} {{ _("of") }} {{ doc.items_total or 0 }}</td>
+		</tr>
+	</table>
+
+	<table class="grid">
+		<thead>
+			<tr>
+				<th>{{ _("S/N") }}</th>
+				<th>{{ _("Item") }}</th>
+				<th>{{ _("Qty") }}</th>
+				<th>{{ _("UOM") }}</th>
+				<th>{{ _("Supplier") }}</th>
+				<th>{{ _("Rate") }}</th>
+				<th>{{ _("Amount") }}</th>
+				<th>{{ _("Lead Time (Days)") }}</th>
+				<th>{{ _("Valid Till") }}</th>
+				<th>{{ _("Status") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{%- for row in doc.items %}
+			{%- set has_supplier = row.status in ("Supplier Selected", "On Requisition", "Ordered") %}
+			<tr class="{{ '' if has_supplier else 'pending' }}">
+				<td class="num">{{ loop.index }}</td>
+				<td>{{ (row.item_name or row.item_code) | e }}</td>
+				<td class="num">{{ "%g" | format(row.qty or 0) }}</td>
+				<td>{{ row.uom or "" }}</td>
+				<td>{{ (row.supplier_name or "") | e }}</td>
+				<td class="num">{{ money(row.rate) if has_supplier else "" }}</td>
+				<td class="num">{{ money(row.amount) if has_supplier else "" }}</td>
+				<td class="num">{{ row.lead_time_days or "" }}</td>
+				<td>{{ day(row.valid_till) }}</td>
+				<td>{{ _(row.status or "") }}{{ (": " ~ (row.purchase_order or row.procurement_requisition)) if row.purchase_order or row.procurement_requisition else "" }}{{ (" " ~ row.remarks) | e if row.remarks else "" }}</td>
+			</tr>
+			{%- endfor %}
+			<tr class="total">
+				<td colspan="6">{{ _("Total of Items With a Supplier") }}</td>
+				<td class="num">{{ money(doc.total_amount) }}</td>
+				<td colspan="3"></td>
+			</tr>
+		</tbody>
+	</table>
+
+	{%- if doc.suppliers %}
+	<table class="grid">
+		<thead>
+			<tr><th>{{ _("Supplier Chosen") }}</th><th>{{ _("Items") }}</th><th>{{ _("Amount") }}</th><th>{{ _("Reason for Choosing") }}</th></tr>
+		</thead>
+		<tbody>
+			{%- for row in doc.suppliers %}
+			<tr>
+				<td>{{ (row.supplier_name or row.supplier) | e }}</td>
+				<td class="num">{{ row.items or 0 }}</td>
+				<td class="num">{{ money(row.amount) }}</td>
+				<td>{{ (row.reason or "") | e }}</td>
+			</tr>
+			{%- endfor %}
+		</tbody>
+	</table>
+	{%- endif %}
+
+	<table class="signatures">
+		<tr>
+			<td><b>{{ _("Prepared By (Procurement Officer)") }}</b><div class="sign-line">{{ _("Signature") }}</div><div class="sign-line">{{ _("Date") }}</div></td>
+			<td><b>{{ _("Checked By (Procurement Manager)") }}</b><div class="sign-line">{{ _("Signature") }}</div><div class="sign-line">{{ _("Date") }}</div></td>
+		</tr>
+	</table>
+</div>

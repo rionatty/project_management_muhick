@@ -20,7 +20,7 @@ APPROVE_ACTIONS = ("Approve", "Accept")
 # who is told when a document is finally approved
 NOTIFY_ON_APPROVAL = {
 	"Material Request": [PRM, PRO, SK],
-	"Supplier Quotation": [PRO],
+	"Supplier Evaluation": [PRO],
 	# Finance may now schedule the supplier on the week's payment plan
 	"Procurement Requisition": [PRO, PRM, FO],
 	"Purchase Order": [PRO, PRM],
@@ -61,7 +61,7 @@ NOTIFY_ON_PENDING = {
 # an administration purchase is followed by the Administration Manager and the General Manager, not Procurement
 ADMINISTRATION_ON_APPROVAL = {
 	"Material Request": [ADM, GM],
-	"Supplier Quotation": [ADM, PRO],
+	"Supplier Evaluation": [ADM, PRO],
 	"Procurement Requisition": [ADM, FO],
 	"Purchase Order": [ADM],
 	"Purchase Receipt": [FM, FO],

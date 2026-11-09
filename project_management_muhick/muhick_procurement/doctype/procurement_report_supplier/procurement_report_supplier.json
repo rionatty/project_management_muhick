@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "creation": "2026-11-09 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "supplier_name",
+  "items",
+  "amount",
+  "reason",
+  "supplier_evaluation",
+  "supplier"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Supplier"
+  },
+  {
+   "columns": 1,
+   "fieldname": "items",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Items"
+  },
+  {
+   "columns": 2,
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "options": "Company:company:default_currency"
+  },
+  {
+   "columns": 4,
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Reason for Choosing"
+  },
+  {
+   "columns": 1,
+   "fieldname": "supplier_evaluation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Supplier Evaluation",
+   "options": "Supplier Evaluation"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Supplier ID",
+   "options": "Supplier"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-09 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Procurement",
+ "name": "Procurement Report Supplier",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

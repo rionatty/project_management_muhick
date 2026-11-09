@@ -14,6 +14,25 @@ frappe.query_reports["Supplier Quotation Comparison"] = {
 		{ fieldname: "include_expired", label: __("Include Expired"), fieldtype: "Check" },
 	],
 
+	// the supplier for each line is chosen on the evaluation, from these same columns
+	onload(report) {
+		report.page.add_inner_button(
+			__("Supplier Evaluation"),
+			() => {
+				const request = report.get_filter_value("request_for_quotation");
+				if (!request) {
+					frappe.msgprint(__("Choose the Request for Quotation first."));
+					return;
+				}
+				frappe.model.open_mapped_doc({
+					method: "project_management_muhick.muhick_procurement.doctype.supplier_evaluation.supplier_evaluation.make_supplier_evaluation",
+					source_name: request,
+				});
+			},
+			__("Create")
+		);
+	},
+
 	// the rows below the lines say a quotation's terms, in the same columns as its money
 	formatter(value, row, column, data, default_formatter) {
 		if (value === null || value === undefined || value === "") {

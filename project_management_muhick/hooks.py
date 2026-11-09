@@ -44,6 +44,7 @@ doctype_js = {
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Purchase Receipt": "public/js/purchase_receipt.js",
+	"Request for Quotation": "public/js/request_for_quotation.js",
 	"Supplier Quotation": "public/js/supplier_quotation.js",
 	"Sales Order": "public/js/sales_order.js",
 	"Stock Entry": "public/js/stock_entry.js",
@@ -56,7 +57,6 @@ doctype_js = {
 # the opportunity list shows each bid's status; several approved supplier quotations make one requisition
 doctype_list_js = {
 	"Opportunity": "public/js/opportunity_list.js",
-	"Supplier Quotation": "public/js/supplier_quotation_list.js",
 }
 
 # for the Budget Summary print of a project budget and the Bid Budget print of an opportunity
@@ -72,6 +72,8 @@ override_doctype_dashboards = {
 	"Task": "project_management_muhick.overrides.dashboards.get_task_dashboard",
 	"Opportunity": "project_management_muhick.overrides.dashboards.get_opportunity_dashboard",
 	"Purchase Order": "project_management_muhick.overrides.dashboards.get_purchase_order_dashboard",
+	"Material Request": "project_management_muhick.overrides.dashboards.get_material_request_dashboard",
+	"Request for Quotation": "project_management_muhick.overrides.dashboards.get_request_for_quotation_dashboard",
 }
 
 # Document events
@@ -113,7 +115,8 @@ doc_events = {
 		"after_insert": "project_management_muhick.overrides.supplier.after_insert",
 	},
 	"Request for Quotation": {"validate": "project_management_muhick.overrides.buying.validate_request_for_quotation"},
-	"Supplier Quotation": {**_approval_events, "validate": "project_management_muhick.overrides.buying.validate_supplier_quotation"},
+	"Supplier Quotation": {"validate": "project_management_muhick.overrides.buying.validate_supplier_quotation"},
+	"Supplier Evaluation": _approval_events,
 	"Purchase Order": {
 		"validate": "project_management_muhick.overrides.buying.validate_purchase_order",
 		"before_submit": "project_management_muhick.overrides.buying.before_submit_purchase_order",

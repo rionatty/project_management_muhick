@@ -13,18 +13,5 @@ frappe.ui.form.on("Supplier Quotation", {
 				frappe.set_route("query-report", "Supplier Quotation Comparison", { request_for_quotation: request });
 			});
 		}
-		// the approved quotation is the selected supplier: the requisition is raised from it
-		if (frm.doc.docstatus === 1) {
-			frm.add_custom_button(
-				__("Procurement Requisition"),
-				() => {
-					frappe.model.open_mapped_doc({
-						method: "project_management_muhick.muhick_procurement.doctype.procurement_requisition.procurement_requisition.make_from_supplier_quotation",
-						frm: frm,
-					});
-				},
-				__("Create")
-			);
-		}
 	},
 });

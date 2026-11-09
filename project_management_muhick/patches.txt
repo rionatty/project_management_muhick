@@ -38,3 +38,4 @@ project_management_muhick.patches.project_funds
 project_management_muhick.patches.procurement_routes
 project_management_muhick.patches.allocation_banks
 project_management_muhick.patches.site_report_task_rows
+project_management_muhick.patches.supplier_evaluation

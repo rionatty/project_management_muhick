@@ -1,8 +1,9 @@
 # Copyright (c) 2026, CyveTech and contributors
 # For license information, please see license.txt
 
-"""Procurement Requisition: raised once the suppliers are selected, from one approved supplier quotation or
-several. Each line keeps its source and its currency and, where there is one, the request it comes from. The
+"""Procurement Requisition: raised once the suppliers are selected, from a material request's Procurement Report or from
+the approved quotations, one or several, taking only the lines chosen on an approved Supplier Evaluation. Each line keeps its
+source and its currency and, where there is one, the request it comes from. The
 payment and delivery terms are the requisition's. Approved COO -> Finance Manager -> General Manager, as far as
 the approval limits ask for its value and risk, and only then is one Purchase Order raised per supplier. A line's
 rate is in its quotation's currency; the totals, the budget and the limits read it in the company's.
@@ -58,6 +59,7 @@ class ProcurementRequisition(Document):
 		}
 		quotation_rows = [row.supplier_quotation_item for row in self.items if row.supplier_quotation_item]
 		taken = _on_open_requisitions(quotation_rows, self.name)
+		chosen = set(frappe.get_all("Supplier Quotation Item", filters={"name": ("in", quotation_rows), "muhick_selected": 1}, pluck="name")) if quotation_rows else set()
 		seen = set()
 		for row in self.items:
 			quotation = quotations.get(row.supplier_quotation)
@@ -69,6 +71,10 @@ class ProcurementRequisition(Document):
 				)
 			if quotation.company != self.company:
 				frappe.throw(_("Row {0}: Supplier Quotation {1} belongs to {2}.").format(row.idx, quotation.name, quotation.company))
+			if row.supplier_quotation_item not in chosen:
+				frappe.throw(
+					_("Row {0}: {1} from {2} was not chosen on an approved Supplier Evaluation.").format(row.idx, row.item_code, quotation.name)
+				)
 			if row.supplier_quotation_item in taken:
 				frappe.throw(
 					_("Row {0}: {1} from {2} is already on requisition {3}.").format(
@@ -82,6 +88,8 @@ class ProcurementRequisition(Document):
 			row.currency, row.conversion_rate = quotation.currency, quotation.conversion_rate
 		self.suppliers = ", ".join(sorted({row.supplier_name or row.supplier for row in self.items}))
 		self.quotations_compared = _quotations_compared(quotation_rows, quotations)
+		if not (self.evaluation_summary or "").strip():
+			self.evaluation_summary = _reasons_chosen(quotations)
 		return quotations
 
 	def set_item_values(self):
@@ -334,9 +342,20 @@ def _is_abroad(quotation, countries, home_country, home_currency) -> bool:
 	return country != home_country if country else quotation.currency != home_currency
 
 
-def _quotation_lines(names, requisition=None) -> tuple[list, dict]:
-	"""The lines of approved quotations not yet on an open requisition, and what they say of the requisition's header.
-	The request behind a line fills in what it knows, where there is one."""
+def _reasons_chosen(quotations) -> str:
+	"""Why each supplier was chosen, as its evaluation says."""
+	if not quotations:
+		return ""
+	rows = frappe.get_all(
+		"Supplier Evaluation Supplier", filters={"supplier_quotation": ("in", list(quotations)), "docstatus": 1}, fields=["supplier_name", "reason"]
+	)
+	return "\n".join(f"{row.supplier_name}: {row.reason}" for row in rows if row.reason)
+
+
+def _quotation_lines(names, requisition=None, only=None) -> tuple[list, dict]:
+	"""The lines of approved quotations chosen on an approved Supplier Evaluation and not yet on an open requisition, and what
+	they say of the requisition's header; only those rows where some are named. The request behind a line fills in what it
+	knows, where there is one."""
 	quotations = []
 	for name in names:
 		quotation = frappe.get_doc("Supplier Quotation", name)
@@ -360,10 +379,13 @@ def _quotation_lines(names, requisition=None) -> tuple[list, dict]:
 			fields=["name", "project", "warehouse", "schedule_date", "muhick_cost_code"],
 		)
 	}
-	lines = []
+	lines, not_chosen = [], []
 	for quotation in quotations:
 		for item in quotation.items:
-			if item.name in taken:
+			if item.name in taken or (only is not None and item.name not in only):
+				continue
+			if not item.get("muhick_selected"):
+				not_chosen.append(quotation.name)
 				continue
 			source = requested.get(item.material_request_item) or frappe._dict()
 			lines.append(
@@ -389,6 +411,8 @@ def _quotation_lines(names, requisition=None) -> tuple[list, dict]:
 					"material_request_item": item.material_request_item,
 				}
 			)
+	if not lines and not_chosen:
+		frappe.throw(_("No line of {0} was chosen on an approved Supplier Evaluation.").format(", ".join(sorted(set(not_chosen)))))
 	if not lines:
 		frappe.throw(_("Every line of these quotations is already on a requisition: {0}.").format(", ".join(sorted(set(taken.values())))))
 	home_currency, home_country = frappe.get_cached_value("Company", company, ["default_currency", "country"])
@@ -404,6 +428,7 @@ def _quotation_lines(names, requisition=None) -> tuple[list, dict]:
 		"procurement_type": "International" if any(_is_abroad(q, countries, home_country, home_currency) for q in quotations) else "Local",
 		"delivery_location": warehouses.pop() if len(warehouses) == 1 else None,
 		"delivery_period": _("{0} days").format(lead_time) if lead_time else None,
+		"evaluation_summary": _reasons_chosen({line["supplier_quotation"] for line in lines}),
 	}
 
 
@@ -417,6 +442,88 @@ def make_from_supplier_quotation(source_name: str):
 	for line in lines:
 		doc.append("items", line)
 	return doc
+
+
+def _report_lines(reports, requisition=None) -> tuple[list, dict]:
+	"""The lines of the procurement reports' items with a supplier chosen and not yet on a requisition, and what those
+	suppliers quoted beyond the request, their transport say, which was chosen with them."""
+	from project_management_muhick.muhick_procurement.doctype.procurement_report.procurement_report import SELECTED
+
+	rows, quotations = set(), set()
+	for name in reports:
+		report = frappe.get_doc("Procurement Report", name)
+		report.check_permission("read")
+		report.build()
+		for row in report.items:
+			if row.status == SELECTED:
+				rows.update(filter(None, (row.supplier_quotation_items or "").split(",")))
+				quotations.add(row.supplier_quotation)
+	if not rows:
+		frappe.throw(_("No item on {0} has a supplier chosen and not yet on a requisition.").format(", ".join(reports)))
+	rows.update(
+		frappe.get_all(
+			"Supplier Quotation Item",
+			filters={"parent": ("in", sorted(quotations)), "muhick_selected": 1, "material_request_item": ("is", "not set")},
+			pluck="name",
+		)
+	)
+	return _quotation_lines(sorted(quotations), requisition, only=rows)
+
+
+@frappe.whitelist()
+def make_from_procurement_report(source_name: str):
+	"""The requisition for a report's items with a supplier chosen, whichever suppliers they are."""
+	lines, values = _report_lines([source_name])
+	doc = frappe.new_doc("Procurement Requisition")
+	doc.update({field: value for field, value in values.items() if value})
+	for line in lines:
+		doc.append("items", line)
+	return doc
+
+
+@frappe.whitelist()
+def get_report_lines(reports, requisition: str | None = None) -> dict:
+	"""For Get Items From > Procurement Report on the requisition's form: more material requests on the same requisition."""
+	lines, values = _report_lines(frappe.parse_json(reports), requisition)
+	return {"lines": lines, "values": values}
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def open_reports(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
+	"""What Get Items From offers: reports of requests with a line whose supplier is chosen and not yet on an open requisition."""
+	filters = frappe._dict(filters or {})
+	names = [
+		row[0]
+		for row in frappe.db.sql(
+			"""
+			select distinct rep.name from `tabProcurement Report` rep
+			inner join `tabMaterial Request Item` mri on mri.parent = rep.material_request
+			inner join `tabSupplier Quotation Item` sqi on sqi.material_request_item = mri.name
+			where sqi.muhick_selected = 1 and sqi.docstatus = 1 and sqi.name not in (
+				select line.supplier_quotation_item from `tabProcurement Requisition Item` line
+				inner join `tabProcurement Requisition` req on req.name = line.parent
+				where req.docstatus < 2 and req.name != %(requisition)s and ifnull(req.workflow_state, '') != 'Rejected'
+					and line.supplier_quotation_item is not null
+			)
+			""",
+			{"requisition": filters.requisition or ""},
+		)
+	]
+	if not names:
+		return []
+	conditions = {"name": ("in", names)}
+	if filters.get("company"):
+		conditions["company"] = filters.company
+	return frappe.get_list(
+		doctype,
+		filters=conditions,
+		or_filters={"name": ("like", f"%{txt}%"), "material_request": ("like", f"%{txt}%")} if txt else None,
+		fields=["name", "material_request", "project", "items_pending"],
+		order_by="modified desc",
+		limit_start=start,
+		limit_page_length=page_len,
+	)
 
 
 @frappe.whitelist()
@@ -437,7 +544,7 @@ def open_quotations(doctype, txt, searchfield, start, page_len, filters, as_dict
 			"""
 			select distinct sqi.parent from `tabSupplier Quotation Item` sqi
 			inner join `tabSupplier Quotation` sq on sq.name = sqi.parent
-			where sq.docstatus = 1 and ifnull(sq.status, '') != 'Stopped' and sqi.name not in (
+			where sq.docstatus = 1 and sqi.muhick_selected = 1 and ifnull(sq.status, '') != 'Stopped' and sqi.name not in (
 				select line.supplier_quotation_item from `tabProcurement Requisition Item` line
 				inner join `tabProcurement Requisition` req on req.name = line.parent
 				where req.docstatus < 2 and req.name != %(requisition)s and ifnull(req.workflow_state, '') != 'Rejected'

@@ -155,8 +155,8 @@ def validate_request_for_quotation(doc, method=None):
 # ------------------------------------------------------------------ Supplier Quotation
 def validate_supplier_quotation(doc, method=None):
 	"""A quotation for one project carries it on its header, where the project's connections read it, and on its rows. Its
-	prices are the first real ones, so each row shows what the budget allows beside what is quoted. One over budget can be
-	recorded, but its supplier is not chosen without a reason."""
+	prices are the first real ones, so each row shows what the budget allows beside what is quoted. Its supplier is chosen on
+	the Supplier Evaluation, with the reason."""
 	projects = _projects(doc)
 	if not doc.get("project") and len(projects) == 1:
 		doc.project = projects.pop()
@@ -166,9 +166,6 @@ def validate_supplier_quotation(doc, method=None):
 	_fill_cost_codes(doc, "Material Request Item", "material_request_item")
 	_show_budget_on_rows(doc)
 	_check_budget(doc)
-	sent_on = doc.get("workflow_state") not in (None, "", "Draft", "Rejected")
-	if doc.muhick_budget_status in OVER_BUDGET and sent_on and not (doc.get("muhick_justification") or "").strip():
-		frappe.throw(_("This quotation is over budget: {0}. Enter a Justification before selecting this supplier.").format(doc.muhick_budget_remarks))
 
 
 def _show_budget_on_rows(doc):

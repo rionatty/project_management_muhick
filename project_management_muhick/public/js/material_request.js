@@ -14,6 +14,19 @@ frappe.ui.form.on("Material Request", {
 		if (frm.doc.docstatus === 0) {
 			frm.add_custom_button(__("Frequent Items"), () => pick_frequent_items(frm));
 		}
+		// where each item stands, the supplier chosen, and the requisition raised from it
+		if (frm.doc.docstatus === 1 && frm.doc.material_request_type === "Purchase" && frappe.model.can_read("Procurement Report")) {
+			frm.add_custom_button(
+				__("Procurement Report"),
+				() =>
+					frappe
+						.xcall("project_management_muhick.muhick_procurement.doctype.procurement_report.procurement_report.make_procurement_report", {
+							material_request: frm.doc.name,
+						})
+						.then((name) => frappe.set_route("Form", "Procurement Report", name)),
+				__("View")
+			);
+		}
 		offer_phase_items(frm);
 		const status = frm.doc.muhick_budget_status;
 		if (status === "Exceeds Budget" || status === "Not Budgeted") {

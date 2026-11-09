@@ -128,7 +128,7 @@ and certificates, retention, payments and the controls around them.
 - Material Request raised per milestone ("Get Items from Milestone" loads what the plan lists for it and what
   the budget places in it, less what other requests ask for),
   routed by budget status and by type of request, with a stock check.
-- Supplier selection approval, Procurement Requisition, Purchase Order and goods received note
+- Supplier Evaluation, Procurement Requisition, Purchase Order and goods received note
   approvals, supplier onboarding, specification change requests, consignment tracking for imports.
 - A goods received note and a purchase invoice name their Location, from ERPNext's Location list, which whoever handles goods
   or invoices can add to from the field, and their Consignment, found from the order. Location can still be changed once they
@@ -136,18 +136,32 @@ and certificates, retention, payments and the controls around them.
 - Supplier Quotation Comparison compares the quotations of one request for quotation, approved or not, as the supplier is
   chosen from it: each line requested with each supplier's rate and amount in the company's currency, the lowest marked,
   then each quotation's totals and terms. It takes the place of ERPNext's report of that name (install.py points the
-  report at this app's module), so its links stay.
+  report at this app's module), so its links stay. Create > Supplier Evaluation starts the evaluation from it.
+- Supplier Evaluation, one per request for quotation (Create on the request, or on the comparison): the quotations side by
+  side, a supplier picked for each line with the lowest valid price picked to start with, or none. A price whose quotation has
+  expired cannot be picked. Each supplier chosen needs its reason. What a supplier quoted beyond the request, its transport
+  say, comes with it while it supplies any line. The Procurement Officer sends it to the Procurement Manager, who approves
+  every choice at once; for an administration purchase the Administration Manager sends it to the General Manager.
+  Approval approves the chosen quotations and marks the lines chosen on them. Quotations no longer go for approval one
+  by one and need no justification of their own; a quotation must answer a request for quotation to be chosen.
+- Procurement Report, one per material request (View on the request, or made when an evaluation of its items is
+  approved): every item on one page, with the supplier chosen, rate and amount in the company's currency, lead time,
+  validity and where it stands: Not Sent for Quotation, Sent for Quotation, Quotations Received, Under Evaluation, No
+  Supplier Selected, Supplier Selected, On Requisition or Ordered. Then each supplier chosen with the reason, and lines
+  for the officer and the Procurement Manager to sign. It is read afresh whenever it is opened or printed.
 - The budget is checked on items at each step of procurement: material request, request for quotation, supplier
   quotation, requisition, order, goods received note and invoice each carry a Budget Status and Budget Check. Over a cost code
   or an item's quantity stops the requisition and the order, as Muhick Settings says. An item the budget does not hold, or
-  priced above what it allows for one, is flagged for people to weigh: a supplier cannot be selected on it without a
-  justification, and it stops the requisition and order only if the setting Item Not in the Budget or Priced Above It says
+  priced above what it allows for one, is flagged for people to weigh on the evaluation, where each supplier chosen has
+  its reason, and it stops the requisition and order only if the setting Item Not in the Budget or Priced Above It says
   Stop. A price alone does not lengthen the approval route. The budget's cost of an item is all its lines with approved
   revisions, per stock unit; what an approved request has covered is not counted twice. None of it prints.
-- A Procurement Requisition is raised from one approved supplier quotation or several: Create on the
-  quotation, Actions on the ticked quotations of the list, or Get Items From on the requisition. Each line
-  keeps its source, its currency and, where it has one, its material request; a quotation's line goes on one
-  open requisition only. The payment terms and one required mode of payment are the requisition's, and it
+- A Procurement Requisition is raised from the Procurement Report (Create on the report), for the items with a
+  supplier chosen, whichever suppliers they are. Get Items From > Procurement Report adds other material
+  requests, and Get Items From > Supplier Quotation adds quotations. It takes only lines chosen on an approved
+  Supplier Evaluation, with what their suppliers quoted beyond the request, and the reasons fill its Basis of
+  Supplier Selection. Each line keeps its source, its currency and, where it has one, its material
+  request; a quotation's line goes on one open requisition only. The payment terms and one required mode of payment are the requisition's, and it
   prints on the business's requisition form with the way of paying ticked on every line. It shows each line
   against what was requested and budgeted. Create > Purchase Order raises one order per supplier, carrying
   the terms. An order with no approved requisition cannot go for approval (Muhick Settings can relax this).
@@ -158,8 +172,8 @@ and certificates, retention, payments and the controls around them.
   it print only.
 - An administration purchase, where every request behind a document has Request From "Administration",
   takes its own route. The Finance Manager approves the request and the General Manager is told. The
-  Administration Manager issues the request for quotation and records the quotations, and the General
-  Manager decides the supplier. The Procurement Officer raises the requisition, which goes to the Finance
+  Administration Manager issues the request for quotation, records the quotations and sends the Supplier
+  Evaluation to the General Manager, who decides it. The Procurement Officer raises the requisition, which goes to the Finance
   Manager and then the General Manager whatever its value. The Administration Manager then issues the order,
   any payment request and the goods received note with no further approval, and Finance is told of each
   payment request, receipt and invoice.
@@ -451,8 +465,8 @@ again: it only creates what is missing.
 - **Workflows belong to the site once created.** Change steps or roles in the Workflow screen;
   a later migrate will not overwrite them. To recreate them from code:
   `bench --site your-site execute project_management_muhick.setup.workflows.setup_workflows --kwargs "{'force': True}"`.
-- **Standard documents get approval workflows**: Material Request, Supplier Quotation, Purchase
-  Order, Purchase Receipt, Delivery Note and Stock Entry. A stock entry is submitted directly unless
+- **Standard documents get approval workflows**: Material Request, Purchase Order, Purchase
+  Receipt, Delivery Note and Stock Entry. Supplier quotations are approved through the Supplier Evaluation. A stock entry is submitted directly unless
   it is a return from a site store or a disposal. Documents that ERPNext submits by itself (for
   example automatic reorder requests) skip the approval steps.
 - **Workflow emails are off** because they need an outgoing email account. Approvers get in-system

@@ -1,0 +1,89 @@
+{
+ "actions": [],
+ "creation": "2026-11-09 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "supplier_name",
+  "supplier_quotation",
+  "items",
+  "lowest_items",
+  "amount",
+  "reason",
+  "supplier"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Supplier",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "supplier_quotation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Quotation",
+   "options": "Supplier Quotation",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "items",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Items Chosen",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "lowest_items",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Lowest On",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "columns": 3,
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Reason for Choosing"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Supplier ID",
+   "options": "Supplier",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-09 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Muhick Procurement",
+ "name": "Supplier Evaluation Supplier",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

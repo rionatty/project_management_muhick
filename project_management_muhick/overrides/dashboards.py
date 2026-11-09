@@ -18,7 +18,8 @@ def get_project_dashboard(data):
 		{
 			"label": _("Procurement"),
 			"items": [
-				"Material Request", "Request for Quotation", "Supplier Quotation", "Procurement Requisition", "Purchase Order",
+				"Material Request", "Request for Quotation", "Supplier Quotation", "Supplier Evaluation", "Procurement Report",
+				"Procurement Requisition", "Purchase Order",
 				"Purchase Receipt", "Purchase Invoice", "Import Shipment", "Specification Change Request",
 			],
 		},
@@ -56,6 +57,18 @@ def get_project_counts(doctype: str, name: str, items=None):
 		if names:
 			counts["internal_links_found"].append({"doctype": "Resource Allocation", "open_count": 0, "count": len(names), "names": names})
 	return out
+
+
+def get_material_request_dashboard(data):
+	"""A request's Procurement Report: where each of its items stands, and the supplier chosen."""
+	data.setdefault("transactions", []).append({"label": _("Procurement"), "items": ["Procurement Report"]})
+	return data
+
+
+def get_request_for_quotation_dashboard(data):
+	"""The evaluation that chose the suppliers of a request for quotation."""
+	data.setdefault("transactions", []).append({"label": _("Selection"), "items": ["Supplier Evaluation"]})
+	return data
 
 
 def get_purchase_order_dashboard(data):

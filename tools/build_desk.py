@@ -47,7 +47,8 @@ CARDS = [
 		("Budget Cash Plan", "Budget Cash Plan", R),
 	]),
 	("Procurement", [
-		("Supplier Quotation", "Supplier Quotation", D), ("Procurement Requisition", "Procurement Requisition", D),
+		("Supplier Quotation", "Supplier Quotation", D), ("Supplier Evaluation", "Supplier Evaluation", D),
+		("Procurement Report", "Procurement Report", D), ("Procurement Requisition", "Procurement Requisition", D),
 		("Purchase Order", "Purchase Order", D), ("Goods Received Note", "Purchase Receipt", D),
 		("Consignment Tracking", "Import Shipment", D), ("Locations", "Location", D), ("Specification Change Request", "Specification Change Request", D),
 	]),

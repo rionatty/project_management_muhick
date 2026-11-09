@@ -17,6 +17,7 @@ frappe.ui.form.on("Procurement Requisition", {
 		const rows = frm.doc.items || [];
 		const being_prepared = frm.doc.docstatus === 0 && !["Pending COO", "Pending Finance Manager", "Pending General Manager"].includes(frm.doc.workflow_state);
 		if (being_prepared && frm.has_perm("write")) {
+			frm.add_custom_button(__("Procurement Report"), () => get_items_from_reports(frm), __("Get Items From"));
 			frm.add_custom_button(__("Supplier Quotation"), () => get_items_from_quotations(frm), __("Get Items From"));
 		}
 		if (frm.doc.docstatus === 1 && rows.some((row) => !row.purchase_order)) {
@@ -92,11 +93,43 @@ function get_items_from_quotations(frm) {
 	});
 }
 
+// more material requests on the same requisition: their reports' items with a supplier chosen
+function get_items_from_reports(frm) {
+	const filters = { requisition: frm.doc.name };
+	if (frm.doc.company) {
+		filters.company = frm.doc.company;
+	}
+	new frappe.ui.form.MultiSelectDialog({
+		doctype: "Procurement Report",
+		target: frm,
+		setters: {},
+		columns: ["name", "material_request", "project", "items_pending"],
+		size: "extra-large",
+		get_query: () => ({
+			query: "project_management_muhick.muhick_procurement.doctype.procurement_requisition.procurement_requisition.open_reports",
+			filters,
+		}),
+		action(selections) {
+			if (!selections.length) {
+				frappe.msgprint(__("Select at least one procurement report."));
+				return;
+			}
+			this.dialog.hide();
+			frappe
+				.xcall("project_management_muhick.muhick_procurement.doctype.procurement_requisition.procurement_requisition.get_report_lines", {
+					reports: selections,
+					requisition: frm.doc.name,
+				})
+				.then(({ lines, values }) => add_quotation_lines(frm, lines, values));
+		},
+	});
+}
+
 function add_quotation_lines(frm, lines, values) {
 	const present = new Set((frm.doc.items || []).map((row) => row.supplier_quotation_item));
 	lines.filter((line) => !present.has(line.supplier_quotation_item)).forEach((line) => frm.add_child("items", line));
 	frm.refresh_field("items");
-	["company", "project", "delivery_location", "delivery_period"].forEach((field) => {
+	["company", "project", "delivery_location", "delivery_period", "evaluation_summary"].forEach((field) => {
 		if (values[field] && !frm.doc[field]) {
 			frm.set_value(field, values[field]);
 		}

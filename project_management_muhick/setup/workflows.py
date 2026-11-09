@@ -221,12 +221,12 @@ def _material_request():
 	return states, transitions
 
 
-def _supplier_quotation():
-	"""Quotations are recorded as drafts. The officer sends the chosen one for approval, which is the supplier selection;
-	the Procurement Manager approves or rejects it. On an administration purchase the Administration Manager sends it and
-	the General Manager decides."""
+def _supplier_evaluation():
+	"""The supplier selection: the officer sends the evaluation, and the Procurement Manager approves or rejects every choice on
+	it at once. On an administration purchase the Administration Manager sends it and the General Manager decides. Quotations
+	themselves are recorded and no longer go for approval one by one."""
 	officers = ["Purchase User", PRO]
-	select = "Select Supplier"
+	select = SUBMIT
 	states = (
 		_state(DRAFT, 0, *officers, ADM)
 		+ _state(P_PRM, 0, PRM)
@@ -237,8 +237,8 @@ def _supplier_quotation():
 	)
 	transitions = []
 	for start in (DRAFT, REJECTED):
-		transitions += _t(start, select, P_PRM, officers, f"not {IS_ADMINISTRATION}")
-		transitions += _t(start, select, P_GM, [*officers, ADM], IS_ADMINISTRATION)
+		transitions += _t(start, select, P_PRM, officers, "not doc.administration_purchase")
+		transitions += _t(start, select, P_GM, [*officers, ADM], "doc.administration_purchase")
 	transitions += (
 		_t(P_PRM, APPROVE, APPROVED, PRM)
 		+ _t(P_PRM, REJECT, REJECTED, PRM)
@@ -498,7 +498,7 @@ def get_workflows():
 		"Project Handover": _handover(),
 		"Material Request": _material_request(),
 		# procurement: supplier selection, requisition, order, goods received
-		"Supplier Quotation": _supplier_quotation(),
+		"Supplier Evaluation": _supplier_evaluation(),
 		"Procurement Requisition": _procurement_requisition(),
 		"Purchase Order": _purchase_order(),
 		"Purchase Receipt": _purchase_receipt(),
